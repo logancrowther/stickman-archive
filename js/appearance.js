@@ -57,7 +57,13 @@ function getFeatures(id) {
     furry: false, muzzle: null, claws: false, lionTail: false,
     boltEars: false, electric: false, windLines: false, lightning: false,
     icicles: false, shiver: false, morph: false, dimWalk: false,
-    auraFlame: false, signText: null
+    auraFlame: false, signText: null,
+    // deep-archive (951-999) effect flags
+    dash: false, echo: null, restart: false, crowdBody: false,
+    photoFrame: null, dissolve: false, censor: false, numberSwarm: null,
+    eternalRing: false, perfectRings: false, erased: false, pathDots: false,
+    emblemText: null, glowText: null, sparkleBurst: false, haloRings: 0,
+    noFlip: false, photoFrameColor: null, sepia: false
   };
 
   // ---- head shape ----
@@ -280,9 +286,9 @@ function getFeatures(id) {
   const ov = APPEARANCE_OVERRIDES[id];
   if (ov) Object.assign(f, ov);
 
-  // The king keeps exactly its tuned look — skip the generic accent passes
-  // below that would otherwise recolor its head or add orbiting sparks.
-  if (id === 1000) { FEATURE_CACHE.set(id, f); return f; }
+  // The deep archive (951-1000) keeps exactly its tuned look — skip the
+  // generic accent passes below that would recolor heads or add sparks.
+  if (id >= 951) { FEATURE_CACHE.set(id, f); return f; }
 
   // ---- unique per-id accent for otherwise-plain rare types ----
   if (id > 30 && f.headFill === "#ffffff" && !f.hueCycle) {
@@ -434,6 +440,110 @@ const APPEARANCE_OVERRIDES = {
   937: { companion: "clock" },                                           // The World Clock
   938: { companion: "clock" },                                           // The Universe Clock
   939: { companion: "clock" },                                           // The Final Clock
+
+  // ---- the deep archive (951-999): each crafted to its name/description ----
+  951: { head: "page", headFill: "#ffffff", headScale: 1.5, color: "#9e9e9e",
+         glow: "#fff9c4bb", move: "float", eyes: null },                 // The Final Page — a glowing empty page
+  952: { head: "circle", headFill: "#fdfdfd", color: "#e2e2e2", lineW: 1.6,
+         eyes: null, glow: "#eeeeee66" },                                // The Blank Entry — near-featureless white
+  953: { head: "missing", headFill: "#263238", color: "#111111", lineW: 3,
+         headScale: 1.15, eyes: null, noFlip: true, move: "float" },     // The Missing Entry — redacted "?"
+  954: { head: "circle", headFill: "#f7f7f7", color: "#9e9e9e", dash: true,
+         eyes: null, move: "slow" },                                     // The Unwritten — dashed, unfinished
+  955: { head: "circle", headFill: "#ffffff", color: "#cfcfcf", dash: true,
+         eyes: null, alpha: 0.16, move: "teleport" },                    // The Unseen — barely there
+  956: { head: "circle", headFill: "#eceff1", color: "#78909c", acc: "magnifier",
+         glow: "#b0bec555" },                                            // The Unfound — searching, muted
+  957: { head: "triangle", headFill: "#ffcdd2", color: "#c62828", glitch: true,
+         move: "float", emblemText: "!", glowText: "#ff5252", noFlip: true }, // The Impossible Find
+  958: { head: "circle", headFill: "#fff59d", color: "#c9a227", acc: "clover",
+         numberSwarm: "#c9a227", glow: "#ffd54faa", noFlip: true, move: "float" }, // The Lucky Million
+  959: { head: "infinity", headFill: "#311b92", color: "#7c4dff", starBody: true,
+         haloRings: 3, glow: "#7c4dffaa", move: "float", eyes: "white" }, // The One In Forever
+  960: { head: "circle", headFill: "#455a64", color: "#37474f", chest: "eye",
+         eyes: "glow", glow: "#ffd54f66" },                              // The Hidden Truth — an all-seeing eye
+  961: { head: "folder", acc: "key", orbit: 3, orbitKind: "page",
+         color: "#8d6e63", glow: "#ffe08277" },                         // The Archive Secret — a folder of pages
+  962: { head: "circle", headFill: "#d7ccc8", color: "#6d4c41", hat: "bowler",
+         photoFrameColor: "#8d6e63", sepia: true },                      // The First Photograph — sepia + frame
+  963: { head: "circle", headFill: "#ffe082", color: "#b8860b", acc: "folder",
+         emblemText: "1", glowText: "#ffd700", glow: "#ffd70066", noFlip: true, move: "float" }, // The First Collection
+  964: { head: "circle", headFill: "#ffffff", color: "#000000", lineW: 2,
+         glow: "#ffd70044" },                                            // The Original Stickman — plain, faint gold
+  965: { head: "circle", headFill: "#e1f5fe", color: "#0288d1", perfectRings: true,
+         glow: "#4fc3f788", eyes: null },                                // The Perfect Circle
+  966: { head: "circle", headFill: "#fff8e1", color: "#c9a227", eternalRing: true,
+         glow: "#ffd54f77" },                                            // The Eternal Circle
+  967: { head: "circle", headFill: "#e0e0e0", color: "#757575" },        // The Last Common — utterly ordinary, greyed
+  968: { head: "circle", headFill: "#ffffff", color: "#000000", glow: "#ffd700aa",
+         orbit: 3, orbitKind: "spark" },                                 // The Rare Common — a common that shimmers gold
+  969: { head: "circle", headFill: "#ffffff", color: "#000000", echo: true,
+         glow: "#9e9e9e44" },                                            // The Hidden Ordinary — a hidden double
+  970: { head: "circle", headFill: "#fff9c4", color: "#a1887f", hat: "crown",
+         marks: true, marksColor: "#b0a080", emblemText: "?", glowText: "#bdbdbd",
+         noFlip: true, move: "float" },                                  // The Fake Rare — a cardboard legend
+  971: { head: "square", headFill: "#b39ddb", color: "#6a1b9a", glitch: true,
+         orbit: 3, orbitKind: "page" },                                  // The Archive Glitch
+  972: { head: "diamond", headFill: "#fff59d", color: "#c9a227", glitch: true,
+         glow: "#ffd54faa", eyes: "glow" },                             // The Perfect Glitch — a deliberate one
+  973: { head: "error", headFill: "#212121", color: "#b71c1c", lineW: 2.6,
+         noFlip: true, move: "float" },                                  // The Final Error
+  974: { head: "earth", headFill: "#42a5f5", color: "#37474f", erased: true,
+         glitch: true },                                                 // The Deleted World — half-erased
+  975: { head: "galaxyorb", headFill: "#1a103a", color: "#4a3f6b", alpha: 0.5,
+         fade: true, move: "float", starBody: false, eyes: null },       // The Lost Universe — fading galaxy
+  976: { head: "galaxyorb", headFill: "#160d33", color: "#7c4dff", glow: "#7c4dffaa",
+         move: "float", haloRings: 2, starBody: false, eyes: null },     // The Last Universe — the final galaxy
+  977: { head: "void", headFill: "#0a0a14", color: "#2a2340", move: "float",
+         starBody: false, eyes: null },                                  // The Empty Universe — a hole in space
+  978: { head: "circle", headFill: "#b2dfdb", color: "#00897b", restart: true,
+         glow: "#26a69a77", move: "float" },                             // The Beginning Again
+  979: { head: "circle", headFill: "#e0f2f1", color: "#00796b", restart: "endless",
+         glow: "#4db6ac88", move: "float" },                             // The Endless Beginning
+  980: { head: "sun", headFill: "#ffca28", color: "#fb8c00", glow: "#ffb300aa",
+         move: "float", eyes: null },                                    // The Final Beginning — a rising sun
+  981: { head: "circle", headFill: "#ffccbc", color: "#4e342e", acc: "camera",
+         overhead: "cursor" },                                           // The Player — camera + cursor
+  982: { head: "camera", headFill: "#ffd700", color: "#b8860b", sparkleBurst: true,
+         glow: "#ffd70088" },                                            // The Photographer — the golden camera
+  983: { head: "circle", headFill: "#fff59d", color: "#b8860b", hat: "crown",
+         acc: "folder", orbit: 3, orbitKind: "page", glow: "#ffd70088" }, // The Collector — crowned, complete
+  984: { head: "circle", headFill: "#ffe0b2", color: "#ef6c00", overhead: "heart",
+         move: "dance" },                                                // The Friend — warm, waving, a heart
+  985: { head: "circle", headFill: "#37474f", color: "#263238", crowdBody: true,
+         size: 1.15, eyes: "white" },                                    // The Community — a body of many
+  986: { head: "circle", headFill: "#e3f2fd", color: "#64b5f6", alpha: 0.62,
+         orbit: 4, orbitKind: "photo", glow: "#90caf966", move: "float" }, // The Memory — photos orbiting
+  987: { head: "storybook", headFill: "#fff8e1", color: "#8d6e63", headScale: 1.2,
+         glow: "#ffe08277" },                                            // The Story — an open book
+  988: { head: "circle", headFill: "#d7ccc8", color: "#5d4037", pathDots: true,
+         trail: "print" },                                               // The Journey — a path of footprints
+  989: { head: "circle", headFill: "#fff9c4", color: "#f9a825", overhead: "bulb",
+         sparkleBurst: true, glow: "#fff17688" },                        // The Discovery — the spark of an idea
+  990: { head: "star", headFill: "#e1bee7", color: "#8e24aa", orbit: 3,
+         orbitKind: "spark", glow: "#ce93d888", move: "float" },         // The Wonder
+  991: { head: "question", headFill: "#d1c4e9", color: "#5e35b1", orbit: 2,
+         orbitKind: "page", glow: "#7c4dff77", move: "float" },          // The Mystery Beyond
+  992: { head: "void", headFill: "#0a0a14", color: "#4a3f6b", dissolve: true,
+         move: "float", eyes: null },                                    // The Unknown Beyond
+  993: { head: "circle", headFill: "#fff8e1", color: "#8d6e63", orbit: 5,
+         orbitKind: "page", marks: true, marksKind: "glyphs", marksColor: "#ffb300",
+         glow: "#ffe08277", move: "float" },                            // The Infinite Archive
+  994: { head: "infinity", headFill: "#4527a0", color: "#5e35b1", hueCycle: true,
+         glow: "#7c4dff88", move: "float", eyes: "white", orbit: 0 },    // The Never Ending
+  995: { head: "circle", headFill: "#e3f2fd", color: "#42a5f5", acc: "pageHeld",
+         glowText: "#42a5f5", glow: "#90caf988", noFlip: true },         // The Next Page — a page not yet written
+  996: { head: "holo", headFill: "#00363a", color: "#26c6da", glow: "#26c6daaa",
+         move: "float", emblemText: "v?", glowText: "#26c6da", noFlip: true }, // The Future Entry
+  997: { head: "circle", headFill: "#455a64", color: "#263238", censor: true,
+         noFlip: true, move: "float" },                                  // The Unreleased — COMING SOON
+  998: { head: "circle", headFill: "#1a1a1a", color: "#000000", eyes: "white",
+         emblemText: "1000", glowText: "#ffd70099", alpha: 0.85, orbit: 0,
+         noFlip: true, move: "float" },                                  // The Hidden 1000 — a shadow of the king
+  999: { head: "circle", headFill: "#ede7f6", color: "#4527a0", dissolve: true,
+         emblemText: "999", glowText: "#241b4d", glow: "#7c4dff55",
+         move: "float", noFlip: true },                                  // The Last Known — dissolving into the unknown
+
   1000: { head: "sign", signText: "STICKMAN ARCHIVE", auraFlame: true,   // The Archive Itself — the king
           move: "kingfloat", headScale: 1.7, color: "#111111",
           headFill: "#ffffff", lineW: 2.4 }
@@ -693,6 +803,23 @@ function drawHead(ctx, f, cx, cy, r, t) {
       ctx.lineTo(cx + r * 0.95, cy + r * 0.25);
       ctx.quadraticCurveTo(cx + r * 0.85, cy + r * 1.05, cx, cy + r * 1.05);
       ctx.quadraticCurveTo(cx - r * 0.85, cy + r * 1.05, cx - r * 0.95, cy + r * 0.25);
+      ctx.closePath();
+      break;
+    case "page": ctx.rect(cx - r * 0.85, cy - r * 1.12, r * 1.7, r * 2.24); break; // sheet of paper
+    case "galaxyorb": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
+    case "void": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
+    case "sun": ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2); break;
+    case "holo": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
+    case "missing": ctx.rect(cx - r, cy - r, r * 2, r * 2); break;
+    case "error": ctx.rect(cx - r * 1.25, cy - r * 0.85, r * 2.5, r * 1.7); break;
+    case "storybook": // an open book, two pages meeting at a centre spine
+      ctx.moveTo(cx, cy - r * 0.85);
+      ctx.quadraticCurveTo(cx - r * 0.7, cy - r * 1.02, cx - r * 1.25, cy - r * 0.68);
+      ctx.lineTo(cx - r * 1.25, cy + r * 0.78);
+      ctx.quadraticCurveTo(cx - r * 0.7, cy + r * 0.58, cx, cy + r * 0.82);
+      ctx.quadraticCurveTo(cx + r * 0.7, cy + r * 0.58, cx + r * 1.25, cy + r * 0.78);
+      ctx.lineTo(cx + r * 1.25, cy - r * 0.68);
+      ctx.quadraticCurveTo(cx + r * 0.7, cy - r * 1.02, cx, cy - r * 0.85);
       ctx.closePath();
       break;
     default: ctx.arc(cx, cy, r, 0, Math.PI * 2);
@@ -965,6 +1092,153 @@ function drawHead(ctx, f, cx, cy, r, t) {
     ctx.moveTo(cx + r * 0.15, cy - r * 0.35); ctx.lineTo(cx + r * 0.75, cy - r * 0.3);
     for (const fx of [0.28, 0.45, 0.62]) {
       ctx.moveTo(cx + r * fx, cy - r * 0.45); ctx.lineTo(cx + r * fx, cy - r * 0.2);
+    }
+    ctx.stroke();
+    ctx.restore();
+  } else if (f.head === "page") {
+    // a sheet of paper: dog-eared corner, optional ruled lines
+    ctx.save();
+    ctx.fillStyle = f.color;
+    ctx.beginPath(); // folded top-right corner
+    ctx.moveTo(cx + r * 0.85, cy - r * 1.12);
+    ctx.lineTo(cx + r * 0.4, cy - r * 1.12);
+    ctx.lineTo(cx + r * 0.85, cy - r * 0.6);
+    ctx.closePath();
+    ctx.globalAlpha *= 0.18; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = Math.max(0.7, r * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(cx + r * 0.4, cy - r * 1.12); ctx.lineTo(cx + r * 0.4, cy - r * 0.6); ctx.lineTo(cx + r * 0.85, cy - r * 0.6);
+    ctx.stroke();
+    if (f.headDots === "ruled") { // written pages have ruled text lines
+      ctx.globalAlpha *= 0.5;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const yy = cy - r * 0.5 + i * r * 0.4;
+        ctx.moveTo(cx - r * 0.6, yy); ctx.lineTo(cx + r * (i === 0 ? 0.35 : 0.6), yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (f.head === "galaxyorb") {
+    // a spiral galaxy: bright core, two logarithmic arms, scattered stars
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.strokeStyle = "#b39ddb";
+    ctx.lineWidth = Math.max(1, r * 0.14);
+    for (const off of [0, Math.PI]) {
+      ctx.beginPath();
+      for (let k = 0; k <= 18; k++) {
+        const ang = off + t * 0.6 + k * 0.32;
+        const rad = r * 0.12 + k * r * 0.055;
+        const x = cx + Math.cos(ang) * rad, y = cy + Math.sin(ang) * rad;
+        k ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#fff";
+    ctx.save(); ctx.shadowColor = "#e1bee7"; ctx.shadowBlur = 8;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.22, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    for (let i = 0; i < 10; i++) {
+      const a = i * 2.4, rr = ((i * 37) % 90) / 100 * r;
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, r * 0.06, r * 0.06);
+    }
+    ctx.restore();
+  } else if (f.head === "void") {
+    // a hole in space: faint rim light, a few stars spiralling into nothing
+    ctx.save();
+    ctx.strokeStyle = "#4a3f6b";
+    ctx.lineWidth = Math.max(1, r * 0.1);
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.98, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#c5b3ff";
+    for (let i = 0; i < 5; i++) {
+      const a = t * 1.2 + i * 1.5, rr = r * (0.35 + (i % 3) * 0.2);
+      ctx.globalAlpha = 0.5 + (i % 2) * 0.3;
+      ctx.beginPath(); ctx.arc(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, r * 0.05, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  } else if (f.head === "sun") {
+    // a rising sun: warm disc with a ring of rays
+    ctx.save();
+    ctx.strokeStyle = "#ffb300";
+    ctx.fillStyle = "#ffb300";
+    ctx.lineWidth = Math.max(1, r * 0.1);
+    for (let i = 0; i < 12; i++) {
+      const a = i * Math.PI / 6 + t * 0.3;
+      const r0 = r * 1.0, r1 = r * (1.32 + (i % 2) * 0.12);
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+      ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath(); ctx.arc(cx, cy, r * 0.62, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  } else if (f.head === "holo") {
+    // a projected hologram: cyan wireframe, scanlines, bright eyes
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.strokeStyle = "#26c6da";
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = Math.max(0.6, r * 0.05);
+    ctx.beginPath();
+    for (let yy = -r; yy <= r; yy += r * 0.22) { ctx.moveTo(cx - r, cy + yy); ctx.lineTo(cx + r, cy + yy); }
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = "#4dd0e1"; ctx.shadowColor = "#26c6da"; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.arc(cx - r * 0.34, cy - r * 0.05, r * 0.14, 0, Math.PI * 2);
+    ctx.arc(cx + r * 0.34, cy - r * 0.05, r * 0.14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  } else if (f.head === "missing") {
+    // a redacted placeholder: dashed border, a large white "?"
+    ctx.save();
+    ctx.setLineDash([r * 0.28, r * 0.22]);
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = Math.max(1, r * 0.12);
+    ctx.strokeRect(cx - r * 0.82, cy - r * 0.82, r * 1.64, r * 1.64);
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `800 ${r * 1.3}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("?", cx, cy + r * 0.06);
+    ctx.restore();
+  } else if (f.head === "error") {
+    // a cracked screen flashing ERROR over static
+    ctx.save();
+    ctx.beginPath(); ctx.rect(cx - r * 1.25, cy - r * 0.85, r * 2.5, r * 1.7); ctx.clip();
+    const seg = Math.floor(t * 5);
+    const rng = mulberry32(f.id * 71 + seg * 17);
+    ctx.globalAlpha = 0.5;
+    for (let i = 0; i < 7; i++) {
+      ctx.fillStyle = rng() < 0.5 ? "#37474f" : "#455a64";
+      ctx.fillRect(cx - r * 1.25, cy - r * 0.85 + rng() * r * 1.7, r * 2.5, r * 0.12);
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ff1744";
+    ctx.font = `800 ${r * 0.62}px monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("ERROR", cx, cy + (seg % 2 ? 0 : r * 0.04));
+    ctx.restore();
+    ctx.strokeStyle = "#ff1744";
+    ctx.lineWidth = Math.max(1, r * 0.08);
+    ctx.strokeRect(cx - r * 1.25, cy - r * 0.85, r * 2.5, r * 1.7);
+  } else if (f.head === "storybook") {
+    // centre spine + a few lines of text on each page
+    ctx.save();
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
+    ctx.beginPath(); ctx.moveTo(cx, cy - r * 0.82); ctx.lineTo(cx, cy + r * 0.8); ctx.stroke();
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const yy = cy - r * 0.4 + i * r * 0.32;
+      ctx.moveTo(cx - r * 1.05, yy); ctx.lineTo(cx - r * 0.2, yy);
+      ctx.moveTo(cx + r * 0.2, yy); ctx.lineTo(cx + r * 1.05, yy);
     }
     ctx.stroke();
     ctx.restore();
@@ -1891,6 +2165,34 @@ function drawAccessory(ctx, f, hx, hy, s, t) {
       ctx.beginPath(); ctx.arc(hx - 1.6 * s, hy + 0.75 * s, 0.75 * s, 0, Math.PI * 2); ctx.fill();
       break;
     }
+    case "magnifier": // a magnifying glass held out, searching
+      ctx.save();
+      ctx.strokeStyle = "#5d4037";
+      ctx.lineWidth = Math.max(1.4, f.lineW * s * 0.9);
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 4 * s, hy - 4 * s); ctx.stroke();
+      ctx.strokeStyle = "#455a64";
+      ctx.lineWidth = Math.max(1.2, f.lineW * s * 0.7);
+      ctx.beginPath(); ctx.arc(hx + 6.6 * s, hy - 6.6 * s, 3 * s, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "rgba(180,220,240,0.35)";
+      ctx.beginPath(); ctx.arc(hx + 6.6 * s, hy - 6.6 * s, 2.6 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      break;
+    case "pageHeld": { // a glowing blank page held out, edges faintly shimmering
+      ctx.save();
+      ctx.shadowColor = f.glowText || "#b3e5fc"; ctx.shadowBlur = 8;
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#90a4ae";
+      ctx.lineWidth = Math.max(1, f.lineW * s * 0.5);
+      const px = hx + 2 * s, py = hy - 1 * s;
+      ctx.beginPath(); ctx.rect(px - 3 * s, py - 4.5 * s, 6 * s, 9 * s); ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = f.glowText || "#42a5f5";
+      ctx.font = `800 ${5 * s}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("?", px, py);
+      ctx.restore();
+      break;
+    }
   }
   ctx.lineWidth = f.lineW * 1;
 }
@@ -2072,6 +2374,33 @@ function drawChestIcon(ctx, f, cxp, cyp, s, t) {
       ctx.strokeRect(cxp - 3.4 * s, cyp - 2.4 * s, 6.8 * s, 4.8 * s);
       ctx.beginPath(); ctx.moveTo(cxp, cyp - 2.4 * s); ctx.lineTo(cxp, cyp + 2.4 * s); ctx.stroke();
       break;
+    case "eye": { // an all-seeing eye holding a secret
+      ctx.save();
+      ctx.shadowColor = "#ffd54f"; ctx.shadowBlur = 6;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.moveTo(cxp - 4 * s, cyp);
+      ctx.quadraticCurveTo(cxp, cyp - 3 * s, cxp + 4 * s, cyp);
+      ctx.quadraticCurveTo(cxp, cyp + 3 * s, cxp - 4 * s, cyp);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#5e35b1";
+      ctx.beginPath(); ctx.arc(cxp, cyp, 1.6 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#111";
+      ctx.beginPath(); ctx.arc(cxp, cyp, 0.7 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      break;
+    }
+  }
+  // a glowing word or number stamped on the chest (e.g. "1", "1000", "999")
+  if (f.emblemText) {
+    ctx.save();
+    ctx.fillStyle = f.glowText || "#ffd54f";
+    ctx.shadowColor = f.glowText || "#ffd54f"; ctx.shadowBlur = 8;
+    ctx.font = `800 ${5.4 * s}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(f.emblemText, cxp, cyp);
+    ctx.restore();
   }
 }
 
@@ -2133,6 +2462,36 @@ function drawOverhead(ctx, f, hxp, hyp, s, t) {
       }
       ctx.restore();
       break;
+    case "cursor": { // a mouse pointer hovering — "the player"
+      const px = hxp + 4 * s, py = y + 1 * s;
+      ctx.save();
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#111";
+      ctx.lineWidth = Math.max(1, 0.8 * s);
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.lineTo(px, py + 6 * s);
+      ctx.lineTo(px + 1.7 * s, py + 4.4 * s);
+      ctx.lineTo(px + 2.9 * s, py + 6.9 * s);
+      ctx.lineTo(px + 4 * s, py + 6.4 * s);
+      ctx.lineTo(px + 2.8 * s, py + 3.9 * s);
+      ctx.lineTo(px + 5 * s, py + 3.7 * s);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "heart": { // a warm heart floating above — "the friend"
+      const beat = 1.5 + Math.sin(t * 4) * 0.14;
+      ctx.save();
+      ctx.translate(hxp, y); ctx.scale(beat, beat);
+      ctx.fillStyle = "#ec407a"; ctx.shadowColor = "#f48fb1"; ctx.shadowBlur = 7;
+      ctx.beginPath();
+      ctx.moveTo(0, 2.6 * s);
+      ctx.bezierCurveTo(-3.4 * s, -0.4 * s, -1.8 * s, -3.2 * s, 0, -1.1 * s);
+      ctx.bezierCurveTo(1.8 * s, -3.2 * s, 3.4 * s, -0.4 * s, 0, 2.6 * s);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+      break;
+    }
   }
 }
 
@@ -2175,6 +2534,13 @@ function drawStickman(ctx, inst, t) {
     ctx.drawImage(c, inst.x - bw / 2, inst.y - (bh - 4 * s2), bw, bh);
     ctx.restore();
     return;
+  }
+
+  // Echo: a faint offset copy drawn behind (a hidden second self)
+  if (f.echo && !inst._echo) {
+    const gf = Object.assign({}, f, { echo: false, glow: null, alpha: (f.alpha || 1) * 0.3 });
+    const sub = Object.assign({}, inst, { _echo: true, f: gf, x: inst.x + (inst.dir || 1) * 6, y: inst.y - 2 });
+    drawStickman(ctx, sub, t - 0.25);
   }
 
   const s = inst.size * f.size;
@@ -2294,7 +2660,7 @@ function drawStickman(ctx, inst, t) {
 
   ctx.save();
   ctx.translate(inst.x, inst.y);
-  const facing = (move === "back" || move === "moonwalk") ? -inst.dir : inst.dir;
+  const facing = f.noFlip ? 1 : (move === "back" || move === "moonwalk") ? -inst.dir : inst.dir;
   if (facing < 0) ctx.scale(-1, 1);
   if (f.invert) { // walks the world upside down
     const hgt = legH + bodyL + headR * 2 + 4 * s;
@@ -2314,6 +2680,7 @@ function drawStickman(ctx, inst, t) {
   ctx.lineWidth = f.lineW * s;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
+  if (f.dash) ctx.setLineDash([3.2 * s, 2.4 * s]); // unfinished / sketch look
   if (f.glow) { ctx.shadowColor = f.glow; ctx.shadowBlur = 10; }
 
   // ---- skeleton anchor points ----
@@ -2486,6 +2853,41 @@ function drawStickman(ctx, inst, t) {
   }
 
   const baseAlpha = ctx.globalAlpha;
+
+  // ---- a receding dotted path behind the feet (the journey taken) ----
+  if (f.pathDots) {
+    ctx.save();
+    ctx.setLineDash([]);
+    for (let i = 1; i <= 6; i++) {
+      const px = -(inst.dir || 1) * i * 5 * s;
+      const py = -0.5 * s - i * 0.3 * s;
+      ctx.globalAlpha = baseAlpha * (0.55 - i * 0.07);
+      ctx.fillStyle = "#90a4ae";
+      ctx.beginPath();
+      ctx.ellipse(px, py, (2.2 - i * 0.2) * s, (1 - i * 0.08) * s, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
+
+  // ---- concentric glowing rings radiating outward (a rarity beyond forever) ----
+  if (f.haloRings) {
+    ctx.save();
+    const cxr = shoX * 0.5, cyr = (shoY + hipY) / 2 - headR * 0.5;
+    ctx.strokeStyle = f.glow || "#b388ff";
+    ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 8;
+    for (let i = 0; i < f.haloRings; i++) {
+      const phase = (t * 0.5 + i / f.haloRings) % 1;
+      ctx.globalAlpha = baseAlpha * (1 - phase) * 0.6;
+      ctx.lineWidth = Math.max(1, 1.4 * s);
+      ctx.beginPath();
+      ctx.ellipse(cxr, cyr, (6 + phase * 16) * s, (8 + phase * 20) * s, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
 
   // ---- the king's aura: one structured flame silhouette, white with a bold black outline ----
   if (f.auraFlame) {
@@ -2996,7 +3398,7 @@ function drawStickman(ctx, inst, t) {
     ctx.fillStyle = "#fff";
     ctx.beginPath(); ctx.ellipse(midX + 0.8 * s, midY + 1 * s, 3 * s, 4.6 * s, 0, 0, Math.PI * 2); ctx.fill();
   }
-  if (f.chest) drawChestIcon(ctx, f, midX, midY, s, t);
+  if (f.chest || f.emblemText) drawChestIcon(ctx, f, midX, midY, s, t);
   if (f.marks) {
     if (f.marksKind === "glyphs") {
       // floating glowing runes orbiting the torso
@@ -3059,6 +3461,44 @@ function drawStickman(ctx, inst, t) {
       const yy = shoY + (hipY - shoY) * (i / 4) + 1;
       ctx.fillRect(shoX * (i / 4) - 0.8, yy, 1.6, 1.6);
     }
+  }
+  if (f.crowdBody) { // a solid body packed with many tiny stickmen
+    ctx.save();
+    // filled torso capsule so the little figures read against it
+    const topY2 = shoY - 1 * s, botY2 = hipY + 1 * s, halfW = 5.2 * s;
+    ctx.beginPath();
+    ctx.moveTo(shoX - halfW, topY2 + 2 * s);
+    ctx.quadraticCurveTo(shoX - halfW, topY2, shoX - halfW + 2 * s, topY2);
+    ctx.lineTo(shoX + halfW - 2 * s, topY2);
+    ctx.quadraticCurveTo(shoX + halfW, topY2, shoX + halfW, topY2 + 2 * s);
+    ctx.lineTo(2.4 * s, botY2);
+    ctx.quadraticCurveTo(0, botY2 + 2 * s, -2.4 * s, botY2);
+    ctx.closePath();
+    ctx.fillStyle = f.headFill; ctx.fill();
+    ctx.strokeStyle = f.color; ctx.lineWidth = f.lineW * s; ctx.stroke();
+    ctx.clip();
+    // tiny stickmen filling it
+    ctx.strokeStyle = "#eceff1";
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(0.5, 0.55 * s);
+    const rows = 5, cols = 3;
+    for (let r2 = 0; r2 < rows; r2++) {
+      for (let c2 = 0; c2 < cols; c2++) {
+        const fr = (r2 + 0.6) / (rows + 0.4);
+        const mx = shoX * fr + (c2 - 1) * 3 * s * (1 - fr * 0.5) + (r2 % 2 ? 0.9 : -0.9) * s;
+        const my = topY2 + (botY2 - topY2) * fr;
+        const u = 0.85 * s;
+        ctx.beginPath();
+        ctx.arc(mx, my - 1.5 * u, 0.62 * u, 0, Math.PI * 2);          // head
+        ctx.moveTo(mx, my - 0.85 * u); ctx.lineTo(mx, my + 0.7 * u);  // body
+        ctx.moveTo(mx, my - 0.25 * u); ctx.lineTo(mx - 0.85 * u, my + 0.25 * u); // arms
+        ctx.moveTo(mx, my - 0.25 * u); ctx.lineTo(mx + 0.85 * u, my + 0.25 * u);
+        ctx.moveTo(mx, my + 0.7 * u); ctx.lineTo(mx - 0.75 * u, my + 1.7 * u); // legs
+        ctx.moveTo(mx, my + 0.7 * u); ctx.lineTo(mx + 0.75 * u, my + 1.7 * u);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
   }
   if (f.cactus) { // spikes along the body
     ctx.beginPath();
@@ -3326,6 +3766,36 @@ function drawStickman(ctx, inst, t) {
     ctx.restore();
   }
 
+  // ---- rings encircling the head (drawn behind it) ----
+  if (f.eternalRing) { // a single eternal ring endlessly turning
+    ctx.save();
+    ctx.strokeStyle = f.glow || "#f4b400";
+    ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6;
+    ctx.lineWidth = Math.max(1, 1.2 * s);
+    const tilt2 = Math.sin(t * 1.2) * 0.5;
+    ctx.beginPath();
+    ctx.ellipse(headCX, headCY, headR * 1.5, headR * 0.5, tilt2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  if (f.perfectRings) { // faint compass-drawn construction circles
+    ctx.save();
+    ctx.strokeStyle = f.glow || "#4fc3f7";
+    ctx.globalAlpha = baseAlpha * 0.5;
+    ctx.lineWidth = Math.max(0.6, 0.5 * s);
+    for (const rr of [1.28, 1.55]) {
+      ctx.beginPath(); ctx.arc(headCX, headCY, headR * rr, 0, Math.PI * 2); ctx.stroke();
+    }
+    // a compass tick sweeping the outer circle
+    const ca = t * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(headCX, headCY);
+    ctx.lineTo(headCX + Math.cos(ca) * headR * 1.55, headCY + Math.sin(ca) * headR * 1.55);
+    ctx.stroke();
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
+
   // ---- head group ----
   const tilt = move === "headspin" ? Math.PI
     : move === "kneel" ? 1.0
@@ -3465,6 +3935,15 @@ function drawStickman(ctx, inst, t) {
         ctx.fillStyle = "#fff";
         ctx.fillRect(ox - 2 * s, oy - 2.6 * s, 4 * s, 5.2 * s);
         ctx.strokeRect(ox - 2 * s, oy - 2.6 * s, 4 * s, 5.2 * s);
+      } else if (f.orbitKind === "photo") { // little photographs orbiting
+        ctx.save();
+        ctx.fillStyle = "#fff"; ctx.strokeStyle = "#607d8b";
+        ctx.lineWidth = Math.max(0.7, s * 0.4);
+        ctx.fillRect(ox - 2.4 * s, oy - 2 * s, 4.8 * s, 4 * s);
+        ctx.strokeRect(ox - 2.4 * s, oy - 2 * s, 4.8 * s, 4 * s);
+        ctx.fillStyle = `hsl(${(i * 67 + f.id) % 360}, 60%, 72%)`;
+        ctx.fillRect(ox - 1.8 * s, oy - 1.4 * s, 3.6 * s, 2.2 * s);
+        ctx.restore();
       } else if (f.orbitKind === "spark") {
         ctx.fillStyle = "#f4b400";
         starPath(ctx, ox, oy, 2.2 * s);
@@ -3533,7 +4012,139 @@ function drawStickman(ctx, inst, t) {
     ctx.globalAlpha = baseAlpha;
   }
 
+  // ---- deep-archive front overlays ----
+  const figTop = shoY - headR * 2 - 3 * s, figBot = 1 * s;
+  if (f.numberSwarm) { // tiny numbers drifting around (one in a million)
+    ctx.save();
+    ctx.fillStyle = f.numberSwarm;
+    ctx.font = `700 ${3.4 * s}px monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    for (let i = 0; i < 12; i++) {
+      const a = t * 0.6 + i * 2.1;
+      const rr = (6 + (i % 4) * 3) * s;
+      const nx = shoX * 0.5 + Math.cos(a) * rr * 1.3;
+      const ny = (shoY + hipY) / 2 - headR * 0.4 + Math.sin(a) * rr;
+      ctx.globalAlpha = baseAlpha * (0.35 + (i % 3) * 0.22);
+      ctx.fillText(String((i * 7 + Math.floor(t * 2)) % 10), nx, ny);
+    }
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
+  if (f.sparkleBurst) { // radiant sparkles (a flash of discovery / wonder)
+    ctx.save();
+    ctx.strokeStyle = f.glow || "#fff59d";
+    ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 6;
+    const cxs = shoX * 0.5, cys = (shoY + hipY) / 2 - headR * 0.4;
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      const puls = (Math.sin(t * 3 + i) * 0.5 + 0.5);
+      const r0 = (9 + puls * 3) * s, r1 = (13 + puls * 5) * s;
+      ctx.globalAlpha = baseAlpha * (0.4 + puls * 0.5);
+      ctx.lineWidth = Math.max(0.8, 1 * s);
+      ctx.beginPath();
+      ctx.moveTo(cxs + Math.cos(a) * r0, cys + Math.sin(a) * r0);
+      ctx.lineTo(cxs + Math.cos(a) * r1, cys + Math.sin(a) * r1);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
+  if (f.dissolve) { // the leading edge disintegrates into drifting specks
+    ctx.save();
+    ctx.fillStyle = f.glow || "#b39ddb";
+    const seg = Math.floor(t * 3);
+    const rng = mulberry32(f.id * 53 + seg * 29);
+    for (let i = 0; i < 22; i++) {
+      const fy = figTop + rng() * (figBot - figTop);
+      const spread = rng();
+      const fx = 3 * s + spread * spread * 16 * s;
+      ctx.globalAlpha = baseAlpha * (1 - spread) * 0.9;
+      const sz = (0.6 + rng() * 1.2) * s;
+      ctx.fillRect(fx, fy, sz, sz);
+    }
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
+  if (f.erased) { // chunks of the figure erased into white voids
+    ctx.save();
+    const seg = Math.floor(t * 1.5);
+    const rng = mulberry32(f.id * 97 + seg * 41);
+    ctx.fillStyle = "#ffffff";
+    ctx.strokeStyle = "#bdbdbd";
+    ctx.setLineDash([2 * s, 1.6 * s]);
+    ctx.lineWidth = Math.max(0.6, 0.5 * s);
+    for (let i = 0; i < 3; i++) {
+      const bx = (-5 + rng() * 12) * s;
+      const by = figTop + rng() * (figBot - figTop);
+      const bw = (4 + rng() * 5) * s, bh = (3 + rng() * 5) * s;
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeRect(bx, by, bw, bh);
+    }
+    ctx.restore();
+  }
+  if (f.restart) { // circular refresh arrows turning around the figure (a new beginning)
+    ctx.save();
+    const cxr = shoX * 0.5, cyr = (shoY + hipY) / 2 - headR * 0.4;
+    const rr = (headR + bodyL * 0.5) * 1.15;
+    ctx.strokeStyle = f.glow || "#26a69a";
+    ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 5;
+    ctx.lineWidth = Math.max(1.4, 1.6 * s);
+    const spin = t * (f.restart === "endless" ? 1.6 : 1.0);
+    const loops = f.restart === "endless" ? 2 : 1;
+    for (let k = 0; k < loops; k++) {
+      const a0 = spin + k * Math.PI;
+      const a1 = a0 + Math.PI * 1.55;
+      ctx.beginPath();
+      ctx.arc(cxr, cyr, rr - k * 3 * s, a0, a1);
+      ctx.stroke();
+      // arrowhead at the leading end
+      const ex = cxr + Math.cos(a1) * (rr - k * 3 * s);
+      const ey = cyr + Math.sin(a1) * (rr - k * 3 * s);
+      const ta = a1 + Math.PI / 2;
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex + Math.cos(ta - 0.5) * 3.2 * s, ey + Math.sin(ta - 0.5) * 3.2 * s);
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(ex + Math.cos(ta + 0.5) * 3.2 * s, ey + Math.sin(ta + 0.5) * 3.2 * s);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.globalAlpha = baseAlpha;
+  }
+  if (f.censor) { // a black bar and label over an unreleased entry
+    ctx.save();
+    ctx.fillStyle = "#111";
+    ctx.fillRect(headCX - headR * 1.15, headCY - headR * 0.28, headR * 2.3, headR * 0.62);
+    const midY2 = (shoY + hipY) / 2;
+    ctx.fillRect(shoX * 0.5 - 9 * s, midY2 - 2.2 * s, 18 * s, 4.4 * s);
+    ctx.fillStyle = "#fff";
+    ctx.font = `700 ${2.6 * s}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("COMING SOON", shoX * 0.5, midY2);
+    ctx.restore();
+  }
+
   ctx.restore();
+
+  // ---- an old photograph frame around the whole figure (drawn in world space) ----
+  if (f.photoFrameColor) {
+    ctx.save();
+    const fh = legH + bodyL + headR * 2 + 10 * s;
+    const fw = fh * 0.66;
+    const fx = inst.x - fw / 2, fy = inst.y - fh + 4 * s;
+    if (f.sepia) { // warm vintage wash over the subject
+      ctx.globalAlpha = 0.16; ctx.fillStyle = "#a1743c";
+      ctx.fillRect(fx, fy, fw, fh);
+      ctx.globalAlpha = 1;
+    }
+    ctx.lineWidth = Math.max(3, 3.5 * s);
+    ctx.strokeStyle = f.photoFrameColor;
+    ctx.strokeRect(fx, fy, fw, fh);
+    ctx.lineWidth = Math.max(1, 1 * s);
+    ctx.strokeStyle = "#00000055";
+    ctx.strokeRect(fx + 2 * s, fy + 2 * s, fw - 4 * s, fh - 4 * s);
+    ctx.restore();
+  }
 
   // photographed check mark (drawn unflipped, above the figure)
   if (inst.shot) {
@@ -3558,10 +4169,12 @@ function drawPortrait(typeId, w, h) {
   const keepMoves = ["float", "slither", "headspin", "twirl", "hop", "waddle", "hobble", "moonwalk", "kingfloat"];
   const move = keepMoves.includes(f.move) ? f.move : "walk";
   // the king is tall (big sign head) and wreathed in flame — shrink it and
-  // drop it lower so the whole figure and aura fit inside the frame
-  const fit = f.auraFlame ? 0.6 : 1.0;
+  // drop it lower so the whole figure and aura fit inside the frame.
+  // entries with something floating above the head get a little headroom too.
+  const hasTop = f.overhead || f.haloRings || f.sparkleBurst;
+  const fit = f.auraFlame ? 0.6 : hasTop ? 0.82 : 1.0;
   const inst = {
-    x: w / 2, y: h * (f.auraFlame ? 0.92 : 0.88), dir: 1,
+    x: w / 2, y: h * (f.auraFlame ? 0.92 : hasTop ? 0.82 : 0.88), dir: 1,
     phase: move === "twirl" ? 0.05 : 0.7,
     f, size: (h / 52) * fit, move,
     shot: false,
