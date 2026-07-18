@@ -1,0 +1,15 @@
+# Claude Code local (machine-specific) settings
+.claude/settings.local.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+.vscode/
+.idea/
+
+# Scratch / build output
+scratchpad/
+*.log

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Stickman Archive</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="world"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="hud-left">
+    <h1 id="title">Stickman Archive</h1>
+    <div id="money" title="Total money">$0</div>
+  </div>
+  <div id="hud-right">
+    <button id="camera-btn" class="icon-btn" title="Camera (C)" aria-label="Camera">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+    </button>
+    <button id="folder-btn" class="icon-btn" title="Stickdex" aria-label="Stickdex folder">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+    </button>
+    <div id="frame" title="Bounty: photograph this stickman for x20 money!">
+      <canvas id="frame-canvas" width="128" height="128"></canvas>
+      <img id="frame-photo" alt="">
+      <div id="frame-tick">&#10003;</div>
+      <div id="frame-label">x20</div>
+    </div>
+  </div>
+</div>
+
+<!-- Camera mode -->
+<div id="viewfinder" class="hidden">
+  <div class="vf-corner vf-tl"></div><div class="vf-corner vf-tr"></div>
+  <div class="vf-corner vf-bl"></div><div class="vf-corner vf-br"></div>
+</div>
+<div id="camera-hint" class="hidden">Tap / click to snap &middot; ESC or camera icon to exit</div>
+<div id="flash"></div>
+
+<!-- Snap result toast -->
+<div id="toast" class="hidden"></div>
+
+<!-- Wipe save data -->
+<button id="wipe-btn" title="Delete all progress">Wipe Data</button>
+
+<!-- TEST ONLY: spawn-any-stickman panel — remove this whole block for release -->
+<button id="test-btn" title="Test: queue any stickman to walk on">&#129514; Spawn</button>
+<div id="test-panel" class="hidden">
+  <input id="test-search" type="text" placeholder="Search all 1000 stickmen&hellip;" autocomplete="off">
+  <div id="test-list"></div>
+</div>
+
+<!-- Stickdex -->
+<div id="stickdex" class="hidden">
+  <div id="dex-header">
+    <button id="dex-back" class="icon-btn" title="Back" aria-label="Back">&#8592;</button>
+    <h2>Stickdex</h2>
+    <div id="dex-money">$0</div>
+    <div id="dex-count">0/???</div>
+  </div>
+  <div id="dex-grid"></div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/appearance.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>

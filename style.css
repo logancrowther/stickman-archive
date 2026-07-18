@@ -1,0 +1,292 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #fff;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  color: #000;
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#world {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.hidden { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud {
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 10px 12px;
+  pointer-events: none;
+  z-index: 10;
+}
+#hud-left h1 {
+  font-size: clamp(18px, 4vw, 28px);
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+#money {
+  margin-top: 2px;
+  font-size: clamp(14px, 3vw, 18px);
+  font-weight: 700;
+}
+#money.pop { animation: moneyPop 0.3s ease-out; }
+@keyframes moneyPop {
+  0% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+#hud-right {
+  position: fixed; top: 10px; right: 12px;
+  display: flex; align-items: flex-start; gap: 14px;
+  pointer-events: auto;
+  z-index: 11;
+}
+
+.icon-btn {
+  background: none; border: none; cursor: pointer;
+  color: #000; padding: 4px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+.icon-btn svg { width: 32px; height: 32px; }
+.icon-btn:active { transform: scale(0.9); }
+#camera-btn.active { background: #000; color: #fff; border-radius: 8px; }
+
+/* Bounty frame */
+#frame {
+  position: relative;
+  width: clamp(64px, 14vw, 96px);
+  height: clamp(64px, 14vw, 96px);
+  border: 3px solid #000;
+  background: #fff;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+#frame-canvas, #frame-photo {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+#frame-photo { display: none; }
+#frame.showing-photo #frame-photo { display: block; }
+#frame.showing-photo #frame-canvas { display: none; }
+#frame-tick {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48px; font-weight: 900; color: #17a832;
+  text-shadow: 0 0 6px #fff, 0 0 10px #fff;
+  transform: scale(0); opacity: 0;
+  pointer-events: none;
+}
+#frame-tick.stamp { animation: stamp 0.45s ease-out forwards; }
+@keyframes stamp {
+  0% { transform: scale(3); opacity: 0; }
+  60% { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+#frame-label {
+  position: absolute; bottom: 1px; right: 3px;
+  font-size: 11px; font-weight: 800; color: #000;
+  background: rgba(255,255,255,0.8); padding: 0 3px;
+  pointer-events: none;
+}
+
+/* Flying photo animation */
+.fly-photo {
+  position: fixed;
+  border: 3px solid #000;
+  background: #fff;
+  z-index: 50;
+  pointer-events: none;
+  transition: all 0.8s cubic-bezier(0.5, -0.2, 0.7, 1);
+  object-fit: cover;
+}
+
+/* ---------- Camera mode ---------- */
+#viewfinder {
+  position: fixed;
+  width: 190px; height: 140px;
+  border: 2px solid rgba(0,0,0,0.85);
+  pointer-events: none;
+  z-index: 20;
+}
+#viewfinder.cooling { opacity: 0.35; }
+.vf-corner {
+  position: absolute; width: 18px; height: 18px;
+  border: 4px solid #000;
+}
+.vf-tl { top: -4px; left: -4px; border-right: none; border-bottom: none; }
+.vf-tr { top: -4px; right: -4px; border-left: none; border-bottom: none; }
+.vf-bl { bottom: -4px; left: -4px; border-right: none; border-top: none; }
+.vf-br { bottom: -4px; right: -4px; border-left: none; border-top: none; }
+
+#camera-hint {
+  position: fixed; bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px; font-weight: 600;
+  background: rgba(0,0,0,0.75); color: #fff;
+  padding: 6px 14px; border-radius: 16px;
+  z-index: 20; pointer-events: none;
+  white-space: nowrap;
+}
+
+#flash {
+  position: fixed; inset: 0;
+  background: #fff; opacity: 0;
+  pointer-events: none; z-index: 40;
+}
+#flash.go { animation: flashAnim 0.3s ease-out; }
+@keyframes flashAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+body.camera-mode #world { cursor: none; }
+
+/* ---------- Toast ---------- */
+#toast {
+  position: fixed; top: 30%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.85); color: #fff;
+  padding: 10px 18px; border-radius: 10px;
+  font-size: 15px; font-weight: 600;
+  text-align: center;
+  z-index: 60; pointer-events: none;
+  animation: toastAnim 2.2s ease-out forwards;
+  max-width: 86vw;
+}
+#toast .t-money { color: #6dff8b; font-size: 18px; font-weight: 800; }
+#toast .t-bounty { color: #ffd84d; font-weight: 800; }
+#toast .t-new { color: #7fd4ff; font-weight: 800; }
+@keyframes toastAnim {
+  0% { opacity: 0; transform: translate(-50%, -30%); }
+  12% { opacity: 1; transform: translate(-50%, -50%); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -80%); }
+}
+
+/* ---------- Wipe data ---------- */
+#wipe-btn {
+  position: fixed; bottom: 10px; left: 10px;
+  background: #fff; color: #999;
+  border: 1.5px solid #bbb; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  z-index: 10;
+}
+#wipe-btn:hover { color: #c62828; border-color: #c62828; }
+#wipe-btn:active { transform: scale(0.95); }
+body.camera-mode #wipe-btn { display: none; }
+
+/* ---------- TEST ONLY: spawn panel — remove for release ---------- */
+#test-btn {
+  position: fixed; bottom: 10px; right: 10px;
+  background: #fff; color: #666;
+  border: 1.5px solid #bbb; border-radius: 6px;
+  font-size: 12px; font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  z-index: 10;
+}
+#test-btn:hover { color: #1565c0; border-color: #1565c0; }
+#test-btn:active { transform: scale(0.95); }
+body.camera-mode #test-btn, body.camera-mode #test-panel { display: none; }
+#test-panel {
+  position: fixed; bottom: 44px; right: 10px;
+  width: 250px; max-height: 55vh;
+  background: #fff;
+  border: 2px solid #000; border-radius: 8px;
+  z-index: 11;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+}
+#test-search {
+  border: none; border-bottom: 1.5px solid #ccc;
+  padding: 8px 10px; font-size: 13px; outline: none;
+  flex-shrink: 0;
+}
+#test-list { overflow-y: auto; }
+.test-row {
+  padding: 5px 10px; font-size: 12px; cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.test-row:hover { background: #e3f2fd; }
+
+/* ---------- Stickdex ---------- */
+#stickdex {
+  position: fixed; inset: 0;
+  background: #fff;
+  z-index: 100;
+  display: flex; flex-direction: column;
+}
+#dex-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 3px solid #000;
+  flex-shrink: 0;
+}
+#dex-back { font-size: 26px; font-weight: 800; }
+#dex-header h2 {
+  font-size: clamp(20px, 4vw, 28px);
+  font-weight: 800;
+}
+#dex-money { font-size: clamp(15px, 3vw, 20px); font-weight: 700; }
+#dex-count {
+  margin-left: auto;
+  font-size: clamp(15px, 3vw, 20px);
+  font-weight: 700;
+}
+#dex-grid {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  padding: 14px;
+  align-content: start;
+}
+.dex-card {
+  border: 2px solid #000;
+  background: #fff;
+  display: flex; flex-direction: column;
+}
+.dex-card img, .dex-card canvas {
+  width: 100%; aspect-ratio: 4/3;
+  object-fit: cover;
+  border-bottom: 2px solid #000;
+  background: #fff;
+}
+.dex-info { padding: 7px 8px 9px; }
+.dex-num { font-size: 11px; color: #666; font-weight: 600; }
+.dex-name { font-size: 14px; font-weight: 800; }
+.dex-rarity {
+  font-size: 11px; font-weight: 700; color: #17a832;
+  word-break: break-all;
+  margin: 2px 0;
+}
+.dex-desc { font-size: 11.5px; color: #333; line-height: 1.35; }
+.dex-photo-count { font-size: 10.5px; color: #888; margin-top: 3px; }
+#dex-empty {
+  grid-column: 1 / -1;
+  text-align: center; color: #888;
+  padding: 60px 20px; font-size: 16px;
+}
+
+@media (max-width: 500px) {
+  #dex-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; padding: 9px; }
+  #hud { padding: 8px; }
+  #hud-left h1 { font-size: 16px; }
+  #hud-right { gap: 6px; top: 8px; right: 8px; }
+  .icon-btn { width: 40px; height: 40px; padding: 2px; }
+  .icon-btn svg { width: 28px; height: 28px; }
+  #frame { width: 60px; height: 60px; border-width: 2px; }
+  #viewfinder { width: 150px; height: 115px; }
+}
