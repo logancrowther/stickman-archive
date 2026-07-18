@@ -2255,9 +2255,8 @@ function drawStickman(ctx, inst, t) {
         rot = Math.sin(t * 1.35) * 0.13;
       }
       break;
-    case "kneel": // bowing low on both knees before the king
-      legsMode = "kneel"; armsMode = "kneel";
-      stride = 0; lift = 0; bob = 0; lean = 3 * s; break;
+    case "kneel": // deep bow, both knees planted on the ground
+      legsMode = "kneel"; armsMode = "kneel"; bob = 0; break;
     case "trip": { // stumble → fall flat → push back up (driven by inst.tripT 0..1)
       const p = inst.tripT || 0;
       bob = 0;
@@ -2334,12 +2333,12 @@ function drawStickman(ctx, inst, t) {
     headCX += 2.2 * s;
     headCY += bodyL * 0.3;
   }
-  if (move === "kneel") { // hips sink to the ground, torso and head bow forward
-    hipY = -legH * 0.42;
-    shoX = lean + 2 * s;
-    shoY = hipY - bodyL * 0.92;
-    headCX = shoX + headR * 0.5 + 2 * s;
-    headCY = shoY - headR * 0.15;
+  if (move === "kneel") { // hips low over planted knees, torso folded into a deep bow
+    hipY = -legH * 0.5;
+    shoX = bodyL * 0.62;                  // back pitched well forward
+    shoY = hipY - bodyL * 0.5;
+    headCX = shoX + headR * 0.8 + 2 * s;  // head reaches forward
+    headCY = shoY + headR * 0.35;         // and drops low
   }
 
   // ---- legs ----
@@ -2395,14 +2394,8 @@ function drawStickman(ctx, inst, t) {
       const fy = -Math.max(0, Math.sin(p)) * legH * 0.14; // heel pop, toes stay low
       legPts.push(ik(0, hipY, fx, fy, l1, l2, -1));
     }
-  } else if (legsMode === "kneel") {
-    // shins folded flat behind, knees jutting down-forward onto the ground
-    for (let i = 0; i < 2; i++) {
-      const side = i ? 1 : -1;
-      const fx = -4.5 * s + side * 1.4 * s;
-      legPts.push(ik(0, hipY, fx, 0.2 * s, l1, l2, 1));
-    }
   }
+  // kneeling legs are drawn explicitly (below) so the sharp knee reads clearly
 
   // ---- arms ----
   const armPts = [];
@@ -2471,10 +2464,11 @@ function drawStickman(ctx, inst, t) {
       armPts.push(ik(shoX, shoY, hx, hy, a1, a2, 1));
     }
   } else if (armsMode === "kneel") {
-    // both hands lowered forward in supplication toward the king
+    // both arms reach forward and down toward the ground in a deep bow
     for (let i = 0; i < 2; i++) {
-      const hx = shoX + armL * (0.55 + i * 0.12);
-      const hy = shoY + armL * 0.72;
+      const side = i ? 1 : -1;
+      const hx = shoX + 2 * s + side * 0.8 * s;
+      const hy = -0.3 * s;
       armPts.push(ik(shoX, shoY, hx, hy, a1, a2, 1));
     }
   } else if (armsMode === "mj") {
@@ -2493,36 +2487,58 @@ function drawStickman(ctx, inst, t) {
 
   const baseAlpha = ctx.globalAlpha;
 
-  // ---- the king's black-outlined white aura of flame (behind everything) ----
+  // ---- the king's aura: one structured flame silhouette, white with a bold black outline ----
   if (f.auraFlame) {
-    const headTopY = shoY - headR * 2;         // top of the sign
+    const headTopY = shoY - headR * 2;              // top of the sign
     const acx = shoX * 0.5;
-    const acy = headTopY * 0.5;                 // midpoint of feet(0)→head-top
-    const halfH = -headTopY * 0.5;              // half the figure's height
-    const rx = 8.5 * s, ry = halfH * 1.02;      // envelope hugging the silhouette
+    const acy = headTopY * 0.5 + 2 * s;             // centre of feet(0)→head-top
+    const halfH = -headTopY * 0.5 + 3 * s;
+    const rx = 10 * s, ry = halfH;
+    const N = 11;                                    // flame tongues around the body
+    const outer = [], notch = [];
+    for (let i = 0; i < N; i++) {
+      const a = -Math.PI / 2 + (i / N) * Math.PI * 2;      // start at the top
+      const up = (1 - Math.sin(a)) / 2;                    // 1 at top, 0 at bottom
+      const fl = 1 + Math.sin(t * 7 + i * 2.1) * 0.16;     // flicker, per tongue
+      const tip = (1.12 + up * 0.55) * fl;                 // taller licks reach upward
+      outer.push([acx + Math.cos(a) * rx * tip, acy + Math.sin(a) * ry * tip]);
+      const an = a + Math.PI / N;                          // dip between two tongues
+      notch.push([acx + Math.cos(an) * rx * 0.68, acy + Math.sin(an) * ry * 0.68]);
+    }
     ctx.save();
-    ctx.globalAlpha = baseAlpha * 0.35;         // soft inner white halo
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.ellipse(acx, acy, rx * 0.8, ry * 0.82, 0, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = baseAlpha;
     ctx.lineJoin = "round";
-    ctx.lineWidth = Math.max(1, f.lineW * s * 0.32);
-    const N = 16;
+    ctx.lineWidth = Math.max(1.6, f.lineW * s * 0.7);       // bold black outline
+    // scalloped flame silhouette: pointed cusps at the tips, smooth dips at the notches
+    ctx.beginPath();
+    ctx.moveTo(outer[0][0], outer[0][1]);
     for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 - Math.PI / 2;
-      const fl = 1 + Math.sin(t * 6 + i * 1.9) * 0.16;      // gentle flicker
-      const curl = Math.sin(t * 5 + i) * 1.4 * s;           // licking sway
-      const ca = Math.cos(a), sa = Math.sin(a), pa = a + Math.PI / 2, bw = 2.2 * s;
-      const bx = acx + ca * rx * 0.92, by = acy + sa * ry * 0.92;
-      const tx = acx + ca * rx * 1.18 * fl, ty = acy + sa * ry * 1.18 * fl;
-      ctx.beginPath();
-      ctx.moveTo(bx + Math.cos(pa) * bw, by + Math.sin(pa) * bw);
-      ctx.quadraticCurveTo(bx + ca * rx * 0.25 + curl, by + sa * ry * 0.25, tx, ty);
-      ctx.quadraticCurveTo(bx - ca * rx * 0.05 + curl, by - sa * ry * 0.05, bx - Math.cos(pa) * bw, by - Math.sin(pa) * bw);
-      ctx.closePath();
-      ctx.fillStyle = "#fff"; ctx.fill();
-      ctx.strokeStyle = "#000"; ctx.stroke();
+      const nx = notch[i], ox = outer[(i + 1) % N];
+      ctx.quadraticCurveTo(nx[0], nx[1], ox[0], ox[1]);
     }
+    ctx.closePath();
+    ctx.fillStyle = "#fff"; ctx.fill();
+    ctx.strokeStyle = "#000"; ctx.stroke();
+    // a second, inner flame contour for structure
+    ctx.globalAlpha = baseAlpha * 0.55;
+    ctx.lineWidth = Math.max(1, f.lineW * s * 0.4);
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const a = -Math.PI / 2 + (i / N) * Math.PI * 2;
+      const up = (1 - Math.sin(a)) / 2;
+      const fl = 1 + Math.sin(t * 7 + i * 2.1 + 1) * 0.16;
+      const tip = (0.6 + up * 0.32) * fl;
+      const ox = acx + Math.cos(a) * rx * tip, oy = acy + Math.sin(a) * ry * tip;
+      const an = a + Math.PI / N;
+      const nx = acx + Math.cos(an) * rx * 0.4, ny = acy + Math.sin(an) * ry * 0.4;
+      if (i === 0) ctx.moveTo(ox, oy);
+      const nxt = -Math.PI / 2 + (((i + 1) % N) / N) * Math.PI * 2;
+      const up2 = (1 - Math.sin(nxt)) / 2;
+      const tip2 = (0.6 + up2 * 0.32) * (1 + Math.sin(t * 7 + ((i + 1) % N) * 2.1 + 1) * 0.16);
+      ctx.quadraticCurveTo(nx, ny, acx + Math.cos(nxt) * rx * tip2, acy + Math.sin(nxt) * ry * tip2);
+    }
+    ctx.closePath();
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -3055,6 +3071,23 @@ function drawStickman(ctx, inst, t) {
     ctx.stroke();
   }
 
+  // ---- kneeling legs: thigh down-forward to a knee on the ground, shin flat behind ----
+  if (move === "kneel") {
+    for (let i = 1; i >= 0; i--) { // far leg first (dimmed), then near
+      ctx.globalAlpha = baseAlpha * (i ? 0.6 : 1);
+      const side = i ? 1 : -1;
+      const hx = side * 1.3 * s;
+      const kneeX = 4.2 * s + side * 0.5 * s;
+      const footX = -3.6 * s + side * 0.5 * s;
+      ctx.beginPath();
+      ctx.moveTo(hx, hipY);
+      ctx.lineTo(kneeX, 0.2 * s);   // thigh
+      ctx.lineTo(footX, 0.2 * s);   // shin resting flat on the ground
+      ctx.stroke();
+    }
+    ctx.globalAlpha = baseAlpha;
+  }
+
   // ---- near leg ----
   if (legPts[0]) {
     if (f.halfRobot) { // robot side: hydraulic gray limb with joint caps
@@ -3295,7 +3328,7 @@ function drawStickman(ctx, inst, t) {
 
   // ---- head group ----
   const tilt = move === "headspin" ? Math.PI
-    : move === "kneel" ? 0.6
+    : move === "kneel" ? 1.0
     : Math.sin(ph) * 0.05 + (move === "run" ? 0.16 : move === "slow" ? 0.12 : 0.02);
   ctx.save();
   ctx.translate(headCX, headCY);

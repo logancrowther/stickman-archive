@@ -303,12 +303,12 @@ kingFlash.style.cssText =
   "position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:150;";
 document.body.appendChild(kingFlash);
 
-function kneelBefore(s, king) {
+function kneel(s) {
   if (s.kneeling) return;
   s.kneeling = true;
   s.preKingMove = s.move;
   s.move = "kneel";
-  s.dir = Math.sign(king.x - s.x) || 1; // face the king
+  // keep whatever direction they were already facing — never turn toward the king
 }
 
 function startKingEvent(king) {
@@ -321,7 +321,7 @@ function startKingEvent(king) {
   king.baseSpeed = 60;               // a slow, majestic drift
   king.x = W * 0.16;                 // step in from the left while the screen is black
   king.y = Math.max(150, H * 0.42);  // float above the kneeling crowd
-  for (const s of stickmen) if (s !== king) kneelBefore(s, king);
+  for (const s of stickmen) if (s !== king) kneel(s);
 }
 
 function endKingEvent() {
@@ -383,9 +383,9 @@ function updateWorld(dt, t) {
     const s = stickmen[i];
 
     // during the coronation, everyone but the king is frozen kneeling
+    // (facing whatever way they already were — they never turn)
     if (kingEvent && s !== kingEvent.king) {
-      kneelBefore(s, kingEvent.king);
-      s.dir = Math.sign(kingEvent.king.x - s.x) || s.dir;
+      kneel(s);
       continue;
     }
 
