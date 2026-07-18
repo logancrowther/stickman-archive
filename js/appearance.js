@@ -56,7 +56,8 @@ function getFeatures(id) {
     mjGlove: false, mjShoes: false, collar: false, hair: null, fangs: false,
     furry: false, muzzle: null, claws: false, lionTail: false,
     boltEars: false, electric: false, windLines: false, lightning: false,
-    icicles: false, shiver: false, morph: false, dimWalk: false
+    icicles: false, shiver: false, morph: false, dimWalk: false,
+    auraFlame: false, signText: null
   };
 
   // ---- head shape ----
@@ -279,6 +280,10 @@ function getFeatures(id) {
   const ov = APPEARANCE_OVERRIDES[id];
   if (ov) Object.assign(f, ov);
 
+  // The king keeps exactly its tuned look — skip the generic accent passes
+  // below that would otherwise recolor its head or add orbiting sparks.
+  if (id === 1000) { FEATURE_CACHE.set(id, f); return f; }
+
   // ---- unique per-id accent for otherwise-plain rare types ----
   if (id > 30 && f.headFill === "#ffffff" && !f.hueCycle) {
     const h = Math.floor(rng() * 360);
@@ -428,7 +433,10 @@ const APPEARANCE_OVERRIDES = {
   936: { companion: "clock" },                                           // The Impossible Clock
   937: { companion: "clock" },                                           // The World Clock
   938: { companion: "clock" },                                           // The Universe Clock
-  939: { companion: "clock" }                                            // The Final Clock
+  939: { companion: "clock" },                                           // The Final Clock
+  1000: { head: "sign", signText: "STICKMAN ARCHIVE", auraFlame: true,   // The Archive Itself — the king
+          move: "kingfloat", headScale: 1.7, color: "#111111",
+          headFill: "#ffffff", lineW: 2.4 }
 };
 
 // ------------------------------------------------------------------
@@ -674,6 +682,11 @@ function drawHead(ctx, f, cx, cy, r, t) {
     case "saturn": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
     case "mirror": ctx.ellipse(cx, cy, r * 0.8, r * 1.1, 0, 0, Math.PI * 2); break;
     case "earth": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
+    case "sign": { // a hanging placard reading "STICKMAN ARCHIVE"
+      const sw = r * 2.9, sh = r * 1.8;
+      ctx.rect(cx - sw / 2, cy - sh / 2, sw, sh);
+      break;
+    }
     case "frank": // Frankenstein flat-top: square crown, rounded jaw
       ctx.moveTo(cx - r * 0.95, cy - r * 0.95);
       ctx.lineTo(cx + r * 0.95, cy - r * 0.95);
@@ -920,6 +933,27 @@ function drawHead(ctx, f, cx, cy, r, t) {
     ctx.fill();
     ctx.fillStyle = "#e1f5fe";
     ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.92, r * 0.5, r * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  } else if (f.head === "sign") {
+    // thick black frame, a hanging bar above, and the two-line title
+    const sw = r * 2.9, sh = r * 1.8;
+    ctx.save();
+    ctx.lineWidth = Math.max(1.4, r * 0.16);
+    ctx.strokeStyle = "#111";
+    ctx.strokeRect(cx - sw / 2, cy - sh / 2, sw, sh);
+    ctx.fillStyle = "#111"; // little mounting posts above the sign
+    ctx.fillRect(cx - sw * 0.32, cy - sh / 2 - r * 0.35, r * 0.14, r * 0.4);
+    ctx.fillRect(cx + sw * 0.32 - r * 0.14, cy - sh / 2 - r * 0.35, r * 0.14, r * 0.4);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `800 ${r * 0.5}px sans-serif`;
+    const parts = (f.signText || "STICKMAN ARCHIVE").split(" ");
+    if (parts.length >= 2) {
+      ctx.fillText(parts[0], cx, cy - r * 0.42);
+      ctx.fillText(parts.slice(1).join(" "), cx, cy + r * 0.42);
+    } else {
+      ctx.fillText(parts[0], cx, cy);
+    }
     ctx.restore();
   } else if (f.head === "frank") {
     // black flat-top hair band + forehead stitches
@@ -2212,6 +2246,18 @@ function drawStickman(ctx, inst, t) {
     case "moonwalk": // gliding backslide, leaning back, feet skimming the ground
       legsMode = "moonwalk"; armsMode = "mj";
       stride = legH * 0.5; bob = 0.35 * s; lean = -2.6 * s; break;
+    case "kingfloat": // the Archive Itself: a weightless, weaving, swaying hover
+      legsMode = "dangle"; armsMode = "drift"; bob = 0;
+      if (inst.portrait) { airLift = 4 * s; } // held steady for the frame
+      else {
+        airLift = 9 * s + Math.sin(t * 1.6 + ph) * 5 * s + Math.sin(t * 0.9) * 3.5 * s;
+        lean = Math.sin(t * 1.2) * 3 * s;
+        rot = Math.sin(t * 1.35) * 0.13;
+      }
+      break;
+    case "kneel": // bowing low on both knees before the king
+      legsMode = "kneel"; armsMode = "kneel";
+      stride = 0; lift = 0; bob = 0; lean = 3 * s; break;
     case "trip": { // stumble → fall flat → push back up (driven by inst.tripT 0..1)
       const p = inst.tripT || 0;
       bob = 0;
@@ -2288,6 +2334,13 @@ function drawStickman(ctx, inst, t) {
     headCX += 2.2 * s;
     headCY += bodyL * 0.3;
   }
+  if (move === "kneel") { // hips sink to the ground, torso and head bow forward
+    hipY = -legH * 0.42;
+    shoX = lean + 2 * s;
+    shoY = hipY - bodyL * 0.92;
+    headCX = shoX + headR * 0.5 + 2 * s;
+    headCY = shoY - headR * 0.15;
+  }
 
   // ---- legs ----
   const legPts = [];
@@ -2341,6 +2394,13 @@ function drawStickman(ctx, inst, t) {
       const fx = Math.cos(p) * stride * 0.55;
       const fy = -Math.max(0, Math.sin(p)) * legH * 0.14; // heel pop, toes stay low
       legPts.push(ik(0, hipY, fx, fy, l1, l2, -1));
+    }
+  } else if (legsMode === "kneel") {
+    // shins folded flat behind, knees jutting down-forward onto the ground
+    for (let i = 0; i < 2; i++) {
+      const side = i ? 1 : -1;
+      const fx = -4.5 * s + side * 1.4 * s;
+      legPts.push(ik(0, hipY, fx, 0.2 * s, l1, l2, 1));
     }
   }
 
@@ -2410,6 +2470,13 @@ function drawStickman(ctx, inst, t) {
       const hy = shoY + armL * (0.62 + i * 0.12);
       armPts.push(ik(shoX, shoY, hx, hy, a1, a2, 1));
     }
+  } else if (armsMode === "kneel") {
+    // both hands lowered forward in supplication toward the king
+    for (let i = 0; i < 2; i++) {
+      const hx = shoX + armL * (0.55 + i * 0.12);
+      const hy = shoY + armL * 0.72;
+      armPts.push(ik(shoX, shoY, hx, hy, a1, a2, 1));
+    }
   } else if (armsMode === "mj") {
     // stiff showman arms: near hand flared out behind, far hand low across the body
     const snap = Math.sin(ph * 2) * 0.6 * s;
@@ -2425,6 +2492,39 @@ function drawStickman(ctx, inst, t) {
   }
 
   const baseAlpha = ctx.globalAlpha;
+
+  // ---- the king's black-outlined white aura of flame (behind everything) ----
+  if (f.auraFlame) {
+    const headTopY = shoY - headR * 2;         // top of the sign
+    const acx = shoX * 0.5;
+    const acy = headTopY * 0.5;                 // midpoint of feet(0)→head-top
+    const halfH = -headTopY * 0.5;              // half the figure's height
+    const rx = 8.5 * s, ry = halfH * 1.02;      // envelope hugging the silhouette
+    ctx.save();
+    ctx.globalAlpha = baseAlpha * 0.35;         // soft inner white halo
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.ellipse(acx, acy, rx * 0.8, ry * 0.82, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = baseAlpha;
+    ctx.lineJoin = "round";
+    ctx.lineWidth = Math.max(1, f.lineW * s * 0.32);
+    const N = 16;
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2 - Math.PI / 2;
+      const fl = 1 + Math.sin(t * 6 + i * 1.9) * 0.16;      // gentle flicker
+      const curl = Math.sin(t * 5 + i) * 1.4 * s;           // licking sway
+      const ca = Math.cos(a), sa = Math.sin(a), pa = a + Math.PI / 2, bw = 2.2 * s;
+      const bx = acx + ca * rx * 0.92, by = acy + sa * ry * 0.92;
+      const tx = acx + ca * rx * 1.18 * fl, ty = acy + sa * ry * 1.18 * fl;
+      ctx.beginPath();
+      ctx.moveTo(bx + Math.cos(pa) * bw, by + Math.sin(pa) * bw);
+      ctx.quadraticCurveTo(bx + ca * rx * 0.25 + curl, by + sa * ry * 0.25, tx, ty);
+      ctx.quadraticCurveTo(bx - ca * rx * 0.05 + curl, by - sa * ry * 0.05, bx - Math.cos(pa) * bw, by - Math.sin(pa) * bw);
+      ctx.closePath();
+      ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.strokeStyle = "#000"; ctx.stroke();
+    }
+    ctx.restore();
+  }
 
   // ---- riding cloud ----
   if (f.ride === "cloud") {
@@ -3195,6 +3295,7 @@ function drawStickman(ctx, inst, t) {
 
   // ---- head group ----
   const tilt = move === "headspin" ? Math.PI
+    : move === "kneel" ? 0.6
     : Math.sin(ph) * 0.05 + (move === "run" ? 0.16 : move === "slow" ? 0.12 : 0.02);
   ctx.save();
   ctx.translate(headCX, headCY);
@@ -3421,14 +3522,18 @@ function drawPortrait(typeId, w, h) {
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, w, h);
   const f = getFeatures(typeId);
-  const keepMoves = ["float", "slither", "headspin", "twirl", "hop", "waddle", "hobble", "moonwalk"];
+  const keepMoves = ["float", "slither", "headspin", "twirl", "hop", "waddle", "hobble", "moonwalk", "kingfloat"];
   const move = keepMoves.includes(f.move) ? f.move : "walk";
+  // the king is tall (big sign head) and wreathed in flame — shrink it and
+  // drop it lower so the whole figure and aura fit inside the frame
+  const fit = f.auraFlame ? 0.6 : 1.0;
   const inst = {
-    x: w / 2, y: h * 0.88, dir: 1,
+    x: w / 2, y: h * (f.auraFlame ? 0.92 : 0.88), dir: 1,
     phase: move === "twirl" ? 0.05 : 0.7,
-    f, size: (h / 52) * 1.0, move,
+    f, size: (h / 52) * fit, move,
     shot: false,
-    _noMorph: true // the bounty portrait must show the type itself, not a morph frame
+    portrait: true, // suppress the big vertical float so it stays framed
+    _noMorph: true  // the bounty portrait must show the type itself, not a morph frame
   };
   drawStickman(ctx, inst, 1.234);
   return c;

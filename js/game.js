@@ -161,6 +161,7 @@ function spawn(typeId, onScreen) {
   // special types
   if (type.id === 592) inst.pauseAt = 0.2 + Math.random() * 0.6; // "Pause" stops mid-screen
   stickmen.push(inst);
+  if (id === 1000) startKingEvent(inst); // the Archive Itself — begin the coronation
 
   // King's guard: 5% of kings arrive with two knights marching in step behind
   if (id === 49 && Math.random() < 0.05) {
@@ -289,15 +290,71 @@ function drawPortals(t) {
   }
 }
 
+// ------------------------------------------------------------------
+// The Archive Itself (#1000): a one-in-a-billion coronation. The screen
+// blacks out; when the lights rise, every other stickman is kneeling
+// before the floating king, and the world only resumes once he drifts
+// off the far edge of the screen.
+// ------------------------------------------------------------------
+let kingEvent = null; // { king, t } while the coronation is running
+const kingFlash = document.createElement("div");
+kingFlash.id = "king-flash";
+kingFlash.style.cssText =
+  "position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:150;";
+document.body.appendChild(kingFlash);
+
+function kneelBefore(s, king) {
+  if (s.kneeling) return;
+  s.kneeling = true;
+  s.preKingMove = s.move;
+  s.move = "kneel";
+  s.dir = Math.sign(king.x - s.x) || 1; // face the king
+}
+
+function startKingEvent(king) {
+  if (kingEvent) return;
+  kingEvent = { king, t: 0 };
+  king.isKing = true;
+  king.move = "kingfloat";
+  king.dir = 1;                      // always cross rightward so the sign reads upright
+  king.size = 1.7;                   // towering over the court
+  king.baseSpeed = 60;               // a slow, majestic drift
+  king.x = W * 0.16;                 // step in from the left while the screen is black
+  king.y = Math.max(150, H * 0.42);  // float above the kneeling crowd
+  for (const s of stickmen) if (s !== king) kneelBefore(s, king);
+}
+
+function endKingEvent() {
+  if (!kingEvent) return;
+  for (const s of stickmen) {
+    if (s.kneeling) { s.move = s.preKingMove || "walk"; s.kneeling = false; }
+  }
+  kingEvent = null;
+  kingFlash.style.opacity = "0";
+}
+
+function updateKingFlash(dt) {
+  if (!kingEvent) return;
+  kingEvent.t += dt;
+  const et = kingEvent.t;
+  let a = 0;
+  if (et < 0.35) a = et / 0.35;                     // snap to black
+  else if (et < 1.05) a = 1;                        // hold while the court is arranged
+  else if (et < 1.75) a = 1 - (et - 1.05) / 0.7;    // lights rise on the kneeling crowd
+  kingFlash.style.opacity = String(Math.max(0, a));
+}
+
 let nextTripAt = 25 + Math.random() * 45; // runtime seconds until the next possible trip
 
 function updateWorld(dt, t) {
+  updateKingFlash(dt);
   const max = maxOnScreen();
-  // escorts don't count toward the cap, and aren't replaced when they leave
-  if (stickmen.length - escortAlive < max) spawn(null, false); // refill one per frame, staggered
+  // escorts don't count toward the cap, and aren't replaced when they leave.
+  // (population is frozen during the coronation — nobody new wanders in.)
+  if (!kingEvent && stickmen.length - escortAlive < max) spawn(null, false); // refill one per frame, staggered
 
   // ---- very rarely, a plain Circle trips over another stickman or the ground ----
-  if (t >= nextTripAt) {
+  if (!kingEvent && t >= nextTripAt) {
     const candidates = stickmen.filter(s =>
       s.type.id === 1 && !s.tripping && s.move === "walk" &&
       s.x > 40 && s.x < W - 40);
@@ -324,6 +381,14 @@ function updateWorld(dt, t) {
 
   for (let i = stickmen.length - 1; i >= 0; i--) {
     const s = stickmen[i];
+
+    // during the coronation, everyone but the king is frozen kneeling
+    if (kingEvent && s !== kingEvent.king) {
+      kneelBefore(s, kingEvent.king);
+      s.dir = Math.sign(kingEvent.king.x - s.x) || s.dir;
+      continue;
+    }
+
     let speed = s.baseSpeed;
 
     if (s.pauseAt !== undefined) { // "Pause" — stands still until photographed
@@ -425,6 +490,7 @@ function updateWorld(dt, t) {
       if (s.type.id === 350 && !s.shot) { // "The Eternal" never leaves until photographed
         s.x = s.dir === 1 ? -50 : W + 50;
       } else {
+        if (s.isKing) endKingEvent();  // the king has left — the world resumes
         if (s.noRefill) escortAlive--; // escort slot vanishes with the knight
         if (s.dwPortal) s.dwPortal.closing = true;   // don't strand open rifts
         if (s.dwPortal2) s.dwPortal2.closing = true;
