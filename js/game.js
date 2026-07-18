@@ -204,6 +204,7 @@ function emitTrail(inst, dt) {
   if (kind === "bubble") { p.vy = -14; p.life = 0.9; }
   if (kind === "rainbow") { p.vy = 0; p.vx = 0; p.life = 0.8; p.hue = (performance.now() / 4) % 360; }
   if (kind === "star" || kind === "print" || kind === "glowpath") { p.vx = 0; p.vy = 0; p.life = 0.9; }
+  if (kind === "road") { p.vx = 0; p.vy = 0; p.life = 1.3; p.r = 5 + Math.random() * 1.5; }
   if (kind === "blacksmoke") { // curls up off the whole body
     p.y = inst.y - 4 - Math.random() * instHeight(inst) * 0.8;
     p.vx = -inst.dir * 4 + (Math.random() - 0.5) * 12;
@@ -232,6 +233,7 @@ function drawParticles(dt, t) {
       case "glowpath": ctx.fillStyle = "#ffe082"; break;
       case "blacksmoke": ctx.fillStyle = "#1c1c1c"; break;
       case "dust": ctx.fillStyle = "#c9c2b8"; break;
+      case "road": ctx.fillStyle = "#616161"; break;
       default: ctx.fillStyle = "#999";
     }
     if (p.kind === "bubble") {
@@ -240,6 +242,10 @@ function drawParticles(dt, t) {
       starPath(ctx, p.x, p.y, p.r + 1); ctx.fill();
     } else if (p.kind === "print") {
       ctx.fillRect(p.x - 2, p.y - 1, 4, 2);
+    } else if (p.kind === "road") {
+      ctx.fillRect(p.x - p.r, p.y - 1.6, p.r * 2, 3.2);
+      ctx.fillStyle = "#fdd835";
+      ctx.fillRect(p.x - p.r * 0.35, p.y - 0.5, p.r * 0.7, 1);
     } else {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }

@@ -63,7 +63,10 @@ function getFeatures(id) {
     photoFrame: null, dissolve: false, censor: false, numberSwarm: null,
     eternalRing: false, perfectRings: false, erased: false, pathDots: false,
     emblemText: null, glowText: null, sparkleBurst: false, haloRings: 0,
-    noFlip: false, photoFrameColor: null, sepia: false
+    noFlip: false, photoFrameColor: null, sepia: false,
+    // civic/vehicle (425-439) flags
+    vehicleBody: null, vehicleOnly: null, rideVehicle: null,
+    holdMachine: false, offAcc: null
   };
 
   // ---- head shape ----
@@ -426,6 +429,27 @@ const APPEARANCE_OVERRIDES = {
   414: { chest: "core" },                                                // AI Core
   420: { overhead: "cloud" },                                            // Sad
   424: { overhead: "bulb" },                                             // Idea
+
+  // ---- the civic & vehicle set (425-439) ----
+  425: { overhead: "bulb", holdMachine: true, color: "#5d4037",
+         headFill: "#ffcc80", glow: "#fff59d66" },                       // Inventor: bulb overhead + a machine gripped in both hands
+  426: { acc: "wrench", color: "#455a64", headFill: "#cfd8dc" },         // Engineer: tool belt era, wrench in hand
+  427: { acc: "pencilSmall", offAcc: "blueprint",
+         color: "#37474f", headFill: "#eceff1" },                        // Architect: pencil + blueprint, one in each hand
+  428: { hat: "hardhat", acc: "hammer", color: "#6d4c41", headFill: "#ffe0b2" }, // Builder Master: hard hat + hammer
+  429: { hat: "tinycity", color: "#37474f", headFill: "#eceff1" },       // Tiny City: a miniature skyline worn on the head
+  430: { hat: "castle", color: "#78909c", headFill: "#eceff1" },         // Living Castle: a castle worn on the head
+  431: { hat: "castle", acc: "shield", color: "#546e7a", headFill: "#cfd8dc" }, // Fortress: castle on the head + a shield in hand
+  432: { vehicleBody: "tower", legLen: 1, bodyLen: 1 },                  // Tower: a tall black-outline tower for a body, normal limbs
+  433: { vehicleOnly: "bridge" },                                        // Bridge: a small black-outline bridge, no human parts
+  434: { trail: "road", color: "#424242", headFill: "#e0e0e0" },        // Road: a normal stickman leaving a fading road trail
+  435: { vehicleOnly: "train" },                                        // Train: a small black-outline locomotive, no human parts
+  436: { vehicleOnly: "car" },                                          // Car: just a black-outline car, no human parts
+  437: { rideVehicle: "motorcycle", move: "moto",
+         color: "#111111", headFill: "#ffe0b2" },                       // Motorcycle: a stickman riding a black-outline motorcycle
+  438: { vehicleBody: "rocket" },                                       // Rocket: a black-outline rocket body, hands and feet poking out
+  439: { overhead: "spaceship", color: "#37474f", headFill: "#b0bec5" }, // Spaceship: a normal figure with ships floating above
+
   530: { hat: "shako", color: "#78909c", headFill: "#b0bec5" },          // Tin Soldier
   531: { back: "windkey" },                                              // Wind-Up Hero
   540: { headFill: "#cfd8dc", glow: "#b3e5fc88" },                       // Mirror Ball
@@ -1799,6 +1823,64 @@ function drawHat(ctx, f, cx, topY, r) {
       ctx.fillStyle = "#ffeb3b";
       ctx.beginPath(); ctx.arc(cx, topY - r * 0.9, r * 0.18, 0, Math.PI * 2); ctx.fill();
       break;
+    case "hardhat": // yellow construction helmet: full brim, domed shell, centre ridge
+      ctx.fillStyle = "#fdd835";
+      ctx.beginPath(); ctx.ellipse(cx, topY + r * 0.34, r * 1.15, r * 0.26, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, topY + r * 0.14, r * 0.88, Math.PI, 0); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "#c9a227";
+      ctx.lineWidth = Math.max(1, r * 0.08);
+      ctx.beginPath(); ctx.moveTo(cx, topY + r * 0.14 - r * 0.88); ctx.lineTo(cx, topY + r * 0.14); ctx.stroke();
+      ctx.strokeStyle = f.color;
+      break;
+    case "castle": { // a small castle turret worn on the head
+      const w = r * 1.6, baseY = topY + r * 0.32;
+      ctx.fillStyle = "#b0bec5";
+      ctx.fillRect(cx - w / 2, baseY - r * 1.1, w, r * 1.1);
+      ctx.strokeRect(cx - w / 2, baseY - r * 1.1, w, r * 1.1);
+      const merW = w / 5;
+      for (let i = 0; i < 5; i += 2) {
+        ctx.fillRect(cx - w / 2 + i * merW, baseY - r * 1.1 - r * 0.3, merW, r * 0.3);
+        ctx.strokeRect(cx - w / 2 + i * merW, baseY - r * 1.1 - r * 0.3, merW, r * 0.3);
+      }
+      ctx.fillStyle = "#90a4ae"; // corner turrets with pointed caps
+      for (const side of [-1, 1]) {
+        ctx.fillRect(cx + side * w * 0.44 - r * 0.16, baseY - r * 1.42, r * 0.32, r * 0.42);
+        ctx.strokeRect(cx + side * w * 0.44 - r * 0.16, baseY - r * 1.42, r * 0.32, r * 0.42);
+        ctx.beginPath();
+        ctx.moveTo(cx + side * w * 0.44 - r * 0.2, baseY - r * 1.42);
+        ctx.lineTo(cx + side * w * 0.44, baseY - r * 1.42 - r * 0.26);
+        ctx.lineTo(cx + side * w * 0.44 + r * 0.2, baseY - r * 1.42);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = "#37474f"; // gate arch
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.22, baseY); ctx.lineTo(cx - r * 0.22, baseY - r * 0.48);
+      ctx.arc(cx, baseY - r * 0.48, r * 0.22, Math.PI, 0);
+      ctx.lineTo(cx + r * 0.22, baseY); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = f.color;
+      break;
+    }
+    case "tinycity": { // a miniature skyline sitting on the head
+      const baseY = topY + r * 0.28;
+      const bldgs = [
+        [-r * 0.88, r * 0.46, r * 0.7, "#90a4ae"],
+        [-r * 0.34, r * 0.4, r * 1.05, "#78909c"],
+        [r * 0.1, r * 0.48, r * 0.85, "#b0bec5"],
+        [r * 0.64, r * 0.38, r * 0.55, "#90a4ae"]
+      ];
+      for (const [bx, bw, bh, bc] of bldgs) {
+        ctx.fillStyle = bc;
+        ctx.fillRect(cx + bx, baseY - bh, bw, bh);
+        ctx.strokeRect(cx + bx, baseY - bh, bw, bh);
+        ctx.fillStyle = "#fff59d";
+        for (let wy = baseY - bh + r * 0.16; wy < baseY - r * 0.12; wy += r * 0.22) {
+          ctx.fillRect(cx + bx + bw * 0.22, wy, r * 0.08, r * 0.08);
+          ctx.fillRect(cx + bx + bw * 0.6, wy, r * 0.08, r * 0.08);
+        }
+      }
+      ctx.strokeStyle = f.color;
+      break;
+    }
   }
 }
 
@@ -2193,6 +2275,70 @@ function drawAccessory(ctx, f, hx, hy, s, t) {
       ctx.restore();
       break;
     }
+    case "hammer": { // claw hammer, filled silhouette angled forward-down so it always clears the head
+      ctx.save();
+      ctx.translate(hx, hy); ctx.rotate(0.5);
+      ctx.strokeStyle = "#4e342e"; ctx.fillStyle = "#8d6e63";
+      ctx.lineWidth = Math.max(0.9, f.lineW * s * 0.45);
+      ctx.beginPath(); ctx.rect(-0.8 * s, 0, 1.6 * s, 6.8 * s); ctx.fill(); ctx.stroke(); // wooden handle
+      ctx.fillStyle = "#78909c"; ctx.strokeStyle = "#37474f";
+      ctx.beginPath(); ctx.rect(-3.2 * s, -2.6 * s, 6.4 * s, 2.6 * s); ctx.fill(); ctx.stroke(); // head block
+      ctx.beginPath(); // claw notch on the back end
+      ctx.moveTo(-3.2 * s, -2.6 * s);
+      ctx.lineTo(-4.7 * s, -3.6 * s);
+      ctx.lineTo(-4.7 * s, -1.8 * s);
+      ctx.lineTo(-3.2 * s, -1.4 * s);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "wrench": { // open-end wrench, filled silhouette angled forward-down so it always clears the head
+      ctx.save();
+      ctx.translate(hx, hy); ctx.rotate(0.55);
+      ctx.fillStyle = "#90a4ae"; ctx.strokeStyle = "#37474f";
+      ctx.lineWidth = Math.max(0.8, f.lineW * s * 0.4);
+      ctx.beginPath(); ctx.rect(-0.8 * s, 0, 1.6 * s, 6.4 * s); ctx.fill(); ctx.stroke(); // handle
+      ctx.beginPath(); // open jaw head
+      ctx.moveTo(-0.8 * s, 0);
+      ctx.lineTo(-2.5 * s, -1.6 * s); ctx.lineTo(-2.5 * s, -3.3 * s); ctx.lineTo(-0.9 * s, -3.3 * s);
+      ctx.lineTo(-0.9 * s, -2.2 * s); ctx.lineTo(0.9 * s, -2.2 * s); ctx.lineTo(0.9 * s, -3.3 * s);
+      ctx.lineTo(2.5 * s, -3.3 * s); ctx.lineTo(2.5 * s, -1.6 * s); ctx.lineTo(0.8 * s, 0);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "pencilSmall": { // a plain drafting pencil, no ground squiggle
+      ctx.save();
+      ctx.translate(hx, hy); ctx.rotate(-0.7);
+      ctx.fillStyle = "#fbc02d"; ctx.strokeStyle = "#b8860b";
+      ctx.lineWidth = Math.max(0.8, f.lineW * s * 0.5);
+      ctx.fillRect(-1.1 * s, -9 * s, 2.2 * s, 8 * s); ctx.strokeRect(-1.1 * s, -9 * s, 2.2 * s, 8 * s);
+      ctx.fillStyle = "#37474f";
+      ctx.beginPath(); ctx.moveTo(-1.1 * s, -9 * s); ctx.lineTo(1.1 * s, -9 * s); ctx.lineTo(0, -11 * s); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#f48fb1";
+      ctx.fillRect(-1.1 * s, -1 * s, 2.2 * s, 1.6 * s);
+      ctx.restore();
+      break;
+    }
+    case "blueprint": { // a blue building-plan sheet with faint draft lines
+      ctx.save();
+      ctx.fillStyle = "#1565c0"; ctx.strokeStyle = "#0d47a1";
+      ctx.lineWidth = Math.max(0.9, f.lineW * s * 0.45);
+      ctx.beginPath(); ctx.rect(hx - 0.5 * s, hy - 4 * s, 8 * s, 6 * s); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#e3f2fd";
+      ctx.beginPath(); ctx.ellipse(hx - 0.5 * s, hy - 1 * s, 1 * s, 3 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "#90caf9";
+      ctx.lineWidth = Math.max(0.5, f.lineW * s * 0.28);
+      ctx.beginPath();
+      for (let i = 1; i < 3; i++) {
+        const xx = hx - 0.5 * s + (i * 8 * s) / 3;
+        ctx.moveTo(xx, hy - 3.4 * s); ctx.lineTo(xx, hy + 1.6 * s);
+      }
+      ctx.moveTo(hx - 0.5 * s, hy - 1 * s); ctx.lineTo(hx + 7.5 * s, hy - 1 * s);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
   }
   ctx.lineWidth = f.lineW * 1;
 }
@@ -2492,7 +2638,278 @@ function drawOverhead(ctx, f, hxp, hyp, s, t) {
       ctx.restore();
       break;
     }
+    case "spaceship": { // two sleek ships drifting overhead, thrusters flickering
+      const drawShip = (sx, sy, ang, sc) => {
+        ctx.save();
+        ctx.translate(sx, sy); ctx.rotate(ang);
+        ctx.fillStyle = "#cfd8dc"; ctx.strokeStyle = "#455a64";
+        ctx.lineWidth = Math.max(0.7, s * 0.35 * sc);
+        ctx.beginPath(); // hull
+        ctx.moveTo(3.2 * s * sc, 0);
+        ctx.quadraticCurveTo(1 * s * sc, -1.6 * s * sc, -2.6 * s * sc, -1 * s * sc);
+        ctx.lineTo(-3.4 * s * sc, 0);
+        ctx.lineTo(-2.6 * s * sc, 1 * s * sc);
+        ctx.quadraticCurveTo(1 * s * sc, 1.6 * s * sc, 3.2 * s * sc, 0);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); // tail fin
+        ctx.moveTo(-1.6 * s * sc, -0.9 * s * sc);
+        ctx.lineTo(-2.6 * s * sc, -2.4 * s * sc);
+        ctx.lineTo(-0.6 * s * sc, -0.9 * s * sc);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#4fc3f7"; // cockpit window
+        ctx.beginPath(); ctx.arc(0.8 * s * sc, 0, 0.7 * s * sc, 0, Math.PI * 2); ctx.fill();
+        const fl = 1 + Math.sin(t * 10 + sx) * 0.3; // flickering thruster flame
+        ctx.fillStyle = "#ff7043";
+        ctx.beginPath();
+        ctx.moveTo(-3.4 * s * sc, -0.5 * s * sc);
+        ctx.lineTo(-5 * s * sc * fl, 0);
+        ctx.lineTo(-3.4 * s * sc, 0.5 * s * sc);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      };
+      drawShip(hxp - 5 * s, y - 1 * s, -0.15 + Math.sin(t * 1.4) * 0.1, 1.0);
+      drawShip(hxp + 5.5 * s, y + 2 * s, 0.2 + Math.sin(t * 1.1 + 2) * 0.1, 0.78);
+      break;
+    }
   }
+}
+
+// ------------------------------------------------------------------
+// Vehicles — pure black-outline machines drawn in place of body parts.
+// ------------------------------------------------------------------
+
+// Car (#436): the whole figure is replaced by this outline — no human parts.
+function drawCarOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#111111";
+  ctx.fillStyle = "#ffffff";
+  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const wheelR = 5 * s, wheelY = -wheelR;
+  const bodyBot = wheelY - 0.9 * s, bodyTop = bodyBot - 9 * s;
+  const rr = 2.2 * s;
+  ctx.beginPath(); // main body, rounded rectangle
+  ctx.moveTo(-15 * s + rr, bodyTop);
+  ctx.lineTo(15 * s - rr, bodyTop);
+  ctx.quadraticCurveTo(15 * s, bodyTop, 15 * s, bodyTop + rr);
+  ctx.lineTo(15 * s, bodyBot - rr);
+  ctx.quadraticCurveTo(15 * s, bodyBot, 15 * s - rr, bodyBot);
+  ctx.lineTo(-15 * s + rr, bodyBot);
+  ctx.quadraticCurveTo(-15 * s, bodyBot, -15 * s, bodyBot - rr);
+  ctx.lineTo(-15 * s, bodyTop + rr);
+  ctx.quadraticCurveTo(-15 * s, bodyTop, -15 * s + rr, bodyTop);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); // cabin roof
+  ctx.moveTo(-8 * s, bodyTop);
+  ctx.quadraticCurveTo(-8.4 * s, bodyTop - 6.5 * s, -3 * s, bodyTop - 7.5 * s);
+  ctx.lineTo(5 * s, bodyTop - 7.5 * s);
+  ctx.quadraticCurveTo(9.4 * s, bodyTop - 6.5 * s, 9 * s, bodyTop);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); // windshield divider
+  ctx.moveTo(-1 * s, bodyTop - 7.1 * s); ctx.lineTo(-1 * s, bodyTop);
+  ctx.stroke();
+  for (const wx of [-9 * s, 9 * s]) { // wheels
+    ctx.beginPath(); ctx.arc(wx, wheelY, wheelR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(wx, wheelY, wheelR * 0.36, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.beginPath(); // headlight
+  ctx.arc(14 * s, (bodyTop + bodyBot) / 2, 0.9 * s, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); // door line
+  ctx.moveTo(1 * s, bodyTop); ctx.lineTo(1 * s, bodyBot); ctx.stroke();
+  ctx.restore();
+}
+
+// Train (#435): a small outline of a locomotive front — no human parts.
+function drawTrainOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#111111";
+  ctx.fillStyle = "#ffffff";
+  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const wheelR = 4 * s, wheelY = -wheelR;
+  const frameBot = wheelY - 1 * s, boilerTop = frameBot - 11 * s;
+  ctx.beginPath(); // boiler barrel
+  ctx.moveTo(-14 * s, frameBot);
+  ctx.lineTo(-14 * s, boilerTop + 2 * s);
+  ctx.quadraticCurveTo(-14 * s, boilerTop, -12 * s, boilerTop);
+  ctx.lineTo(8 * s, boilerTop);
+  ctx.quadraticCurveTo(10 * s, boilerTop, 10 * s, boilerTop + 2 * s);
+  ctx.lineTo(10 * s, frameBot);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); // cab at the back
+  ctx.moveTo(-14 * s, boilerTop + 2 * s);
+  ctx.lineTo(-14 * s, boilerTop - 6.4 * s);
+  ctx.lineTo(-6 * s, boilerTop - 6.4 * s);
+  ctx.lineTo(-6 * s, boilerTop);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.strokeRect(-12.4 * s, boilerTop - 4.8 * s, 3.8 * s, 2.8 * s); // cab window
+  ctx.beginPath(); // cowcatcher at the front
+  ctx.moveTo(10 * s, frameBot);
+  ctx.lineTo(14.5 * s, frameBot - wheelR * 0.4);
+  ctx.lineTo(14.5 * s, frameBot);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillRect(-2.6 * s, boilerTop - 5 * s, 2.2 * s, 5 * s); // smokestack
+  ctx.strokeRect(-2.6 * s, boilerTop - 5 * s, 2.2 * s, 5 * s);
+  ctx.beginPath();
+  ctx.ellipse(-1.5 * s, boilerTop - 5 * s, 1.6 * s, 0.6 * s, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(6.5 * s, boilerTop + 1 * s, 1 * s, 0, Math.PI * 2); ctx.stroke(); // headlamp
+  const wheelXs = [-9 * s, -1 * s, 6 * s];
+  for (const wx of wheelXs) {
+    ctx.beginPath(); ctx.arc(wx, wheelY, wheelR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(wx, wheelY, wheelR * 0.3, 0, Math.PI * 2); ctx.stroke();
+  }
+  ctx.beginPath(); // connecting rod
+  ctx.moveTo(wheelXs[0], wheelY); ctx.lineTo(wheelXs[2], wheelY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Motorcycle (#437): drawn behind the rider, feet on pegs and hands on the grips.
+function drawMotorcycleOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.1, 1.25 * s);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  const rW = 5 * s, rx = -7 * s, fx = 9 * s, spin = t * 10;
+  for (const wx of [rx, fx]) { // wheels with spokes
+    ctx.beginPath(); ctx.arc(wx, 0, rW, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(wx, 0, rW * 0.26, 0, Math.PI * 2); ctx.stroke();
+    ctx.save();
+    ctx.translate(wx, 0); ctx.rotate(spin);
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = (i * Math.PI * 2) / 5;
+      ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * rW * 0.85, Math.sin(a) * rW * 0.85);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.beginPath(); // upper frame: rear axle -> seat post -> tank hump -> steering head -> front axle
+  ctx.moveTo(rx, -rW * 0.3);
+  ctx.lineTo(-3 * s, -11 * s);
+  ctx.quadraticCurveTo(1 * s, -13.5 * s, 4 * s, -12.5 * s);
+  ctx.lineTo(7.5 * s, -9 * s);
+  ctx.lineTo(fx, -rW * 0.2);
+  ctx.stroke();
+  ctx.beginPath(); // lower frame rail: rear axle -> engine -> steering head
+  ctx.moveTo(rx, -rW * 0.2);
+  ctx.lineTo(-2 * s, -4 * s);
+  ctx.lineTo(4 * s, -4 * s);
+  ctx.lineTo(7.5 * s, -9 * s);
+  ctx.stroke();
+  ctx.strokeRect(-2.6 * s, -7.5 * s, 5.6 * s, 3.6 * s); // engine block
+  ctx.beginPath(); // seat
+  ctx.moveTo(-6 * s, -11 * s); ctx.quadraticCurveTo(-3 * s, -12.6 * s, 0.5 * s, -11.6 * s);
+  ctx.stroke();
+  ctx.beginPath(); // fork + handlebar
+  ctx.moveTo(7.5 * s, -9 * s); ctx.lineTo(8.6 * s, -14.6 * s);
+  ctx.moveTo(8.6 * s, -14.6 * s); ctx.lineTo(6.4 * s, -15.4 * s);
+  ctx.moveTo(8.6 * s, -14.6 * s); ctx.lineTo(11 * s, -14.2 * s);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(10.6 * s, -13.6 * s, 1.2 * s, 0, Math.PI * 2); ctx.stroke(); // headlight
+  ctx.beginPath(); // exhaust pipe
+  ctx.moveTo(-1 * s, -3.8 * s); ctx.quadraticCurveTo(-9 * s, -2 * s, -11 * s, -1 * s);
+  ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(-11.6 * s, -1 * s, 1 * s, 0.6 * s, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.restore();
+}
+
+// Bridge (#433): the whole figure is replaced by this outline — no human parts.
+function drawBridgeOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#111111"; ctx.fillStyle = "#ffffff";
+  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.lineJoin = "round";
+  const deckY = -9 * s, deckH = 1.6 * s, spanL = -15 * s, spanR = 15 * s, pierW = 3 * s;
+  for (const px of [spanL + pierW / 2, spanR - pierW / 2]) { // piers down to the ground
+    ctx.beginPath(); ctx.rect(px - pierW / 2, deckY + deckH, pierW, -deckY - deckH); ctx.fill(); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.rect(spanL, deckY, spanR - spanL, deckH); ctx.fill(); ctx.stroke(); // deck
+  ctx.beginPath(); // arch opening between the piers
+  ctx.moveTo(spanL + pierW + 1 * s, deckY + deckH);
+  ctx.quadraticCurveTo(0, 2.5 * s, spanR - pierW - 1 * s, deckY + deckH);
+  ctx.stroke();
+  ctx.beginPath(); // railing posts + top rail
+  for (let x = spanL + 2 * s; x <= spanR - 2 * s; x += 4 * s) {
+    ctx.moveTo(x, deckY); ctx.lineTo(x, deckY - 1.8 * s);
+  }
+  ctx.moveTo(spanL, deckY - 1.8 * s); ctx.lineTo(spanR, deckY - 1.8 * s);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Rocket (#438): stands in for the whole torso+head; legs and arms poke out normally.
+function drawRocketBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 4.2 * s;
+  ctx.save();
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, top);
+  ctx.quadraticCurveTo(w * 0.85, top + h * 0.22, w, top + h * 0.36);
+  ctx.lineTo(w, bottom - h * 0.22);
+  ctx.lineTo(w + 3 * s, bottom);
+  ctx.lineTo(w * 0.45, bottom - h * 0.12);
+  ctx.lineTo(w * 0.45, bottom);
+  ctx.lineTo(-w * 0.45, bottom);
+  ctx.lineTo(-w * 0.45, bottom - h * 0.12);
+  ctx.lineTo(-(w + 3 * s), bottom);
+  ctx.lineTo(-w, bottom - h * 0.22);
+  ctx.lineTo(-w, top + h * 0.36);
+  ctx.quadraticCurveTo(-w * 0.85, top + h * 0.22, 0, top);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, top + h * 0.46, w * 0.42, 0, Math.PI * 2); ctx.stroke(); // window
+  ctx.beginPath(); ctx.moveTo(-w, bottom - h * 0.22); ctx.lineTo(w, bottom - h * 0.22); ctx.stroke(); // base ring
+  ctx.restore();
+}
+
+// Tower (#432): a tall stone tower stands in for the whole torso+head.
+function drawTowerBody(ctx, hipY, s, t) {
+  const bottom = hipY + 0.5 * s, height = 46 * s, top = bottom - height;
+  const wBot = 4.6 * s, wTop = 3.6 * s;
+  ctx.save();
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(-wBot, bottom);
+  ctx.lineTo(-wTop, top + 6 * s);
+  ctx.lineTo(-wTop, top);
+  ctx.lineTo(wTop, top);
+  ctx.lineTo(wTop, top + 6 * s);
+  ctx.lineTo(wBot, bottom);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  const merW = (wTop * 2) / 5; // crenellations along the top
+  for (let i = 0; i < 5; i += 2) {
+    const mx = -wTop + i * merW;
+    ctx.fillRect(mx, top - 2.2 * s, merW, 2.2 * s);
+    ctx.strokeRect(mx, top - 2.2 * s, merW, 2.2 * s);
+  }
+  ctx.save(); // faint brick coursing lines
+  ctx.globalAlpha *= 0.5;
+  ctx.lineWidth = Math.max(0.6, 0.6 * s);
+  ctx.beginPath();
+  for (let i = 1; i < 7; i++) {
+    const fr = i / 7, yy = bottom + (top - bottom) * fr, ww = wBot + (wTop - wBot) * fr;
+    ctx.moveTo(-ww, yy); ctx.lineTo(ww, yy);
+  }
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = "#37474f"; // window slits
+  for (const wy of [top + height * 0.28, top + height * 0.58]) {
+    ctx.beginPath(); ctx.rect(-0.7 * s, wy - 2 * s, 1.4 * s, 4 * s); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
 }
 
 // ------------------------------------------------------------------
@@ -2623,6 +3040,9 @@ function drawStickman(ctx, inst, t) {
       break;
     case "kneel": // deep bow, both knees planted on the ground
       legsMode = "kneel"; armsMode = "kneel"; bob = 0; break;
+    case "moto": // riding a motorcycle: seated, leaning into the handlebars, engine vibration
+      legsMode = "moto"; armsMode = "moto";
+      bob = 0.5 * s; lean = 2.5 * s; airLift = 0; break;
     case "trip": { // stumble → fall flat → push back up (driven by inst.tripT 0..1)
       const p = inst.tripT || 0;
       bob = 0;
@@ -2656,6 +3076,7 @@ function drawStickman(ctx, inst, t) {
   if (f.tentacles) legsMode = "tentacles";
   if (f.branchArms) armsMode = "branches";
   if (f.cactus) armsMode = "cactus";
+  if (f.holdMachine) armsMode = "machine";
   const spinC = Math.cos(ph * 2.4);
 
   ctx.save();
@@ -2683,6 +3104,24 @@ function drawStickman(ctx, inst, t) {
   if (f.dash) ctx.setLineDash([3.2 * s, 2.4 * s]); // unfinished / sketch look
   if (f.glow) { ctx.shadowColor = f.glow; ctx.shadowBlur = 10; }
 
+  // ---- pure-outline vehicles: no human skeleton at all ----
+  if (f.vehicleOnly) {
+    if (f.vehicleOnly === "car") drawCarOutline(ctx, s, t);
+    else if (f.vehicleOnly === "train") drawTrainOutline(ctx, s, t);
+    else if (f.vehicleOnly === "bridge") drawBridgeOutline(ctx, s, t);
+    ctx.restore();
+    if (inst.shot) {
+      ctx.save();
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = "#17a832";
+      ctx.font = `bold ${10 * s + 4}px sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillText("✓", inst.x, inst.y - (legH + bodyL + headR * 2 + 8 * s));
+      ctx.restore();
+    }
+    return;
+  }
+
   // ---- skeleton anchor points ----
   let hipY = -legH + bob * Math.abs(Math.sin(ph)) - airLift;
   let shoX = lean;
@@ -2706,6 +3145,12 @@ function drawStickman(ctx, inst, t) {
     shoY = hipY - bodyL * 0.5;
     headCX = shoX + headR * 0.8 + 2 * s;  // head reaches forward
     headCY = shoY + headR * 0.35;         // and drops low
+  }
+  if (move === "moto") { // hunched forward over the tank, tucked down close to the handlebars
+    shoY = hipY - bodyL * 0.66;
+    shoX = lean + bodyL * 0.32;
+    headCX = shoX + headR * 0.5;
+    headCY = shoY - headR * 1.6;
   }
 
   // ---- legs ----
@@ -2760,6 +3205,14 @@ function drawStickman(ctx, inst, t) {
       const fx = Math.cos(p) * stride * 0.55;
       const fy = -Math.max(0, Math.sin(p)) * legH * 0.14; // heel pop, toes stay low
       legPts.push(ik(0, hipY, fx, fy, l1, l2, -1));
+    }
+  } else if (legsMode === "moto") {
+    // knees bent forward, feet resting on the motorcycle's foot pegs
+    for (let i = 0; i < 2; i++) {
+      const side = i ? 1 : -1;
+      const fx = 1 * s + side * 0.6 * s;
+      const fy = -6 * s + side * 0.4 * s;
+      legPts.push(ik(0, hipY, fx, fy, l1, l2, 1));
     }
   }
   // kneeling legs are drawn explicitly (below) so the sharp knee reads clearly
@@ -2843,6 +3296,22 @@ function drawStickman(ctx, inst, t) {
     const snap = Math.sin(ph * 2) * 0.6 * s;
     armPts.push(ik(shoX, shoY, shoX + armL * 0.8, shoY + armL * 0.5 + snap, a1, a2, 1));
     armPts.push(ik(shoX, shoY, shoX - armL * 0.45, shoY + armL * 0.72 - snap, a1, a2, -1));
+  } else if (armsMode === "moto") {
+    // both hands gripping the handlebars, leaning into them
+    for (let i = 0; i < 2; i++) {
+      const side = i ? 1 : -1;
+      const hx = 6.4 * s + side * 0.5 * s;
+      const hy = -15.4 * s + side * 0.3 * s;
+      armPts.push(ik(shoX, shoY, hx, hy, a1, a2, 1));
+    }
+  } else if (armsMode === "machine") {
+    // both hands gripping a device held out in front of the chest
+    for (let i = 0; i < 2; i++) {
+      const side = i ? 1 : -1;
+      const hx = shoX + side * 2.6 * s;
+      const hy = shoY + armL * 0.55;
+      armPts.push(ik(shoX, shoY, hx, hy, a1, a2, side));
+    }
   } else if (armsMode === "hobble") {
     // near arm: leaning on the cane out front, rocking slightly with each step
     const cx2 = shoX + armL * 0.62 + Math.sin(ph) * 0.8 * s;
@@ -2953,6 +3422,9 @@ function drawStickman(ctx, inst, t) {
     ctx.fill(); ctx.stroke();
     ctx.strokeStyle = color;
   }
+
+  // ---- riding a motorcycle ----
+  if (f.rideVehicle === "motorcycle") drawMotorcycleOutline(ctx, s, t);
 
   // ---- giant golden clock companion floating alongside ----
   if (f.companion === "clock") {
@@ -3254,6 +3726,12 @@ function drawStickman(ctx, inst, t) {
     ctx.quadraticCurveTo(-legH * 0.45, -2 * s + Math.sin(ph * 2) * 3 * s, 0, hipY);
     ctx.quadraticCurveTo(lean * 0.8 + 1 * s, (hipY + shoY) / 2, shoX, shoY);
     ctx.stroke();
+  } else if (f.vehicleBody === "rocket") {
+    // a rocket silhouette stands in for the whole torso and head
+    drawRocketBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "tower") {
+    // a tall tower silhouette stands in for the whole torso and head
+    drawTowerBody(ctx, hipY, s, t);
   } else {
     ctx.beginPath();
     ctx.moveTo(0, hipY);
@@ -3796,10 +4274,11 @@ function drawStickman(ctx, inst, t) {
     ctx.globalAlpha = baseAlpha;
   }
 
-  // ---- head group ----
+  // ---- head group (skipped entirely for vehicle bodies — they have no head) ----
   const tilt = move === "headspin" ? Math.PI
     : move === "kneel" ? 1.0
     : Math.sin(ph) * 0.05 + (move === "run" ? 0.16 : move === "slow" ? 0.12 : 0.02);
+  if (!f.vehicleBody) {
   ctx.save();
   ctx.translate(headCX, headCY);
   ctx.rotate(tilt);
@@ -3869,6 +4348,7 @@ function drawStickman(ctx, inst, t) {
     ctx.fill();
   }
   ctx.restore();
+  }
 
   // ---- extra heads (hydra / cerberus) ----
   if (f.multiHead > 1) {
@@ -3890,6 +4370,49 @@ function drawStickman(ctx, inst, t) {
 
   // ---- accessory in the near hand ----
   if (f.acc && armPts[0]) drawAccessory(ctx, f, armPts[0][2], armPts[0][3], s, t);
+
+  // ---- a different item in the far hand ----
+  if (f.offAcc && armPts[1]) {
+    ctx.save();
+    ctx.globalAlpha = baseAlpha * 0.82;
+    drawAccessory(ctx, Object.assign({}, f, { acc: f.offAcc }), armPts[1][2], armPts[1][3], s, t);
+    ctx.restore();
+  }
+
+  // ---- a device gripped with both hands ----
+  if (f.holdMachine && armPts[0] && armPts[1]) {
+    const mx = (armPts[0][2] + armPts[1][2]) / 2;
+    const my = (armPts[0][3] + armPts[1][3]) / 2 - 1 * s;
+    ctx.save();
+    ctx.fillStyle = "#78909c"; ctx.strokeStyle = "#37474f";
+    ctx.lineWidth = Math.max(1, f.lineW * s * 0.5);
+    ctx.beginPath(); ctx.rect(mx - 3.6 * s, my - 2.6 * s, 7.2 * s, 5.2 * s); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#37474f"; // dial
+    ctx.beginPath(); ctx.arc(mx - 1.6 * s, my - 0.2 * s, 1.3 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#90a4ae";
+    ctx.lineWidth = Math.max(0.6, f.lineW * s * 0.3);
+    const needle = t * 3;
+    ctx.beginPath();
+    ctx.moveTo(mx - 1.6 * s, my - 0.2 * s);
+    ctx.lineTo(mx - 1.6 * s + Math.cos(needle) * 1 * s, my - 0.2 * s + Math.sin(needle) * 1 * s);
+    ctx.stroke();
+    ctx.fillStyle = "#fbc02d"; // small lever
+    ctx.beginPath(); ctx.rect(mx + 1.2 * s, my - 2.6 * s - 1.4 * s, 1 * s, 1.6 * s); ctx.fill();
+    ctx.strokeStyle = "#90a4ae"; // stubby antenna
+    ctx.lineWidth = Math.max(0.7, f.lineW * s * 0.35);
+    ctx.beginPath(); ctx.moveTo(mx + 2.6 * s, my - 2.6 * s); ctx.lineTo(mx + 3.2 * s, my - 4.4 * s); ctx.stroke();
+    const spark = ((t * 6) | 0) % 4 === 0;
+    if (spark) {
+      ctx.strokeStyle = "#4fc3f7"; ctx.lineWidth = Math.max(0.7, f.lineW * s * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(mx + 3.2 * s, my - 4.4 * s);
+      ctx.lineTo(mx + 4 * s, my - 5 * s);
+      ctx.moveTo(mx + 3.2 * s, my - 4.4 * s);
+      ctx.lineTo(mx + 2.6 * s, my - 5.2 * s);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
 
   // ---- puppet strings ----
   if (f.strings) {
@@ -4166,13 +4689,13 @@ function drawPortrait(typeId, w, h) {
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, w, h);
   const f = getFeatures(typeId);
-  const keepMoves = ["float", "slither", "headspin", "twirl", "hop", "waddle", "hobble", "moonwalk", "kingfloat"];
+  const keepMoves = ["float", "slither", "headspin", "twirl", "hop", "waddle", "hobble", "moonwalk", "kingfloat", "moto"];
   const move = keepMoves.includes(f.move) ? f.move : "walk";
   // the king is tall (big sign head) and wreathed in flame — shrink it and
   // drop it lower so the whole figure and aura fit inside the frame.
   // entries with something floating above the head get a little headroom too.
   const hasTop = f.overhead || f.haloRings || f.sparkleBurst;
-  const fit = f.auraFlame ? 0.6 : hasTop ? 0.82 : 1.0;
+  const fit = f.auraFlame ? 0.6 : f.vehicleBody === "tower" ? 0.62 : hasTop ? 0.82 : 1.0;
   const inst = {
     x: w / 2, y: h * (f.auraFlame ? 0.92 : hasTop ? 0.82 : 0.88), dir: 1,
     phase: move === "twirl" ? 0.05 : 0.7,
