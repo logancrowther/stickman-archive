@@ -183,42 +183,6 @@ body.camera-mode #world { cursor: none; }
 #wipe-btn:active { transform: scale(0.95); }
 body.camera-mode #wipe-btn { display: none; }
 
-/* ---------- TEST ONLY: spawn panel — remove for release ---------- */
-#test-btn {
-  position: fixed; bottom: 10px; right: 10px;
-  background: #fff; color: #666;
-  border: 1.5px solid #bbb; border-radius: 6px;
-  font-size: 12px; font-weight: 600;
-  padding: 5px 10px;
-  cursor: pointer;
-  z-index: 10;
-}
-#test-btn:hover { color: #1565c0; border-color: #1565c0; }
-#test-btn:active { transform: scale(0.95); }
-body.camera-mode #test-btn, body.camera-mode #test-panel { display: none; }
-#test-panel {
-  position: fixed; bottom: 44px; right: 10px;
-  width: 250px; max-height: 55vh;
-  background: #fff;
-  border: 2px solid #000; border-radius: 8px;
-  z-index: 11;
-  display: flex; flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.15);
-}
-#test-search {
-  border: none; border-bottom: 1.5px solid #ccc;
-  padding: 8px 10px; font-size: 13px; outline: none;
-  flex-shrink: 0;
-}
-#test-list { overflow-y: auto; }
-.test-row {
-  padding: 5px 10px; font-size: 12px; cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.test-row:hover { background: #e3f2fd; }
-
 /* ---------- Stickdex ---------- */
 #stickdex {
   position: fixed; inset: 0;
@@ -280,6 +244,122 @@ body.camera-mode #test-btn, body.camera-mode #test-panel { display: none; }
   padding: 60px 20px; font-size: 16px;
 }
 
+/* ---------- Shop ---------- */
+#shop {
+  position: fixed; inset: 0;
+  background: #fff;
+  z-index: 100;
+  display: flex; flex-direction: column;
+}
+#shop-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 3px solid #000;
+  flex-shrink: 0;
+}
+#shop-back { font-size: 26px; font-weight: 800; }
+#shop-header h2 { font-size: clamp(20px, 4vw, 28px); font-weight: 800; }
+#shop-money { margin-left: auto; font-size: clamp(15px, 3vw, 20px); font-weight: 700; }
+#shop-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+  display: flex; flex-direction: column;
+  gap: 14px;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+}
+.shop-item {
+  display: flex; align-items: center; gap: 14px;
+  border: 2px solid #000;
+  padding: 12px 14px;
+}
+.shop-item-icon {
+  width: 44px; height: 44px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.shop-item-icon svg { width: 38px; height: 38px; }
+.shop-item-info { flex: 1; min-width: 0; }
+.shop-item-name { font-size: 16px; font-weight: 800; }
+.shop-item-desc { font-size: 12.5px; color: #333; line-height: 1.35; margin-top: 2px; }
+.shop-item-owned { font-size: 12px; color: #666; font-weight: 700; margin-top: 4px; }
+.shop-buy-btn {
+  flex-shrink: 0;
+  background: #000; color: #fff;
+  border: none; border-radius: 6px;
+  font-size: 14px; font-weight: 800;
+  padding: 10px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.shop-buy-btn:active { transform: scale(0.94); }
+.shop-buy-btn:disabled {
+  background: #ddd; color: #999; cursor: default;
+}
+.shop-buy-btn.owned { background: #17a832; }
+
+/* ---------- Inventory bar (tripod, time freeze, ...) ---------- */
+#inventory-bar {
+  position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px;
+  z-index: 10;
+}
+.inv-btn {
+  position: relative;
+  width: 52px; height: 52px;
+  background: #fff; border: 2px solid #000; border-radius: 8px;
+  color: #000;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.inv-btn svg { width: 30px; height: 30px; }
+.inv-btn:active { transform: scale(0.92); }
+.inv-btn.active { background: #000; color: #fff; }
+.inv-btn span {
+  position: absolute; top: -7px; right: -7px;
+  background: #000; color: #fff;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 800;
+  min-width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+}
+body.camera-mode #inventory-bar, body.tripod-mode #wipe-btn, body.camera-mode #wipe-btn { display: none; }
+body.tripod-mode #world { cursor: none; }
+
+#tripod-hint {
+  position: fixed; bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px; font-weight: 600;
+  background: rgba(0,0,0,0.75); color: #fff;
+  padding: 6px 14px; border-radius: 16px;
+  z-index: 20; pointer-events: none;
+  white-space: nowrap;
+}
+
+#tripod-confirm {
+  position: fixed;
+  display: flex; gap: 8px;
+  z-index: 21;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+#tripod-confirm button {
+  width: 40px; height: 40px;
+  border-radius: 999px;
+  border: 2px solid #000;
+  font-size: 18px; font-weight: 900;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+#tripod-confirm-yes { background: #17a832; color: #fff; }
+#tripod-confirm-no { background: #c62828; color: #fff; }
+#tripod-confirm button:active { transform: scale(0.9); }
+
 @media (max-width: 500px) {
   #dex-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; padding: 9px; }
   #hud { padding: 8px; }
@@ -289,4 +369,11 @@ body.camera-mode #test-btn, body.camera-mode #test-panel { display: none; }
   .icon-btn svg { width: 28px; height: 28px; }
   #frame { width: 60px; height: 60px; border-width: 2px; }
   #viewfinder { width: 150px; height: 115px; }
+  .shop-item { padding: 10px; gap: 10px; }
+  .shop-item-icon { width: 34px; height: 34px; }
+  .shop-item-icon svg { width: 28px; height: 28px; }
+  .shop-buy-btn { padding: 8px 10px; font-size: 12.5px; }
+  #inventory-bar { gap: 8px; }
+  .inv-btn { width: 44px; height: 44px; }
+  .inv-btn svg { width: 24px; height: 24px; }
 }

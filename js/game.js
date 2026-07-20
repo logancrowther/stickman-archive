@@ -22,12 +22,41 @@ const els = {
   dexBack: document.getElementById("dex-back"),
   dexMoney: document.getElementById("dex-money"),
   dexCount: document.getElementById("dex-count"),
-  dexGrid: document.getElementById("dex-grid")
+  dexGrid: document.getElementById("dex-grid"),
+  shopBtn: document.getElementById("shop-btn"),
+  shop: document.getElementById("shop"),
+  shopBack: document.getElementById("shop-back"),
+  shopMoney: document.getElementById("shop-money"),
+  buyFasterCam: document.getElementById("buy-fastercam"),
+  buyTripod: document.getElementById("buy-tripod"),
+  buyTimefreeze: document.getElementById("buy-timefreeze"),
+  tripodOwnedCount: document.getElementById("tripod-owned-count"),
+  timefreezeOwnedCount: document.getElementById("timefreeze-owned-count"),
+  tripodInvBtn: document.getElementById("tripod-inv-btn"),
+  tripodInvCount: document.getElementById("tripod-inv-count"),
+  timefreezeInvBtn: document.getElementById("timefreeze-inv-btn"),
+  timefreezeInvCount: document.getElementById("timefreeze-inv-count"),
+  tripodHint: document.getElementById("tripod-hint"),
+  tripodConfirm: document.getElementById("tripod-confirm"),
+  tripodConfirmYes: document.getElementById("tripod-confirm-yes"),
+  tripodConfirmNo: document.getElementById("tripod-confirm-no")
 };
 
 const SAVE_KEY = "stickmanArchiveSaveV1";
 const FRAME_COOLDOWN_MS = 10 * 60 * 1000; // same type can't be the bounty within 10 minutes
 const BOUNTY_TIMEOUT_MS = 10 * 60 * 1000;
+
+// Shop
+const FASTER_CAMERA_COST = 15000;
+const TRIPOD_COST = 3000;
+const TRIPOD_MAX = 99;
+const TRIPOD_RANGE = 100;             // px radius a placed tripod watches
+const TRIPOD_DURATION_MS = 60 * 1000; // a placed tripod works for about a minute
+const TRIPOD_SHOT_COOLDOWN_MS = 3000; // a tripod's own pace between auto-shots
+const TIME_FREEZE_COST = 5000;
+const TIME_FREEZE_MAX = 99;
+const TIME_FREEZE_DURATION_MS = 5000;
+const TIME_FREEZE_SCALE = 0.04; // how much the world slows to while frozen
 
 // ------------------------------------------------------------------
 // State
@@ -39,8 +68,18 @@ const state = {
   dex: {},           // typeId -> { c: count, t: thumbnail dataURL | undefined }
   frameCooldowns: {},// typeId -> timestamp of last time it was the bounty
   bountyId: null,
-  bountySetAt: 0
+  bountySetAt: 0,
+  fasterCamera: false, // owns the Faster Camera upgrade
+  tripodCount: 0,        // unplaced tripods in inventory
+  timeFreezeCount: 0     // unused Time Freezes in inventory
 };
+
+// Placed tripods (transient — not saved, they only last about a minute anyway)
+const tripods = [];
+const tripodFlashes = [];
+
+// Time Freeze: transient — not saved, it always finishes long before any reload matters
+let timeFreezeUntil = 0;
 
 function loadState() {
   try {
@@ -123,10 +162,6 @@ function maxOnScreen() {
 
 const MOVES = ["walk", "walk", "walk", "run", "skip", "hop", "dance"];
 
-// TEST ONLY (remove for release): types queued here replace upcoming natural
-// spawns one-for-one, so the population never grows past the normal cap.
-const testQueue = [];
-
 // King's-guard knights live outside the population budget: while they're
 // alive the count runs over the cap, and when they leave nothing replaces
 // them — so escorts can never inflate the world population.
@@ -134,7 +169,6 @@ let escortAlive = 0;
 
 function spawn(typeId, onScreen) {
   let id = typeId || sampleTypeId();
-  if (!typeId && testQueue.length) id = testQueue.shift(); // TEST ONLY
   const type = TYPES[id - 1];
   const f = getFeatures(id);
   const dir = Math.random() < 0.5 ? 1 : -1;
@@ -211,6 +245,17 @@ function emitTrail(inst, dt) {
     p.vy = -10 - Math.random() * 8;
     p.life = 0.85; p.r = 1.6 + Math.random() * 2.2;
   }
+  if (kind === "candy") { p.vx = 0; p.vy = 0; p.life = 1.0; p.hue = Math.random() * 360; }
+  if (kind === "choco") { p.vx = 0; p.vy = 0; p.life = 1.4; p.r = 3 + Math.random() * 2; }
+  if (kind === "cards") { p.vx = 0; p.vy = 0; p.life = 0.9; p.pip = Math.random() < 0.5; }
+  if (kind === "domino") { p.vx = 0; p.vy = 0; p.life = 1.3; }
+  if (kind === "crack") { p.vx = 0; p.vy = 0; p.life = 1.1; p.rot = Math.random() * Math.PI; }
+  if (kind === "photo") { p.vx = 0; p.vy = 18; p.life = 1.1; p.rot = (Math.random() - 0.5) * 0.6; }
+  if (kind === "toast") { p.vx = -inst.dir * 6 + (Math.random() - 0.5) * 10; p.vy = -26 - Math.random() * 10; p.life = 0.6; }
+  if (kind === "mist") { p.vx = (Math.random() - 0.5) * 6; p.vy = -6 - Math.random() * 6; p.life = 0.8; p.r = 2 + Math.random() * 2.5; }
+  if (kind === "clean") { p.vx = 0; p.vy = 0; p.life = 0.5; p.rot = Math.random() * Math.PI; }
+  if (kind === "confetti") { p.vx = (Math.random() - 0.5) * 30; p.vy = -20 - Math.random() * 12; p.life = 0.7; p.hue = Math.random() * 360; }
+  if (kind === "ink") { p.vx = 0; p.vy = 8 + Math.random() * 6; p.life = 0.9; p.r = 1.5 + Math.random() * 1.8; }
   particles.push(p);
 }
 
@@ -234,6 +279,17 @@ function drawParticles(dt, t) {
       case "blacksmoke": ctx.fillStyle = "#1c1c1c"; break;
       case "dust": ctx.fillStyle = "#c9c2b8"; break;
       case "road": ctx.fillStyle = "#616161"; break;
+      case "candy": ctx.fillStyle = `hsl(${p.hue}, 80%, 58%)`; break;
+      case "choco": ctx.fillStyle = "#5d4037"; break;
+      case "cards": ctx.fillStyle = "#fff"; break;
+      case "domino": ctx.fillStyle = "#fdf6e3"; break;
+      case "crack": ctx.strokeStyle = "#b71c1c"; break;
+      case "photo": ctx.fillStyle = "#fff"; break;
+      case "toast": ctx.fillStyle = "#d7a458"; break;
+      case "mist": ctx.fillStyle = "#e0f7fa"; break;
+      case "clean": ctx.strokeStyle = "#fff59d"; break;
+      case "confetti": ctx.fillStyle = `hsl(${p.hue}, 85%, 60%)`; break;
+      case "ink": ctx.fillStyle = "#0d0d0d"; break;
       default: ctx.fillStyle = "#999";
     }
     if (p.kind === "bubble") {
@@ -246,6 +302,53 @@ function drawParticles(dt, t) {
       ctx.fillRect(p.x - p.r, p.y - 1.6, p.r * 2, 3.2);
       ctx.fillStyle = "#fdd835";
       ctx.fillRect(p.x - p.r * 0.35, p.y - 0.5, p.r * 0.7, 1);
+    } else if (p.kind === "candy") {
+      ctx.fillRect(p.x - 2, p.y - 1.4, 4, 2.8);
+      ctx.beginPath();
+      ctx.moveTo(p.x - 2, p.y); ctx.lineTo(p.x - 3.3, p.y - 1); ctx.lineTo(p.x - 3.3, p.y + 1); ctx.closePath();
+      ctx.moveTo(p.x + 2, p.y); ctx.lineTo(p.x + 3.3, p.y - 1); ctx.lineTo(p.x + 3.3, p.y + 1); ctx.closePath();
+      ctx.fill();
+    } else if (p.kind === "choco") {
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 1.6, p.r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "cards") {
+      ctx.strokeStyle = "#9e9e9e";
+      ctx.fillRect(p.x - 2, p.y - 2.8, 4, 5.6); ctx.strokeRect(p.x - 2, p.y - 2.8, 4, 5.6);
+      ctx.fillStyle = p.pip ? "#c62828" : "#212121";
+      ctx.beginPath(); ctx.arc(p.x, p.y, 0.9, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "domino") {
+      ctx.strokeStyle = "#bcaaa4";
+      ctx.fillRect(p.x - 1.6, p.y - 3, 3.2, 6); ctx.strokeRect(p.x - 1.6, p.y - 3, 3.2, 6);
+      ctx.fillStyle = "#212121";
+      ctx.beginPath(); ctx.arc(p.x, p.y - 1.2, 0.5, 0, Math.PI * 2); ctx.arc(p.x, p.y + 1.2, 0.5, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "crack") {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-4, -3); ctx.lineTo(-1, 0); ctx.lineTo(-2.5, 2); ctx.lineTo(0, 1); ctx.lineTo(3, 4);
+      ctx.stroke();
+      ctx.restore();
+    } else if (p.kind === "photo") {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+      ctx.fillRect(-2.4, -3, 4.8, 6); ctx.strokeStyle = "#bdbdbd"; ctx.strokeRect(-2.4, -3, 4.8, 6);
+      ctx.fillStyle = "#90caf9"; ctx.fillRect(-1.8, -2.4, 3.6, 3.2);
+      ctx.restore();
+    } else if (p.kind === "toast") {
+      ctx.beginPath();
+      ctx.moveTo(p.x - 2, p.y + 2); ctx.lineTo(p.x - 2, p.y - 1);
+      ctx.quadraticCurveTo(p.x, p.y - 3, p.x + 2, p.y - 1);
+      ctx.lineTo(p.x + 2, p.y + 2); ctx.closePath(); ctx.fill();
+    } else if (p.kind === "mist") {
+      ctx.globalAlpha *= 0.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "clean") {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.moveTo(0, -3); ctx.lineTo(0, 3); ctx.stroke();
+      ctx.restore();
+    } else if (p.kind === "confetti") {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.x * 0.3);
+      ctx.fillRect(-1.6, -1, 3.2, 2);
+      ctx.restore();
+    } else if (p.kind === "ink") {
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.6, p.r, 0, 0, Math.PI * 2); ctx.fill();
     } else {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
     }
@@ -549,6 +652,34 @@ let cameraMode = false;
 let vfX = 0, vfY = 0;
 const SHOT_COOLDOWN_MS = 3000;
 let lastShotAt = -Infinity;
+let burstShotsUsed = 0; // Faster Camera: shots fired since the burst last refilled
+
+// With the Faster Camera upgrade, 3 shots can be fired with no cooldown between
+// them; the cooldown only kicks in once the burst is spent, then refills.
+function shotCooldownLeft() {
+  if (state.fasterCamera) {
+    if (burstShotsUsed < 3) return 0;
+    const left = SHOT_COOLDOWN_MS - (performance.now() - lastShotAt);
+    if (left <= 0) { burstShotsUsed = 0; return 0; }
+    return left;
+  }
+  return SHOT_COOLDOWN_MS - (performance.now() - lastShotAt);
+}
+
+function registerShotCooldown() {
+  if (state.fasterCamera) {
+    burstShotsUsed++;
+    if (burstShotsUsed >= 3) {
+      lastShotAt = performance.now();
+      els.viewfinder.classList.add("cooling");
+      setTimeout(() => els.viewfinder.classList.remove("cooling"), SHOT_COOLDOWN_MS);
+    }
+  } else {
+    lastShotAt = performance.now();
+    els.viewfinder.classList.add("cooling");
+    setTimeout(() => els.viewfinder.classList.remove("cooling"), SHOT_COOLDOWN_MS);
+  }
+}
 
 function setViewfinder(x, y) {
   vfX = x; vfY = y;
@@ -614,7 +745,7 @@ function makeThumb(dataURL, cb) {
 }
 
 function takePhoto() {
-  const cdLeft = SHOT_COOLDOWN_MS - (performance.now() - lastShotAt);
+  const cdLeft = shotCooldownLeft();
   if (cdLeft > 0) {
     showToast(`Camera recharging… ${(cdLeft / 1000).toFixed(1)}s`);
     return;
@@ -646,9 +777,7 @@ function takePhoto() {
     return;
   }
 
-  lastShotAt = performance.now();
-  els.viewfinder.classList.add("cooling");
-  setTimeout(() => els.viewfinder.classList.remove("cooling"), SHOT_COOLDOWN_MS);
+  registerShotCooldown();
 
   // the focus: bounty type if in frame, else the rarest fresh stickman.
   // Only the focus is photographed — everyone else is blurred background.
@@ -752,6 +881,8 @@ function updateMoneyDisplay(pop) {
 // ------------------------------------------------------------------
 function openDex() {
   if (cameraMode) toggleCamera(false);
+  closeShop();
+  cancelTripodMode();
   buildDex();
   els.stickdex.classList.remove("hidden");
 }
@@ -802,11 +933,273 @@ function buildDex() {
 }
 
 // ------------------------------------------------------------------
+// Shop
+// ------------------------------------------------------------------
+function openShop() {
+  if (cameraMode) toggleCamera(false);
+  cancelTripodMode();
+  buildShop();
+  els.shop.classList.remove("hidden");
+}
+function closeShop() { els.shop.classList.add("hidden"); }
+
+function buildShop() {
+  updateMoneyDisplay(false);
+  els.shopMoney.textContent = formatMoney(state.money);
+
+  if (state.fasterCamera) {
+    els.buyFasterCam.textContent = "Owned";
+    els.buyFasterCam.disabled = true;
+    els.buyFasterCam.classList.add("owned");
+  } else {
+    els.buyFasterCam.textContent = formatMoney(FASTER_CAMERA_COST);
+    els.buyFasterCam.disabled = state.money < FASTER_CAMERA_COST;
+    els.buyFasterCam.classList.remove("owned");
+  }
+
+  els.tripodOwnedCount.textContent = state.tripodCount;
+  els.buyTripod.textContent = formatMoney(TRIPOD_COST);
+  els.buyTripod.disabled = state.money < TRIPOD_COST || state.tripodCount >= TRIPOD_MAX;
+
+  els.timefreezeOwnedCount.textContent = state.timeFreezeCount;
+  els.buyTimefreeze.textContent = formatMoney(TIME_FREEZE_COST);
+  els.buyTimefreeze.disabled = state.money < TIME_FREEZE_COST || state.timeFreezeCount >= TIME_FREEZE_MAX;
+
+  updateTripodInvBadge();
+  updateTimefreezeInvBadge();
+}
+
+els.buyFasterCam.addEventListener("click", () => {
+  if (state.fasterCamera || state.money < FASTER_CAMERA_COST) return;
+  state.money -= FASTER_CAMERA_COST;
+  state.fasterCamera = true;
+  saveDirty = true;
+  buildShop();
+  showToast(`<span class="t-new">Faster Camera purchased!</span>`);
+});
+
+els.buyTripod.addEventListener("click", () => {
+  if (state.money < TRIPOD_COST || state.tripodCount >= TRIPOD_MAX) return;
+  state.money -= TRIPOD_COST;
+  state.tripodCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Tripod purchased <small>(${state.tripodCount}/${TRIPOD_MAX})</small>`);
+});
+
+els.buyTimefreeze.addEventListener("click", () => {
+  if (state.money < TIME_FREEZE_COST || state.timeFreezeCount >= TIME_FREEZE_MAX) return;
+  state.money -= TIME_FREEZE_COST;
+  state.timeFreezeCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Time Freeze purchased <small>(${state.timeFreezeCount}/${TIME_FREEZE_MAX})</small>`);
+});
+
+// ------------------------------------------------------------------
+// Time Freeze: one-use, slows every stickman on screen to a crawl for 5s.
+// ------------------------------------------------------------------
+function updateTimefreezeInvBadge() {
+  els.timefreezeInvCount.textContent = state.timeFreezeCount;
+  els.timefreezeInvBtn.classList.toggle("hidden", state.timeFreezeCount <= 0);
+}
+
+function useTimeFreeze() {
+  if (state.timeFreezeCount <= 0) { showToast("No Time Freezes left — buy more in the Shop!"); return; }
+  state.timeFreezeCount--;
+  saveDirty = true;
+  timeFreezeUntil = performance.now() + TIME_FREEZE_DURATION_MS;
+  updateTimefreezeInvBadge();
+  showToast(`<span class="t-bounty">TIME FREEZE!</span> Stickmen slow to a crawl…`);
+}
+
+// ------------------------------------------------------------------
+// Tripods: buy up to 99, place one down and it auto-photographs any
+// stickman that wanders into range for about a minute, then it's gone.
+// ------------------------------------------------------------------
+let tripodMode = null; // null | "aiming" | "pending"
+let tripodPreviewX = 0, tripodPreviewY = 0;
+let pendingTripod = null; // { x, y } once a spot has been tapped/clicked
+
+function updateTripodInvBadge() {
+  els.tripodInvCount.textContent = state.tripodCount;
+  els.tripodInvBtn.classList.toggle("hidden", state.tripodCount <= 0 && !tripodMode);
+}
+
+function positionTripodConfirm(x, y) {
+  els.tripodConfirm.style.left = x + "px";
+  els.tripodConfirm.style.top = (y - TRIPOD_RANGE - 14) + "px";
+}
+
+function startTripodAiming() {
+  if (state.tripodCount <= 0) { showToast("No tripods left — buy more in the Shop!"); return; }
+  if (cameraMode) toggleCamera(false);
+  closeDex(); closeShop();
+  tripodMode = "aiming";
+  pendingTripod = null;
+  tripodPreviewX = vfX || W / 2;
+  tripodPreviewY = vfY || H / 2;
+  document.body.classList.add("tripod-mode");
+  els.tripodInvBtn.classList.add("active");
+  els.tripodHint.classList.remove("hidden");
+  els.tripodHint.textContent = "Tap / click to set the tripod down · ESC to cancel";
+  els.tripodConfirm.classList.add("hidden");
+}
+
+function placePendingTripod(x, y) {
+  pendingTripod = { x, y };
+  tripodMode = "pending";
+  els.tripodHint.textContent = "Confirm the tripod's spot";
+  positionTripodConfirm(x, y);
+  els.tripodConfirm.classList.remove("hidden");
+}
+
+function confirmTripod() {
+  if (!pendingTripod) return;
+  state.tripodCount--;
+  saveDirty = true;
+  const now = performance.now();
+  tripods.push({
+    x: pendingTripod.x, y: pendingTripod.y, r: TRIPOD_RANGE,
+    placedAt: now, expiresAt: now + TRIPOD_DURATION_MS, lastShotAt: -Infinity
+  });
+  exitTripodMode();
+}
+
+function cancelTripodMode() {
+  if (!tripodMode) return;
+  exitTripodMode();
+}
+
+function exitTripodMode() {
+  tripodMode = null;
+  pendingTripod = null;
+  document.body.classList.remove("tripod-mode");
+  els.tripodInvBtn.classList.remove("active");
+  els.tripodHint.classList.add("hidden");
+  els.tripodConfirm.classList.add("hidden");
+  updateTripodInvBadge();
+}
+
+function updateTripods(dt) {
+  const now = performance.now();
+  for (let i = tripods.length - 1; i >= 0; i--) {
+    const tp = tripods[i];
+    if (now >= tp.expiresAt) { tripods.splice(i, 1); continue; }
+    if (now - tp.lastShotAt < TRIPOD_SHOT_COOLDOWN_MS) continue;
+    let best = null;
+    for (const s of stickmen) {
+      if (s.shot) continue;
+      const cy = s.y - instHeight(s) * 0.5;
+      if (Math.hypot(s.x - tp.x, cy - tp.y) > tp.r) continue;
+      if (state.bountyId && s.type.id === state.bountyId) { best = s; break; }
+      if (!best || s.type.r < best.type.r) best = s;
+    }
+    if (best) tripodCapture(tp, best);
+  }
+  for (let i = tripodFlashes.length - 1; i >= 0; i--) {
+    tripodFlashes[i].t += dt;
+    if (tripodFlashes[i].t > 0.45) tripodFlashes.splice(i, 1);
+  }
+}
+
+function tripodCapture(tp, focus) {
+  tp.lastShotAt = performance.now();
+  const photoURL = snapshotRegion(tp.x - tp.r, tp.y - tp.r, tp.r * 2, tp.r * 2, focus);
+  state.shots++;
+
+  const valueType = focus.type;
+  const bountyHit = state.bountyId === valueType.id;
+  const gained = bountyHit ? valueType.value * 20 : valueType.value;
+  state.money += gained;
+
+  focus.shot = true;
+  let newType = false;
+  if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
+  state.dex[valueType.id].c++;
+  makeThumb(photoURL, thumb => {
+    const e = state.dex[valueType.id];
+    if (e && !e.t) e.t = thumb;
+    saveDirty = true;
+  });
+
+  updateMoneyDisplay(true);
+  saveDirty = true;
+  tripodFlashes.push({ x: tp.x, y: tp.y, t: 0 });
+
+  showToast(
+    `<span class="t-money">+${formatMoney(gained)}</span> <small>(tripod)</small><br>` +
+    (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
+    `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
+    (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
+  );
+
+  if (bountyHit || Date.now() - state.bountySetAt > BOUNTY_TIMEOUT_MS) pickBounty();
+}
+
+function drawTripodIcon(ctx, x, y, opts) {
+  opts = opts || {};
+  ctx.save();
+  ctx.globalAlpha *= opts.alpha === undefined ? 1 : opts.alpha;
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x, y - 22); ctx.lineTo(x, y - 8);
+  ctx.moveTo(x, y - 8); ctx.lineTo(x - 12, y + 14);
+  ctx.moveTo(x, y - 8); ctx.lineTo(x + 12, y + 14);
+  ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 16);
+  ctx.stroke();
+  ctx.fillStyle = "#fff"; ctx.strokeStyle = "#000";
+  ctx.beginPath(); ctx.rect(x - 8, y - 30, 16, 10); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+function drawTripodRange(ctx, x, y, r) {
+  ctx.save();
+  ctx.strokeStyle = "#1565c0";
+  ctx.lineWidth = 1.6;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = "#1565c012";
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawTripods(t) {
+  for (const tp of tripods) drawTripodIcon(ctx, tp.x, tp.y);
+  for (const fl of tripodFlashes) {
+    const a = 1 - fl.t / 0.45;
+    ctx.save();
+    ctx.globalAlpha = a * 0.6;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(fl.x, fl.y, TRIPOD_RANGE * (0.3 + fl.t), 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  if (tripodMode === "aiming") {
+    drawTripodRange(ctx, tripodPreviewX, tripodPreviewY, TRIPOD_RANGE);
+    drawTripodIcon(ctx, tripodPreviewX, tripodPreviewY, { alpha: 0.5 });
+  } else if (tripodMode === "pending" && pendingTripod) {
+    drawTripodRange(ctx, pendingTripod.x, pendingTripod.y, TRIPOD_RANGE);
+    drawTripodIcon(ctx, pendingTripod.x, pendingTripod.y, { alpha: 0.5 });
+  }
+}
+
+// ------------------------------------------------------------------
 // Input
 // ------------------------------------------------------------------
-els.cameraBtn.addEventListener("click", () => toggleCamera());
+els.cameraBtn.addEventListener("click", () => { closeShop(); cancelTripodMode(); toggleCamera(); });
 els.folderBtn.addEventListener("click", openDex);
 els.dexBack.addEventListener("click", closeDex);
+els.shopBtn.addEventListener("click", openShop);
+els.shopBack.addEventListener("click", closeShop);
+els.tripodInvBtn.addEventListener("click", () => {
+  if (tripodMode) cancelTripodMode();
+  else startTripodAiming();
+});
+els.tripodConfirmYes.addEventListener("click", confirmTripod);
+els.tripodConfirmNo.addEventListener("click", cancelTripodMode);
+els.timefreezeInvBtn.addEventListener("click", useTimeFreeze);
 
 document.getElementById("wipe-btn").addEventListener("click", () => {
   if (confirm("Wipe ALL progress?\n\nThis permanently deletes your money and your entire Stickdex. This cannot be undone.")) {
@@ -819,67 +1212,34 @@ document.getElementById("wipe-btn").addEventListener("click", () => {
 window.addEventListener("keydown", e => {
   if (e.target && e.target.tagName === "INPUT") return; // typing in a text box
   if (e.key === "Escape") {
-    if (!els.stickdex.classList.contains("hidden")) closeDex();
+    if (tripodMode) cancelTripodMode();
+    else if (!els.stickdex.classList.contains("hidden")) closeDex();
+    else if (!els.shop.classList.contains("hidden")) closeShop();
     else if (cameraMode) toggleCamera(false);
   }
   if (e.key === "c" || e.key === "C") toggleCamera();
 });
 
-// ---- TEST ONLY: spawn panel — remove this whole block for release ----
-{
-  const testBtn = document.getElementById("test-btn");
-  const testPanel = document.getElementById("test-panel");
-  const testSearch = document.getElementById("test-search");
-  const testList = document.getElementById("test-list");
-  let testListBuilt = false;
-  testBtn.addEventListener("click", () => {
-    if (!testListBuilt) {
-      testListBuilt = true;
-      const frag = document.createDocumentFragment();
-      for (const type of TYPES) {
-        const row = document.createElement("div");
-        row.className = "test-row";
-        row.dataset.id = type.id;
-        row.textContent = `#${type.id} ${type.name}`;
-        row.title = type.desc;
-        frag.appendChild(row);
-      }
-      testList.appendChild(frag);
-    }
-    testPanel.classList.toggle("hidden");
-    if (!testPanel.classList.contains("hidden")) testSearch.focus();
-  });
-  testSearch.addEventListener("input", () => {
-    const q = testSearch.value.trim().toLowerCase();
-    for (const row of testList.children) {
-      row.style.display = !q || row.textContent.toLowerCase().includes(q) ? "" : "none";
-    }
-  });
-  testList.addEventListener("click", e => {
-    const row = e.target.closest(".test-row");
-    if (!row) return;
-    const id = Number(row.dataset.id);
-    testQueue.push(id);
-    showToast(`Queued <b>${TYPES[id - 1].name}</b> — it replaces the next natural spawn (${testQueue.length} waiting)`);
-  });
-  // ?queue=1,2,3 pre-queues type ids (handy for headless screenshots)
-  const preQueue = new URLSearchParams(location.search).get("queue");
-  if (preQueue) {
-    for (const id of preQueue.split(",").map(Number)) {
-      if (TYPES[id - 1]) testQueue.push(id);
-    }
-  }
-  window.__debug = { stickmen, portals, testQueue }; // headless inspection hook
-}
+window.__debug = {
+  stickmen, portals, state, buildShop,
+  peek: () => ({
+    money: state.money, fasterCamera: state.fasterCamera,
+    tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
+    tripodMode, tripods: tripods.length, timeFreezeUntil, now: performance.now()
+  })
+}; // headless inspection hook
 
 window.addEventListener("mousemove", e => {
   if (cameraMode) setViewfinder(e.clientX, e.clientY);
+  else if (tripodMode === "aiming") { tripodPreviewX = e.clientX; tripodPreviewY = e.clientY; }
 });
 canvas.addEventListener("click", e => {
   if (cameraMode) { setViewfinder(e.clientX, e.clientY); takePhoto(); }
+  else if (tripodMode === "aiming") { placePendingTripod(e.clientX, e.clientY); }
 });
 canvas.addEventListener("touchstart", e => {
   if (cameraMode) { e.preventDefault(); const t = e.touches[0]; setViewfinder(t.clientX, t.clientY); }
+  else if (tripodMode === "aiming") { e.preventDefault(); const t = e.touches[0]; placePendingTripod(t.clientX, t.clientY); }
 }, { passive: false });
 canvas.addEventListener("touchmove", e => {
   if (cameraMode) { e.preventDefault(); const t = e.touches[0]; setViewfinder(t.clientX, t.clientY); }
@@ -899,8 +1259,11 @@ function frame(now) {
   const t = now / 1000;
   state.playMinutes += dt / 60;
 
-  updateWorld(dt, t);
+  const frozen = now < timeFreezeUntil;
+  const worldDt = frozen ? dt * TIME_FREEZE_SCALE : dt;
+  updateWorld(worldDt, t);
   updatePortals(dt);
+  updateTripods(dt);
 
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, W, H);
@@ -911,6 +1274,13 @@ function frame(now) {
   stickmen.sort((a, b) => a.y - b.y);
   for (const s of stickmen) drawStickman(ctx, s, t);
 
+  drawTripods(t);
+
+  if (frozen) {
+    ctx.fillStyle = "#42a5f522";
+    ctx.fillRect(0, 0, W, H);
+  }
+
   requestAnimationFrame(frame);
 }
 
@@ -919,6 +1289,8 @@ function frame(now) {
 // ------------------------------------------------------------------
 loadState();
 updateMoneyDisplay(false);
+updateTripodInvBadge();
+updateTimefreezeInvBadge();
 if (state.bountyId) renderBounty(); else pickBounty();
 
 // initial population spread across the screen

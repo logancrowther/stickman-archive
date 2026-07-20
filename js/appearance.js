@@ -50,6 +50,7 @@ function getFeatures(id) {
     suit: false, suitColor: "#1c1c24", tieColor: "#b71c1c",
     companion: null, marksKind: "squares",
     multiHead: 0, bubbleHelm: false, invert: false, headDots: null, stem: false,
+    shine: false, shineColor: null,
     mask: false, armor: false, fishTail: false, emblem: null,
     move: null, speed: 1, glitch: false,
     crest: null, firePlume: false, halfRobot: false, pixelate: false,
@@ -416,16 +417,156 @@ const APPEARANCE_OVERRIDES = {
   226: { ears: "phones" },                                               // DJ
   270: { headFill: "#fff" },                                             // Chess
   287: { invert: true, move: "float" },                                  // Gravityless
-  335: { multiHead: 3, color: "#4e342e", headFill: "#8d6e63" },          // Cerberus
-  351: { head: "camera" },                                               // Camera
-  352: { head: "folder", acc: null },                                    // Folder
-  356: { tail: true },                                                   // Mouse
-  361: { chest: "book" },                                                // Book
-  365: { move: "hobble", acc: "cane", speed: 0.55, beard: true, color: "#5f5f5f" }, // Old Man
-  366: { acc: "moneybag" },                                              // Money Bag
-  368: { color: "#6d4c41", marks: true, marksColor: "#f4b400" },         // Treasure Chest
-  384: { head: "trophy" },                                               // Trophy
-  390: { move: "slow" },                                                 // Sleepwalker
+
+  // ---- the pantheon & bestiary (300-350): gods, giants, golems, myth beasts ----
+  300: { glitch: true, morph: true, invert: true, hueCycle: true, size: 1.3 }, // The Impossible: every chaos flag stacked at once
+  301: { armor: true, color: "#5d5d5d", headFill: "#9e9e9e",
+         marks: true, marksKind: "glyphs", marksColor: "#ffd700", glow: "#ffd70044" }, // Ancient God: stone plate, glowing gold glyphs
+  302: { wings: "feather", color: "#c9a227", headFill: "#fff8d6",
+         overhead: "cloud", lightning: true, glow: "#ffe08266" },        // Sky God: golden wings, a storm cloud crackling above
+  303: { hat: "crown", color: "#01579b", headFill: "#81d4fa",
+         trail: "bubble", glow: "#4fc3f766" },                           // Sea God: an aqua crown, ocean bubbles trailing behind
+  304: { color: "#4e6b4e", headFill: "#6d8f6d", branchArms: true,
+         size: 1.3, lineW: 3.4 },                                        // Earth God: massive mossy-stone body, vine-branch arms
+  305: { color: "#bf360c", headFill: "#ff5722", wings: "flame",
+         eyes: "glow", glow: "#ff572299", size: 1.15 },                  // Fire God: a body wreathed in eternal fire wings
+  306: { armor: true, icicles: true, color: "#1a5276", headFill: "#cfeefc",
+         glow: "#81d4fa55" },                                            // Ice God: frozen plate armor bristling with crystal spikes
+  307: { electric: true, color: "#f9a825", headFill: "#fff59d",
+         trail: "spark", eyes: "glow", glow: "#ffee5877" },              // Lightning God: a crackling electric body, thunder in its wake
+  308: { head: "void", cloak: true, cloakColor: "#000000",
+         color: "#000000", headFill: "#000000", eyes: "white" },         // Shadow God: a dark cloak wrapped around a void where a face should be
+  309: { glow: "#fffde799", headFill: "#fffde7", color: "#c9b458",
+         halo: true, size: 1.1 },                                        // Light God: pure glowing white body, a radiant halo
+  310: { companion: "clock", color: "#8d6e00", headFill: "#ffd700",
+         glow: "#ffd70066" },                                            // Time God: carries a giant golden clock everywhere
+  311: { starBody: true, color: "#241b4d", headFill: "#1a1440", eyes: "white" }, // Space God: a body filled with slow-drifting galaxies
+  312: { orbit: 3, orbitKind: "block", color: "#37474f", headFill: "#b0bec5" }, // Creation: tiny built blocks tumbling around it as it walks
+  313: { trail: "crack", color: "#212121", headFill: "#4a4a4a", eyes: "red" }, // Destruction: leaves jagged cracks in reality behind it
+  314: { armor: true, acc: "shield", color: "#8d6e00", headFill: "#ffe9a8",
+         glow: "#ffd70044" },                                            // Guardian: golden armor, a raised protective shield
+  315: { armor: true, alpha: 0.88, color: "#6d5a4e", headFill: "#a89484", lineW: 3 }, // Ancient Warrior: dulled, forgotten battle plate
+  316: { hat: "crown", cloak: true, cloakColor: "#5e4b56", alpha: 0.85,
+         color: "#757575", headFill: "#bdbdbd",
+         marks: true, marksKind: "cracks", marksColor: "#424242" },      // Lost King: a tarnished, cracked crown and faded robes
+  317: { horns: true, tail: true, fangs: true, lineW: 3.4, size: 1.15,
+         color: "#7a1f1f", headFill: "#b71c1c" },                        // Dragon King: huge horns and deep-red dragon scales
+  318: { wings: "flame", crest: "flame", firePlume: true,
+         color: "#8d5a00", headFill: "#ffd700", glow: "#ff9800aa" },     // Phoenix King: flaming wings, golden feathers
+  319: { hat: "snakecrown", eyes: "glow", tail: true,
+         color: "#1b3b1b", headFill: "#4caf50" },                        // Serpent King: a coiled snake crown, glowing eyes
+  320: { size: 1.4, headScale: 1.3, lineW: 4, gloves: "#5d5d5d",
+         color: "#5d5d5d", headFill: "#9e9e9e" },                        // Titan: a massive body ending in stone fists
+  321: { size: 1.5, headScale: 1.4, lineW: 4.4, move: "slow", speed: 0.4,
+         color: "#757575", headFill: "#bdbdbd" },                        // Colossus: an even huger, slow ancient giant
+  322: { chest: "core", color: "#616161", headFill: "#9e9e9e", glow: "#ff8a6544" }, // Golem: rock body, a glowing core in its chest
+  323: { alpha: 0.75, shine: true, color: "#4aa8c9", headFill: "#d7f2fb", glow: "#80deea66" }, // Crystal Golem: an entire gem-cut body
+  324: { armor: true, head: "square", move: "slow", lineW: 3.6,
+         color: "#546e7a", headFill: "#b0bec5" },                        // Iron Golem: heavy metal armor, slow heavy footsteps
+  325: { branchArms: true, lineW: 3.2, color: "#5d4037", headFill: "#7cb342" }, // Wood Golem: bark-brown body, branches for arms
+  326: { wings: "bee", trail: "spark", size: 0.75, color: "#ad6fc9", headFill: "#f3e5f5" }, // Fairy: tiny wings, a sparkling trail
+  327: { wings: "butterfly", orbit: 2, orbitKind: "spark", size: 0.75,
+         color: "#8e24aa", headFill: "#f8bbd0", glow: "#ce93d888" },     // Pixie: small, softly glowing magical body
+  328: { color: "#2e7d32", headFill: "#a5d6a7", cloak: true, cloakColor: "#1b5e20" }, // Elf: pointed ears (generic), green cloak and clothing
+  329: { size: 0.75, beard: true, acc: "axe", lineW: 3,
+         color: "#6d4c41", headFill: "#bcaaa4" },                        // Dwarf: short and stout, mining axe in hand
+  330: { headFill: "#7cb342", size: 0.8, color: "#33691e",
+         eyes: "glow", move: "skip", fangs: true },                      // Goblin: green skin, a jittery sneaking gait
+  331: { size: 1.2, lineW: 3.6, fangs: true, claws: true,
+         color: "#556b2f", headFill: "#8f9779" },                        // Orc: large, muscular, tusked
+  332: { size: 1.3, lineW: 4, claws: true, muzzle: "#4e4e4e",
+         color: "#5d6d5d", headFill: "#8d9c8d" },                        // Troll: huge rocky creature with a snout
+  333: { wings: "flame", trail: "fire", color: "#4e2b2b", headFill: "#8d4444", glow: "#e6432288" }, // Phoenix: ash-dark body burning back to life
+  334: { move: "slither", eyes: "glow", tail: true,
+         color: "#556b2f", headFill: "#c0ca33" },                        // Basilisk: a snake-like body, glowing eyes
+  335: { multiHead: 3, tail: true, trail: "fire",
+         color: "#4e342e", headFill: "#8d6e63" },                        // Cerberus: three dog heads, a fiery tail
+  336: { lionTail: true, mask: true, color: "#c9a227", headFill: "#f0dfa8" }, // Sphinx: a lion's body, a masked mysterious face
+  337: { wings: "feather", halo: true, size: 1.3,
+         color: "#78909c", headFill: "#eceff1", glow: "#e3f2fd99" },     // Pegasus Lord: massive celestial wings, no horn
+  338: { armor: true, trail: "fire", fangs: true,
+         color: "#3e1414", headFill: "#5d1a1a" },                        // Dragon Lord: ancient dragon armor, breathes fire
+  339: { starBody: true, claws: true, tail: true,
+         color: "#000000", headFill: "#0a0a0a", eyes: "white" },         // Void Beast: a black body hiding empty stars
+  340: { hueCycle: true, marks: true, marksKind: "glyphs", claws: true,
+         size: 1.1, color: "#1a237e" },                                  // Cosmic Beast: shifting constellations across its body
+  341: { morph: true, alpha: 0.7, color: "#9575cd", headFill: "#e1bee7", glow: "#ce93d866" }, // Dream Beast: changes shape every few seconds
+  342: { color: "#000000", headFill: "#050505", eyes: null,
+         claws: true, furry: true, muzzle: "#000000", lineW: 3 },        // Night Beast: only a dark silhouette, no visible face
+  343: { head: "mirror", shine: true, claws: true,
+         color: "#78909c", headFill: "#dbe7ec" },                        // Mirror Beast: reflects nearby stickmen perfectly
+  344: { move: "teleport", sepia: true,
+         marks: true, marksKind: "glyphs", marksColor: "#8d6e63" },      // Time Beast: sepia-toned, moves through different ages
+  345: { glitch: true, windLines: true, color: "#4a148c", headFill: "#ce93d8" }, // Reality Beast: causes the whole screen to bend
+  346: { alpha: 0.25, fade: false, armor: true,
+         marks: true, marksKind: "glyphs", marksColor: "#bdbdbd",
+         color: "#616161", headFill: "#757575" },                        // Forgotten One: ancient markings over near-invisible armor
+  347: { eyes: null, alpha: 0.6, color: "#9e9e9e", headFill: "#f5f5f5" }, // The Nameless: no face, no identity
+  348: { color: "#000000", headFill: "#f5f5f5" },                        // The First: the plain original prototype, nothing more
+  349: { fade: true, dissolve: true, alpha: 0.5, color: "#9e9e9e", headFill: "#eeeeee" }, // The Last: fading away as it walks
+  350: { eternalRing: true, halo: true, glow: "#ffd70088",
+         color: "#c9a227", headFill: "#fffde7" },                        // The Eternal: never disappears until photographed
+
+  // ---- desks, drawers & appliances (351-400) ----
+  351: { head: "camera", color: "#212121", headFill: "#616161", trail: "photo" }, // Camera: black camera head, drops fake photos behind it
+  352: { head: "folder", headFill: "#ffca28", color: "#f57f17",
+         marks: true, marksKind: "paper", marksColor: "#ffffff" },       // Folder: manila folder head, loose papers fluttering off the top
+  353: { head: "phone", headFill: "#111111", color: "#212121", glow: "#4fc3f755" }, // Phone: glowing smartphone screen cycling emoji
+  354: { vehicleBody: "computer", color: "#37474f", headFill: "#eceff1" }, // Computer: monitor-and-tower body, arms and legs poke out
+  355: { marks: true, marksKind: "keys", marksColor: "#455a64",
+         color: "#37474f", headFill: "#cfd8dc" },                        // Keyboard: keycaps tiling its entire body
+  356: { head: "mouseshape", tail: true, headFill: "#e0e0e0", color: "#616161" }, // Mouse: mouse-shaped head with a trailing cable tail
+  357: { acc: "gamepad", color: "#263238", headFill: "#455a64" },        // Controller: grips a two-handed game controller
+  358: { acc: "remote", color: "#212121", headFill: "#424242" },        // Remote: holds a button-covered remote out in front
+  359: { head: "lamp", headFill: "#fff8e1", color: "#8d6e63", glow: "#fff9c4aa" }, // Lamp: a glowing lampshade head lighting the ground
+  360: { overhead: "flame", headFill: "#fff3e0", color: "#f9a825", glow: "#ffb30066" }, // Candle: a small flame flickering above its head
+  361: { chest: "book" },                                                // Book: an open book for a torso — already reads clearly, kept
+  362: { marks: true, marksKind: "text", marksColor: "#4e342e",
+         color: "#4e342e", headFill: "#efebe0" },                        // Dictionary: tiny scribbled unreadable text covers its body
+  363: { acc: "newspaper", color: "#424242", headFill: "#fafafa" },      // Newspaper: carries a folded paper with headline lines
+  364: { color: "#3e2723", headFill: "#fff8e1", glow: "#ffca2844" },     // Clock: warm brass clock-face head (shape already generic-matched)
+  365: { move: "hobble", acc: "cane", speed: 0.55, beard: true, color: "#5f5f5f" }, // Old Man: kept — cane, hobble and beard already read clearly
+  366: { acc: "moneybag", color: "#2e7d32", headFill: "#a5d6a7", glow: "#ffd70044" }, // Money Bag: hefts a bulging sack with a coin shine
+  367: { marks: true, marksKind: "gems", marksColor: "#ce93d8",
+         color: "#4a148c", headFill: "#ce93d8", shine: true },           // Diamond Collector: gem facets scattered over its body, glossy shine
+  368: { vehicleBody: "trunk", color: "#6d4c41", headFill: "#ffd700" },  // Treasure Chest: a wooden chest body overflowing with gold
+  369: { marks: true, marksKind: "keyring", marksColor: "#8d6e00",
+         color: "#8d6e00", headFill: "#ffd54f" },                        // Key Master: dozens of keys dangling and jingling from its body
+  370: { head: "lock", color: "#455a64", headFill: "#78909c" },         // Lock: a padlock head, silver-grey body
+  371: { head: "door", color: "#6d4c41", headFill: "#8d6e63" },         // Door: a walking wooden doorway (shape already generic-matched)
+  372: { head: "window", headFill: "#bbdefb", color: "#795548" },       // Window: a framed window head with a little sky scene inside
+  373: { vehicleOnly: "chair" },                                         // Chair: a plain wooden chair walking on its own four legs
+  374: { vehicleOnly: "table" },                                         // Table: a flat tabletop gliding along on four long legs
+  375: { vehicleOnly: "sofa" },                                          // Sofa: a cushioned couch shuffling along on stubby feet
+  376: { acc: "pillow", move: "slow", color: "#8d6e63", headFill: "#eceff1" }, // Bed: shuffles along hugging a pillow
+  377: { vehicleBody: "toaster", trail: "toast", color: "#bdbdbd", headFill: "#eeeeee" }, // Toaster: chrome body, launches toast out the back
+  378: { vehicleBody: "fridge", trail: "mist", color: "#eceff1", headFill: "#ffffff" }, // Fridge: tall white body, trailing cold mist
+  379: { vehicleBody: "oven", glow: "#ff572266", color: "#424242", headFill: "#616161" }, // Oven: black body with a glowing hot window
+  380: { vehicleBody: "vacuum", trail: "clean", color: "#c62828", headFill: "#e57373" }, // Vacuum: upright body, leaves a sparkling clean trail
+  381: { vehicleOnly: "roomba", color: "#78909c", headFill: "#455a64" }, // Robot Vacuum: a low disc gliding randomly around the screen
+  382: { back: "windkey", size: 0.82, move: "hop", color: "#c62828", headFill: "#ffccbc" }, // Clockwork Toy: small tin toy, jerking forward on a key
+  383: { move: "pop", color: "#f57f17", headFill: "#fff176" },          // Jack-in-the-Box: springs upward in a sudden pop every few steps
+  384: { head: "trophy", color: "#c9a227", headFill: "#ffd700", glow: "#ffd70055" }, // Trophy: gleaming gold trophy head
+  385: { chest: "medals", color: "#546e7a", headFill: "#cfd8dc" },       // Medal: rows of medals pinned across its chest
+  386: { acc: "cup", color: "#f9a825", headFill: "#fff59d", glow: "#ffd70044" }, // Champion: raises a championship cup overhead
+  387: { head: "trophy", marks: true, marksKind: "cracks", marksColor: "#616161",
+         alpha: 0.75, move: "droop", color: "#78909c", headFill: "#b0bec5" }, // Failure: a cracked, dulled trophy head and a slumped walk
+  388: { trail: "confetti" },                                            // Confetti: bursts colourful paper with every step
+  389: { move: "dance", orbit: 2, orbitKind: "balloon", hueCycle: true }, // Party: dances nonstop, balloons bobbing around it
+  390: { move: "slow", eyes: "closed" },                                 // Sleepwalker: shuffles along with its eyes shut
+  391: { beak: "#f57f17", comb: true, eyes: "glow", color: "#4a5d4a", headFill: "#8ba888" }, // Zombie Chicken: rotting skin, a beak and comb
+  392: { hat: "pirate", halfRobot: true, color: "#546e7a", headFill: "#b0bec5" }, // Robot Pirate: a tricorn hat over a half-mechanical body
+  393: { hat: "cowboy", trail: "spark", color: "#455a64", headFill: "#cfd8dc" }, // Cowboy Robot: metal body, sparking laser-lasso trail
+  394: { hat: "wizard", acc: "staff", color: "#37474f", headFill: "#b0bec5" }, // Wizard Robot: robotic wizard with hat and staff
+  395: { hat: "chef", eyes: "alien", headFill: "#8bc34a", color: "#33691e" }, // Alien Chef: green-skinned alien in a chef's toque
+  396: { hat: "helmet", acc: "rapier", color: "#1a237e", headFill: "#7986cb" }, // Space Pirate: a space helmet and a drawn blade
+  397: { hat: "chef", acc: "pan", starBody: true, orbit: 3, orbitKind: "planet",
+         color: "#3f2b7e", headFill: "#241b4d" },                        // Galaxy Chef: cooks tiny orbiting planets in a pan
+  398: { holdMachine: true, overhead: "cloud", orbit: 2, orbitKind: "spark",
+         glow: "#ce93d866", color: "#7e57c2", headFill: "#d1c4e9" },     // Dream Machine: a gripped machine puffing a sparkling dream cloud
+  399: { holdMachine: true, orbit: 3, orbitKind: "miniobj",
+         color: "#37474f", headFill: "#b0bec5" },                        // Reality Printer: a gripped machine, tiny printed copies orbiting
+  400: { acc: "folder", orbit: 2, orbitKind: "page", color: "#000000", headFill: "#f5f5f5" }, // The Collector: a folder and drifting pages
   414: { chest: "core" },                                                // AI Core
   420: { overhead: "cloud" },                                            // Sad
   424: { overhead: "bulb" },                                             // Idea
@@ -441,7 +582,7 @@ const APPEARANCE_OVERRIDES = {
   430: { hat: "castle", color: "#78909c", headFill: "#eceff1" },         // Living Castle: a castle worn on the head
   431: { hat: "castle", acc: "shield", color: "#546e7a", headFill: "#cfd8dc" }, // Fortress: castle on the head + a shield in hand
   432: { vehicleBody: "tower", legLen: 1, bodyLen: 1 },                  // Tower: a tall black-outline tower for a body, normal limbs
-  433: { vehicleOnly: "bridge" },                                        // Bridge: a small black-outline bridge, no human parts
+  433: { vehicleBody: "bridge" },                                        // Bridge: a black-outline bridge body, hands and feet poking out
   434: { trail: "road", color: "#424242", headFill: "#e0e0e0" },        // Road: a normal stickman leaving a fading road trail
   435: { vehicleOnly: "train" },                                        // Train: a small black-outline locomotive, no human parts
   436: { vehicleOnly: "car" },                                          // Car: just a black-outline car, no human parts
@@ -450,11 +591,208 @@ const APPEARANCE_OVERRIDES = {
   438: { vehicleBody: "rocket" },                                       // Rocket: a black-outline rocket body, hands and feet poking out
   439: { overhead: "spaceship", color: "#37474f", headFill: "#b0bec5" }, // Spaceship: a normal figure with ships floating above
 
-  530: { hat: "shako", color: "#78909c", headFill: "#b0bec5" },          // Tin Soldier
-  531: { back: "windkey" },                                              // Wind-Up Hero
-  540: { headFill: "#cfd8dc", glow: "#b3e5fc88" },                       // Mirror Ball
-  644: { chest: "core" },                                                // System Core
-  664: { head: "camera", headFill: "#ffd700" },                          // The Photographer
+  // ---- the collector's cabinet (500-550): food, toys & games, performers ----
+  500: { cloak: true, cloakColor: "#241b3d", color: "#3a2d5c", headFill: "#2f2547",
+         acc: "book", glow: "#7c4dff77", orbit: 2, orbitKind: "page",
+         marks: true, marksKind: "glyphs", marksColor: "#c9a227", eyes: "glow" }, // The Archivist: hooded keeper, glowing tome, orbiting pages, gold runes
+  501: { hat: "chef", color: "#c62828", headFill: "#ffe0b2",
+         orbit: 3, orbitKind: "ingredient" },                            // Chef Chaos: chef's toque, ingredients tumbling around it
+  502: { head: "pizzaslice", headFill: "#ffca28", color: "#8d5a2b" },     // Pizza Master: a whole cheesy pizza slice for a head
+  503: { head: "sushi", headFill: "#ffffff", color: "#37474f" },         // Sushi: nigiri rice + salmon + nori belt head
+  504: { head: "coffeecup", headFill: "#f5f5f5", color: "#4e342e" },     // Coffee: a cup head with a handle and rising steam
+  505: { hat: "kettle", orbit: 3, orbitKind: "cup",
+         color: "#4e342e", headFill: "#ffe0b2" },                        // Tea Master: teapot hat, floating teacups
+  506: { hat: "crown", color: "#ad1457", headFill: "#f8bbd0",
+         orbit: 3, orbitKind: "candy" },                                 // Candy King: gold crown, wrapped candies orbiting
+  507: { move: "run", speed: 2.2, trail: "candy",
+         color: "#e91e63", headFill: "#fff59d" },                        // Sugar Rush: sprints, dropping candy behind it
+  508: { head: "popcorn", headFill: "#fff8e1", color: "#8d6e63" },       // Popcorn: a striped bucket head, kernels spilling over
+  509: { trail: "choco", color: "#5d4037", headFill: "#8d6e63",
+         glow: "#6d4c3766" },                                            // Chocolate Factory: rivers of chocolate flow behind it
+  510: { headFill: "#c78a4b", headDots: "chips", color: "#8d6e63",
+         marks: true, marksKind: "crumbs", marksColor: "#6d4c41" },      // Cookie Monster: choc-chip head, crumbs falling off its body
+  511: { head: "scoops", headFill: "#ffccbc", headDots: "sprinkles",
+         acc: "wand", color: "#7e57c2" },                                // Ice Cream Wizard: triple-scoop sprinkled head, magic wand
+  512: { head: "watermelon", headFill: "#43a047", color: "#111111",
+         acc: "katana" },                                                // Fruit Ninja: watermelon head, katana drawn mid-slice
+  513: { head: "cabbage", headFill: "#7cb342", armor: true,
+         acc: "shield", color: "#33691e" },                              // Vegetable Knight: leafy cabbage head, full plate armor + shield
+  514: { head: "circle", headFill: "#ffd700", stem: true, shine: true,
+         glow: "#ffd70066" },                                            // Golden Apple: gilded apple head with stem, leaf and a shine
+  515: { head: "mysterybox", headFill: "#5d4037", color: "#3e2723",
+         eyes: null },                                                   // Mystery Box: a crate with a colour-shifting "?" hiding its form
+  516: { head: "giftbox", headFill: "#c62828", color: "#7a1f1f" },       // Gift: a wrapped present head with ribbon and a bow
+  517: { head: "toybox", headFill: "#8d6e63", color: "#5d4037" },        // Toy Box: an open crate head with tiny toys peeking out
+  518: { head: "rubik", headFill: "#1b1b1b", color: "#111111" },         // Rubik: a 3x3 cube head whose tiles keep shifting colour
+  519: { head: "puzzlepiece", headFill: "#42a5f5", color: "#0d47a1",
+         marks: true, marksKind: "puzzle", marksColor: "#1565c0" },      // Puzzle Master: a jigsaw-piece head, seams rearranging on its body
+  520: { head: "dice", headFill: "#e53935", color: "#7f0000", move: "spin" }, // Dice Roller: a rolling dice head instead of walking
+  521: { head: "dice", headFill: "#ffd700", color: "#8d6e00",
+         glow: "#ffd70088", orbit: 2, orbitKind: "spark" },              // Lucky Dice: a golden dice head, always shining
+  522: { acc: "cards", trail: "cards", color: "#212121", headFill: "#eeeeee" }, // Card Dealer: a fanned hand of cards, throwing them behind
+  523: { orbit: 3, orbitKind: "card", cloak: true, cloakColor: "#311b92",
+         color: "#4a148c", headFill: "#ce93d8" },                        // Magic Card: a cloaked magician with cards orbiting its body
+  524: { head: "puzzlepiece", hueCycle: true,
+         marks: true, marksKind: "puzzle", marksColor: "#ffffff" },      // Jigsaw: a rainbow puzzle-piece head, seams across its whole body
+  525: { hat: "crown", color: "#111111", headFill: "#eeeeee",
+         marks: true, marksKind: "chess", marksColor: "#111111" },       // Chess Master: a crown and a checkerboard body
+  526: { head: "knightpiece", headFill: "#212121", color: "#000000", move: "hop" }, // Checkmate: a chess-knight head that hops like the piece moves
+  527: { head: "domino", headFill: "#fdf6e3", color: "#212121", trail: "domino" }, // Domino: a pipped domino-tile head, leaving tiles behind
+  528: { head: "legobrick", headFill: "#fdd835", color: "#f57f17",
+         orbit: 2, orbitKind: "block" },                                 // Lego Builder: a studded brick head, tiny blocks floating around it
+  529: { head: "android", headFill: "#e53935", color: "#1565c0", size: 0.85 }, // Toy Robot: a small, brightly coloured toy-robot body
+  530: { hat: "shako", color: "#78909c", headFill: "#b0bec5" },          // Tin Soldier: old tin-toy soldier hat in dull metal tones
+  531: { back: "windkey", color: "#546e7a", headFill: "#cfd8dc" },       // Wind-Up Hero: a giant wind-up key turning on its back
+  532: { hat: "crown", chest: "gearTrain", color: "#8d6e00", headFill: "#ffe0b2" }, // Clockwork King: golden crown, meshing gears in its chest
+  533: { color: "#78909c", headFill: "#cfd8dc", alpha: 0.85,
+         marks: true, marksKind: "cracks", marksColor: "#37474f" },      // Broken Toy: dulled colours, cracked seams held together
+  534: { furry: true, ears: "bear", eyes: "big",
+         color: "#a1887f", headFill: "#d7ccc8" },                        // Stuffed Animal: soft plush fur, round ears, big button eyes
+  535: { strings: true, overhead: "controlbar",
+         color: "#4e342e", headFill: "#d7ccc8" },                        // Puppet Master: a wooden control bar and strings above itself
+  536: { hat: "crown", strings: true, overhead: "controlbar",
+         color: "#8d6e00", headFill: "#ffe0b2" },                        // Marionette King: golden crown and puppet strings
+  537: { head: "balloon", headFill: "#e53935", color: "#7a1f1f", move: "float" }, // Balloon Friend: a floating balloon body on a string
+  538: { trail: "bubble", orbit: 3, orbitKind: "bubble",
+         color: "#4fc3f7", headFill: "#e1f5fe" },                        // Bubble Master: trailing and orbiting soap bubbles
+  539: { alpha: 0.5, trail: "rainbow", headFill: "#e1f5fe",
+         shine: true, shineColor: "#ffffffcc" },                         // Soap Bubble: transparent body with a rainbow shimmer trail
+  540: { head: "discoball", headFill: "#cfd8dc", color: "#78909c",
+         move: "spin", glow: "#b3e5fc88" },                              // Mirror Ball: a faceted disco-ball head, always spinning
+  541: { trail: "spark", move: "dance", glow: "#ce93d888",
+         color: "#4a148c", headFill: "#f8bbd0" },                        // Disco Legend: glowing sparks trailing a dance routine
+  542: { acc: "guitar", trail: "spark", color: "#212121", headFill: "#eceff1" }, // Rock Star: an electric guitar and crackling lightning
+  543: { acc: "mic", orbit: 2, orbitKind: "spark",
+         color: "#ec407a", headFill: "#f8bbd0", glow: "#f8bbd066" },     // Pop Star: a microphone and a sparkling outfit
+  544: { ears: "phones", orbit: 3, orbitKind: "wave",
+         color: "#212121", headFill: "#37474f" },                       // DJ Master: headphones, floating soundwaves it controls
+  545: { chest: "musicbox", color: "#8d6e63", headFill: "#d7ccc8" },     // Music Box: a tiny ornate music box in its chest
+  546: { move: "twirl", color: "#f48fb1", headFill: "#fce4ec" },        // Ballerina: soft pastels, a graceful spinning dance
+  547: { hat: "clown", orbit: 3, orbitKind: "ball",
+         color: "#1e88e5", headFill: "#ffe0b2" },                        // Circus: a clown hat, juggling balls arcing overhead
+  548: { hat: "jester", color: "#6a1b9a", headFill: "#ffd700", move: "dance" }, // Jester King: a four-point jester hat, chaotic dancing
+  549: { morph: true },                                                  // The Performer: changes its whole look every moment
+  550: { hat: "tophat", acc: "cane", glow: "#ffd70088", trail: "spark",
+         size: 1.15, orbit: 3, orbitKind: "spark",
+         color: "#212121", headFill: "#eeeeee" },                        // The Entertainer: a grand showman leaving sparks wherever it walks
+
+  // ---- unfinished builds, glitches & digital archive (600-650) ----
+  600: { sepia: true, haloRings: 3, orbit: 0, glow: "#8d6e4088", color: "#6d5843", headFill: "#d7ccc1" }, // The Endless: ancient, faded, ringed by time itself
+  601: { dash: true, alpha: 0.8, color: "#9e9e9e", headFill: "#f0f0f0" }, // Prototype: a rough, unfinished sketch-line figure
+  602: { emblemText: "BETA", glowText: "#42a5f5", color: "#455a64", headFill: "#cfd8dc" }, // Beta: stamped with an experimental build label
+  603: { emblemText: "ALPHA", glowText: "#ff7043", erased: true, color: "#6d4c41", headFill: "#ffccbc" }, // Alpha: the very first test build, chunks missing
+  604: { marks: true, marksKind: "text", marksColor: "#66bb6a",
+         emblemText: "DEBUG", glowText: "#66bb6a", color: "#37474f", headFill: "#b0bec5" }, // Developer Build: debug scrawl and a stamped label
+  605: { numberSwarm: true, color: "#455a64", headFill: "#cfd8dc" },     // Test Subject: covered in floating experiment numbers
+  606: { morph: true, alpha: 0.6, color: "#795548", headFill: "#d7ccc8" }, // Rejected Design: flickers through discarded concepts
+  607: { erased: true, alpha: 0.6, color: "#78909c", headFill: "#cfd8dc" }, // Scrapped: incomplete, chunks of it simply missing
+  608: { pixelate: true, color: "#000000", headFill: "#212121" },       // Corrupted: rendered as broken black pixel blocks
+  609: { echo: true, color: "#212121", headFill: "#111111" },           // Glitched Shadow: a stuttering afterimage trails behind it
+  610: { glitch: true, crowdBody: true, color: "#4a148c", headFill: "#ce93d8" }, // Broken Reality: fragments of tiny figures in the wrong places
+  611: { alpha: 0.5, eyes: null, color: "#000000", headFill: "#ff00ff" }, // Missing Texture: the classic magenta-and-black placeholder
+  612: { color: "#39ff14", headFill: "#ff00ff", glow: "#ffffff33" },    // Wrong Color: a jarring, impossible clash that never settles
+  613: { color: "#111111", headFill: "#000000", glow: "#ffffff77" },    // Negative: an inverted black head glowing white against dark limbs
+  614: { move: "back", shine: true, color: "#00acc1", headFill: "#b2ebf2" }, // Mirror World: walks its own reflection, backwards
+  615: { invert: true, color: "#5e35b1", headFill: "#d1c4e9" },         // Upside Reality: the world flips wherever it walks
+  616: { shiver: true, windLines: true, color: "#607d8b", headFill: "#cfd8dc" }, // Broken Gravity: an erratic, wind-buffeted stumble
+  617: { move: "twirl", color: "#8d6e63", headFill: "#d7ccc8" },        // Gravity Master: a controlled, graceful spin at will
+  618: { move: "float", alpha: 0.7, color: "#90a4ae", headFill: "#eceff1" }, // Massless: drifts weightlessly with no footing
+  619: { speed: 0.15, size: 1.3, color: "#4e4e4e", headFill: "#9e9e9e" }, // Infinite Weight: crushingly heavy, barely inches forward
+  620: { glow: "#4fc3f7aa", alpha: 0.75, eyes: "glow", color: "#4fc3f7", headFill: "#e1f5fe" }, // Energy Form: a body of pure glowing light
+  621: { trail: "spark", glow: "#ec407a99", color: "#ec407a", headFill: "#f8bbd0" }, // Plasma: bright flowing energy arcs off its body
+  622: { fade: true, alpha: 0.8, color: "#7e57c2", headFill: "#d1c4e9" }, // Quantum: flickers between positions a beat apart
+  623: { starBody: true, color: "#616161", headFill: "#eeeeee" },       // Particle: a body built from thousands of tiny points
+  624: { move: "slither", color: "#00897b", headFill: "#b2dfdb" },      // Wave: its whole body ripples like a travelling signal
+  625: { orbit: 2, orbitKind: "wave", color: "#26a69a", headFill: "#b2dfdb" }, // Frequency: soundwave arcs pulse outward as it moves
+  626: { orbit: 3, orbitKind: "spark", color: "#26a69a", headFill: "#e0f2f1" }, // Signal: bursts of strange symbols scatter around it
+  627: { head: "radio", headFill: "#8d6e63", color: "#4e342e" },        // Radio: old broadcast equipment for a head
+  628: { overhead: "antenna", color: "#455a64", headFill: "#cfd8dc" },  // Broadcast: a tall antenna trailing floating messages
+  629: { alpha: 0.5, fade: true, glitch: true, color: "#9e9e9e", headFill: "#e0e0e0" }, // Lost Signal: static hisses across its whole body
+  630: { fade: true, alpha: 0.6, eyes: null, glow: "#78909c33", color: "#78909c", headFill: "#cfd8dc" }, // Unknown Signal: faint, faceless, no known source
+  631: { marks: true, marksKind: "glyphs", marksColor: "#ce93d8",
+         glow: "#ce93d866", color: "#7e57c2", headFill: "#e1bee7" },    // Dream Code: imaginary symbols drifting off a pastel body
+  632: { alpha: 0.35, fade: true, eyes: "closed", color: "#283593", headFill: "#9fa8da" }, // Sleep Code: barely visible, dozing off mid-step
+  633: { overhead: "thoughtbubble", color: "#8d6e63", headFill: "#d7ccc8" }, // Thought: a chain of bubbles rising to an idea above it
+  634: { morph: true, hueCycle: true, headFill: "#f0f0f0" },            // Imagination: reshapes and recolours based on what's nearby
+  635: { sepia: true, dissolve: true, alpha: 0.5, color: "#8d6e63", headFill: "#d7ccc8" }, // Memory Fragment: a half-dissolved, sepia-toned echo
+  636: { overhead: "heart", alpha: 0.4, color: "#9e9e9e", headFill: "#e0e0e0" }, // Forgotten Friend: a faint companion nobody quite recalls
+  637: { sepia: true, marks: true, marksKind: "cracks", marksColor: "#5d4037",
+         orbit: 0, alpha: 0.7, color: "#6d4c41", headFill: "#d7ccc8" },  // Old Archive: a cracked, sun-faded old record
+  638: { fade: true, alpha: 0.3, color: "#9e9e9e", headFill: "#eeeeee" }, // Hidden File: barely there, tucked out of sight
+  639: { marks: true, marksKind: "text", marksColor: "#00e676",
+         color: "#00e676", headFill: "#1b1b1b" },                       // Encrypted: matrix-green code scrawled over a black body
+  640: { head: "lock", color: "#0d47a1", headFill: "#1565c0" },         // Password: a padlock face, deep authenticated blue
+  641: { hueCycle: true, dash: true, headFill: "#f0f0f0" },             // Secret Code: sketchy and ever-shifting, never the same twice
+  642: { head: "square", eyes: null, color: "#9e9e9e", headFill: "#e0e0e0" }, // Unknown User: a blank default profile icon
+  643: { orbit: 3, orbitKind: "spark", glow: "#ffd70066", color: "#c9a227", headFill: "#fff8e1" }, // Administrator: gold control sparks orbiting
+  644: { chest: "core", color: "#37474f", headFill: "#cfd8dc" },        // System Core: a glowing computer core for a chest — kept, already fits
+  645: { marks: true, marksKind: "code", marksColor: "#00e676",
+         color: "#212121", headFill: "#37474f" },                       // Root Access: green command-line text streaming down its body
+  646: { erased: true, fade: true, dissolve: true, alpha: 0.25, color: "#9e9e9e", headFill: "#eeeeee" }, // Deleted: a faded, near-erased shape
+  647: { sparkleBurst: true, glow: "#66bb6a66", color: "#43a047", headFill: "#c8e6c9" }, // Recovered: restored and sparkling with fresh health
+  648: { head: "error", orbit: 0, headFill: "#37474f", color: "#ff1744" }, // Archive Error: a flickering, glitched ERROR screen for a head
+  649: { photoFrameColor: "#9e9e9e", fade: true, alpha: 0.4, color: "#78909c", headFill: "#cfd8dc" }, // The Lost Entry: framed like a retrieved old photo
+  650: { censor: true, orbit: 0, glow: "#ff1744aa", color: "#7a0000", headFill: "#4a0000" }, // The Forbidden Page: blacked out behind a censor bar
+
+  // ---- the archive's own reflection: collectors, photos & meta (651-700) ----
+  651: { chest: "book", marks: true, marksKind: "text", marksColor: "#4e342e",
+         color: "#4e342e", headFill: "#d7ccc8" },                        // Hidden Scholar: books of unreadable text
+  652: { acc: "scanner", color: "#37474f", headFill: "#cfd8dc" },        // Archive Researcher: a handheld Stickdex scanner
+  653: { acc: "photostack", color: "#5d4037", headFill: "#d7ccc8" },     // Collector: a thick held stack of tiny photos
+  654: { hat: "tophat", sepia: true, orbit: 0, color: "#6d4c41", headFill: "#d7ccc8" }, // First Collector: the vintage archive founder
+  655: { head: "camera", marks: true, marksKind: "cracks", marksColor: "#616161",
+         color: "#78909c", headFill: "#9e9e9e" },                        // Ancient Collector: a weathered stone camera
+  656: { hat: "visor", color: "#37474f", headFill: "#b0bec5", glow: "#4fc3f733" }, // Future Collector: a glowing scan visor
+  657: { starBody: true, orbit: 3, orbitKind: "specimen",
+         color: "#4a148c", headFill: "#311b92" },                        // Dimension Collector: specimens from other worlds
+  658: { acc: "detector", color: "#455a64", headFill: "#cfd8dc" },       // Rare Hunter: a pulsing rarity detector
+  659: { move: "run", eyes: "glow", color: "#8d6e63", headFill: "#d7ccc8" }, // Legend Hunter: eager eyes fixed on the impossible
+  660: { eyes: "cyclops", alpha: 0.85, color: "#546e7a", headFill: "#cfd8dc" }, // The Observer: one unblinking, silent eye
+  661: { orbit: 1, orbitKind: "eye", color: "#37474f", headFill: "#cfd8dc" }, // The Watcher: a mysterious eye that follows
+  662: { acc: "mic", orbit: 2, orbitKind: "wave", color: "#455a64", headFill: "#cfd8dc" }, // The Listener: recording the archive's sounds
+  663: { acc: "camera", sepia: true, color: "#6d4c41", headFill: "#d7ccc8" }, // The Recorder: carries the very first camera
+  664: { head: "camera", headFill: "#ffd700" },                          // The Photographer: the legendary golden camera — kept
+  665: { photoFrameColor: "#ffffff", glow: "#ffffffaa", color: "#212121", headFill: "#fafafa" }, // The Snapshot: a bright freeze-frame flash
+  666: { photoFrameColor: "#c9a227", shine: true, color: "#212121", headFill: "#fff8e1" }, // The Perfect Photo: sharp, vivid, gold-bordered
+  667: { photoFrameColor: "#000000", color: "#f5f5f5", headFill: "#000000", eyes: "white" }, // The Negative Photo: tones fully inverted
+  668: { dissolve: true, orbit: 0, alpha: 0.4, color: "#9e9e9e", headFill: "#eeeeee" }, // The Lost Photo: fading, escaping the archive
+  669: { echo: true, sepia: true, color: "#8d6e63", headFill: "#d7ccc8" }, // The Moving Picture: a living, flickering photograph
+  670: { marks: true, marksKind: "paint", color: "#5d4037", headFill: "#efebe0" }, // The Painting Walker: brushstrokes for a body
+  671: { marks: true, marksKind: "pencil", marksColor: "#616161",
+         color: "#757575", headFill: "#f5f5f5" },                        // The Sketch Walker: graphite cross-hatching
+  672: { trail: "ink", color: "#0d0d0d", headFill: "#1a1a1a", alpha: 0.9 }, // The Ink Walker: flowing, dripping ink
+  673: { marks: true, marksKind: "pencil", marksColor: "#c9a227",
+         color: "#8d6e63", headFill: "#fdf6e3" },                        // The Paper Walker: creased folds of parchment
+  674: { morph: true, color: "#ffffff", headFill: "#fdf6e3" },          // The Origami Master: endlessly refolding its shape
+  675: { marks: true, marksKind: "keys", marksColor: "#42a5f7",
+         color: "#42a5f7", headFill: "#0d47a1", glow: "#42a5f766" },     // The Blueprint: a glowing construction grid
+  676: { dash: true, eyes: null, color: "#1976d2", headFill: "#bbdefb" }, // The Prototype Blueprint: sketched, unfinished, faceless
+  677: { dissolve: true, color: "#8d6e63", headFill: "#d7ccc8" },        // The Unfinished: parts of its design missing
+  678: { shine: true, glow: "#ffffff44", color: "#212121", headFill: "#fafafa" }, // The Complete: polished, flawless, finished
+  679: { sepia: true, color: "#6d4c41", headFill: "#efebe0" },           // The Original: an aged, parchment-toned early design
+  680: { echo: true, color: "#00acc1", headFill: "#b2ebf2" },            // The Copy: a perfect duplicate trailing itself
+  681: { alpha: 0.75, glitch: true, color: "#616161", headFill: "#e0e0e0" }, // The Fake: something subtly, quietly wrong
+  682: { emblemText: "✓", glowText: "#4caf50", eyes: "glow",
+         color: "#212121", headFill: "#fafafa" },                        // The Real: confident, verified, unmistakable
+  683: { marks: true, marksKind: "glyphs", marksColor: "#212121", color: "#000000", headFill: "#1a1a1a" }, // The Secret: symbols hidden in plain sight
+  684: { fade: true, alpha: 0.4, color: "#78909c", headFill: "#cfd8dc" }, // The Hidden: only appears for a moment
+  685: { alpha: 0.15, eyes: null, color: "#bdbdbd", headFill: "#f5f5f5" }, // The Forgotten: almost entirely erased
+  686: { sparkleBurst: true, glow: "#ffca28aa", color: "#ff8f00", headFill: "#ffe0b2" }, // The Remembered: rediscovered, glowing warm
+  687: { alpha: 0.6, overhead: "thoughtbubble", color: "#7e57c2", headFill: "#e1bee7" }, // The Dreamt: exists only in imagination
+  688: { morph: true, color: "#9e9e9e", headFill: "#eeeeee" },           // The Imagined: reshapes for every different viewer
+  689: { shine: true, glow: "#ba68c866", color: "#ba68c8", headFill: "#f3e5f5" }, // The Impossible Dream: vivid, solid, made real
+  690: { haloRings: 2, size: 1.15, glow: "#c9a22799", color: "#8d6e00", headFill: "#ffd700" }, // The Myth: a legend finally confirmed
+  691: { dash: true, alpha: 0.5, color: "#607d8b", headFill: "#cfd8dc" }, // The Rumor: an unconfirmed, sketchy whisper
+  692: { orbit: 2, orbitKind: "spark", glow: "#26c6da88", color: "#00838f", headFill: "#b2ebf2" }, // The Discovery: something new, just found
+  693: { morph: true, move: "pop", color: "#e91e63", headFill: "#f8bbd0" }, // The Surprise: pops into unexpected forms
+  694: { eyes: null, emblemText: "?", glowText: "#616161", color: "#000000", headFill: "#1a1a1a" }, // The Mystery: no information recorded
+  695: { eyes: null, alpha: 0.7, color: "#bdbdbd", headFill: "#e0e0e0" }, // The Unknown: an entirely blank entry
+  696: { emblemText: "—", glowText: "#90a4ae", color: "#546e7a", headFill: "#cfd8dc" }, // The Unnamed: a dash where a title should be
+  697: { erased: true, dash: true, alpha: 0.55, color: "#9e9e9e", headFill: "#eeeeee" }, // The Unrecorded: missing from every archive
+  698: { head: "page", headFill: "#fffffe", color: "#000000", orbit: 0 }, // The First Page: crisp, solid, foundational
+  699: { shine: true, eyes: null, color: "#7a0000", headFill: "#f5f5f5" }, // The Last Page: sealed, unopened, unread
+  700: { acc: "folder", orbit: 3, orbitKind: "page", haloRings: 2,
+         color: "#1a237e", headFill: "#c5cae9", glow: "#3949ab77" },     // The Endless Archive: carrying an infinite Stickdex
   703: { acc: "pencil", trail: "print" },                                // The Creator draws reality
   704: { acc: "pencil", trail: "print" },                                // The Artist
   851: { suit: true, glow: "#9575cd88", color: "#311b92" },              // The Unknown Traveler's suit
@@ -779,6 +1117,36 @@ function drawHead(ctx, f, cx, cy, r, t) {
       break;
     }
     case "battery": ctx.rect(cx - r * 1.1, cy - r * 0.6, r * 2, r * 1.2); break;
+    case "phone": { // portrait smartphone screen, rounded corners
+      const rr = r * 0.3;
+      ctx.moveTo(cx - r * 0.62 + rr, cy - r * 1.15);
+      ctx.lineTo(cx + r * 0.62 - rr, cy - r * 1.15);
+      ctx.quadraticCurveTo(cx + r * 0.62, cy - r * 1.15, cx + r * 0.62, cy - r * 1.15 + rr);
+      ctx.lineTo(cx + r * 0.62, cy + r * 1.15 - rr);
+      ctx.quadraticCurveTo(cx + r * 0.62, cy + r * 1.15, cx + r * 0.62 - rr, cy + r * 1.15);
+      ctx.lineTo(cx - r * 0.62 + rr, cy + r * 1.15);
+      ctx.quadraticCurveTo(cx - r * 0.62, cy + r * 1.15, cx - r * 0.62, cy + r * 1.15 - rr);
+      ctx.lineTo(cx - r * 0.62, cy - r * 1.15 + rr);
+      ctx.quadraticCurveTo(cx - r * 0.62, cy - r * 1.15, cx - r * 0.62 + rr, cy - r * 1.15);
+      ctx.closePath();
+      break;
+    }
+    case "mouseshape": // computer-mouse body, tapered rear, rounded front
+      ctx.moveTo(cx - r * 0.6, cy - r * 0.9);
+      ctx.quadraticCurveTo(cx + r * 0.75, cy - r * 0.95, cx + r * 0.85, cy);
+      ctx.quadraticCurveTo(cx + r * 0.75, cy + r * 0.95, cx - r * 0.6, cy + r * 0.9);
+      ctx.quadraticCurveTo(cx - r * 0.85, cy, cx - r * 0.6, cy - r * 0.9);
+      ctx.closePath();
+      break;
+    case "lamp": // lampshade cone over a small round base
+      ctx.moveTo(cx - r * 0.35, cy + r * 0.9);
+      ctx.lineTo(cx - r * 1.05, cy - r * 0.55);
+      ctx.lineTo(cx + r * 1.05, cy - r * 0.55);
+      ctx.lineTo(cx + r * 0.35, cy + r * 0.9);
+      ctx.closePath();
+      break;
+    case "window": ctx.rect(cx - r * 1.05, cy - r * 0.95, r * 2.1, r * 1.9); break;
+    case "radio": ctx.rect(cx - r * 1.15, cy - r * 0.7, r * 2.3, r * 1.5); break; // old broadcast-radio box
     case "banana": // curved fruit bowing downward, tips raised
       ctx.moveTo(cx - r * 1.15, cy - r * 0.4);
       ctx.quadraticCurveTo(cx, cy + r * 1.15, cx + r * 1.15, cy - r * 0.4);
@@ -846,6 +1214,81 @@ function drawHead(ctx, f, cx, cy, r, t) {
       ctx.quadraticCurveTo(cx + r * 0.7, cy - r * 1.02, cx, cy - r * 0.85);
       ctx.closePath();
       break;
+
+    // ---- the collector's cabinet (500-550): literal object heads ----
+    case "pizzaslice": // wedge with a curved crust top
+      ctx.moveTo(cx, cy + r * 1.05);
+      ctx.lineTo(cx - r * 1.05, cy - r * 0.55);
+      ctx.quadraticCurveTo(cx, cy - r * 1.2, cx + r * 1.05, cy - r * 0.55);
+      ctx.closePath();
+      break;
+    case "sushi": { // nigiri: rounded rice base
+      const rw = r * 1.1, rh = r * 0.8;
+      ctx.moveTo(cx - rw, cy + rh * 0.25);
+      ctx.quadraticCurveTo(cx - rw, cy + rh, cx, cy + rh);
+      ctx.quadraticCurveTo(cx + rw, cy + rh, cx + rw, cy + rh * 0.25);
+      ctx.lineTo(cx + rw, cy - rh * 0.15);
+      ctx.quadraticCurveTo(cx + rw, cy - rh * 0.95, cx, cy - rh * 0.95);
+      ctx.quadraticCurveTo(cx - rw, cy - rh * 0.95, cx - rw, cy - rh * 0.15);
+      ctx.closePath();
+      break;
+    }
+    case "coffeecup": // trapezoid cup body (handle drawn in details)
+      ctx.moveTo(cx - r * 0.85, cy - r * 0.9);
+      ctx.lineTo(cx + r * 0.85, cy - r * 0.9);
+      ctx.lineTo(cx + r * 0.62, cy + r * 0.95);
+      ctx.lineTo(cx - r * 0.62, cy + r * 0.95);
+      ctx.closePath();
+      break;
+    case "popcorn": { // bucket with a jagged popcorn-poking top edge
+      const topY = cy - r * 0.85, botY = cy + r * 1.05, topW = r * 1.15, botW = r * 0.72;
+      ctx.moveTo(cx - botW, botY);
+      ctx.lineTo(cx - topW, topY + r * 0.3);
+      const peaks = 5;
+      for (let i = 0; i <= peaks; i++) {
+        const fr = i / peaks;
+        const x = cx - topW + fr * topW * 2;
+        const y = topY + (i % 2 === 0 ? -r * 0.2 : r * 0.18);
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(cx + topW, topY + r * 0.3);
+      ctx.lineTo(cx + botW, botY);
+      ctx.closePath();
+      break;
+    }
+    case "mysterybox": ctx.rect(cx - r * 1.05, cy - r * 1.05, r * 2.1, r * 2.1); break;
+    case "giftbox": ctx.rect(cx - r, cy - r * 0.8, r * 2, r * 1.75); break;
+    case "toybox": // open crate, wider at the rim
+      ctx.moveTo(cx - r * 0.68, cy - r * 0.35);
+      ctx.lineTo(cx - r * 1.05, cy + r * 1.0);
+      ctx.lineTo(cx + r * 1.05, cy + r * 1.0);
+      ctx.lineTo(cx + r * 0.68, cy - r * 0.35);
+      ctx.closePath();
+      break;
+    case "rubik": ctx.rect(cx - r * 1.05, cy - r * 1.05, r * 2.1, r * 2.1); break;
+    case "puzzlepiece": ctx.rect(cx - r * 1.05, cy - r * 1.05, r * 2.1, r * 2.1); break;
+    case "domino": ctx.rect(cx - r * 0.75, cy - r * 1.3, r * 1.5, r * 2.6); break;
+    case "legobrick": ctx.rect(cx - r * 1.05, cy - r * 0.4, r * 2.1, r * 1.45); break;
+    case "balloon": // teardrop with a knotted base
+      ctx.ellipse(cx, cy - r * 0.08, r * 0.92, r * 1.1, 0, 0, Math.PI * 2);
+      break;
+    case "discoball": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
+    case "cabbage": cloudPath(ctx, cx, cy, r * 1.05); break;
+    case "watermelon": ctx.arc(cx, cy, r, 0, Math.PI * 2); break;
+    case "knightpiece": { // simplified chess-knight silhouette (horse head + base)
+      ctx.moveTo(cx - r * 0.55, cy + r * 1.1);
+      ctx.lineTo(cx - r * 0.7, cy + r * 0.5);
+      ctx.quadraticCurveTo(cx - r * 0.8, cy - r * 0.1, cx - r * 0.35, cy - r * 0.55);
+      ctx.quadraticCurveTo(cx - r * 0.55, cy - r * 0.95, cx - r * 0.25, cy - r * 1.15);
+      ctx.quadraticCurveTo(cx - r * 0.05, cy - r * 0.95, cx - r * 0.15, cy - r * 0.7);
+      ctx.quadraticCurveTo(cx + r * 0.35, cy - r * 0.85, cx + r * 0.75, cy - r * 0.55);
+      ctx.quadraticCurveTo(cx + r * 0.9, cy - r * 0.4, cx + r * 0.8, cy - r * 0.15);
+      ctx.quadraticCurveTo(cx + r * 0.55, cy - r * 0.2, cx + r * 0.45, cy - r * 0.02);
+      ctx.quadraticCurveTo(cx + r * 0.62, cy + r * 0.35, cx + r * 0.62, cy + r * 0.75);
+      ctx.lineTo(cx + r * 0.62, cy + r * 1.1);
+      ctx.closePath();
+      break;
+    }
     default: ctx.arc(cx, cy, r, 0, Math.PI * 2);
   }
   ctx.fillStyle = f.head === "pumpkin" ? "#ff8f00"
@@ -932,6 +1375,41 @@ function drawHead(ctx, f, cx, cy, r, t) {
     ctx.beginPath();
     ctx.moveTo(cx - r, cy - r * 0.15); ctx.lineTo(cx + r, cy - r * 0.15);
     ctx.stroke();
+  } else if (f.head === "phone") {
+    // seam-line home indicator + a tiny cycling emoji
+    ctx.strokeStyle = "#424242";
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.22, cy + r * 0.95); ctx.lineTo(cx + r * 0.22, cy + r * 0.95); ctx.stroke();
+    const emojis = ["\u{1F600}", "\u{1F602}", "\u{1F60E}", "\u{1F973}"];
+    ctx.fillStyle = "#ffeb3b";
+    ctx.font = `${r * 1.1}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(emojis[Math.floor(t) % emojis.length], cx, cy - r * 0.05);
+  } else if (f.head === "mouseshape") {
+    ctx.beginPath(); ctx.moveTo(cx, cy - r * 0.85); ctx.lineTo(cx, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.05, cy - r * 0.4); ctx.lineTo(cx + r * 0.05, cy - r * 0.4); ctx.stroke();
+  } else if (f.head === "lamp") {
+    ctx.fillStyle = "#fff9c4";
+    ctx.beginPath(); ctx.arc(cx, cy + r * 0.9, r * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (f.head === "window") {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(cx - r * 1.05, cy - r * 0.95, r * 2.1, r * 1.9); ctx.clip();
+    ctx.fillStyle = "#e3f2fd"; ctx.fillRect(cx - r * 1.05, cy - r * 0.95, r * 2.1, r * 1.9);
+    ctx.fillStyle = "#ffffff";
+    cloudPath(ctx, cx - r * 0.2, cy + r * 0.15, r * 0.5); ctx.fill();
+    ctx.restore();
+    ctx.beginPath(); ctx.moveTo(cx, cy - r * 0.95); ctx.lineTo(cx, cy + r * 0.95);
+    ctx.moveTo(cx - r * 1.05, cy); ctx.lineTo(cx + r * 1.05, cy);
+    ctx.stroke();
+  } else if (f.head === "radio") {
+    // thin antenna, speaker grille dots, one tuning dial
+    ctx.beginPath(); ctx.moveTo(cx + r * 0.6, cy - r * 0.7); ctx.lineTo(cx + r * 0.9, cy - r * 1.7); ctx.stroke();
+    ctx.fillStyle = "#3e2723";
+    for (let i = 0; i < 6; i++) {
+      const gx = cx - r * 0.75 + (i % 3) * r * 0.55, gy = cy - r * 0.15 + Math.floor(i / 3) * r * 0.4;
+      ctx.beginPath(); ctx.arc(gx, gy, r * 0.12, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = "#cfd8dc"; ctx.strokeStyle = "#3e2723";
+    ctx.beginPath(); ctx.arc(cx + r * 0.75, cy + r * 0.15, r * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   } else if (f.head === "banana") {
     // brown tips at both ends + ridge line along the curve
     ctx.fillStyle = "#6d4c41";
@@ -1266,6 +1744,220 @@ function drawHead(ctx, f, cx, cy, r, t) {
     }
     ctx.stroke();
     ctx.restore();
+  } else if (f.head === "pizzaslice") {
+    // crust rim + pepperoni + a trailing string of cheese
+    ctx.strokeStyle = "#e0a545";
+    ctx.lineWidth = Math.max(1.2, r * 0.14);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 1.02, cy - r * 0.58);
+    ctx.quadraticCurveTo(cx, cy - r * 1.22, cx + r * 1.02, cy - r * 0.58);
+    ctx.stroke();
+    ctx.fillStyle = "#c62828";
+    for (const p of [[-0.32, -0.15], [0.22, -0.3], [0.05, 0.25], [0.4, 0.05]]) {
+      ctx.beginPath(); ctx.arc(cx + p[0] * r, cy + p[1] * r, r * 0.15, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.strokeStyle = "#fff9c4";
+    ctx.lineWidth = Math.max(1, r * 0.1);
+    const stretch = Math.abs(Math.sin(t * 3)) * r * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.2, cy + r * 0.5);
+    ctx.quadraticCurveTo(cx - r * 0.1, cy + r * 0.8 + stretch, cx, cy + r * 1.0 + stretch);
+    ctx.stroke();
+  } else if (f.head === "sushi") {
+    // pink salmon cap + dark nori belt + a few rice grains
+    ctx.fillStyle = "#ef9a9a";
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 1.02, cy - r * 0.35);
+    ctx.quadraticCurveTo(cx, cy - r * 0.95, cx + r * 1.02, cy - r * 0.35);
+    ctx.lineTo(cx + r * 0.95, cy - r * 0.05);
+    ctx.quadraticCurveTo(cx, cy - r * 0.55, cx - r * 0.95, cy - r * 0.05);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#1b1b1b";
+    ctx.fillRect(cx - r * 1.12, cy - r * 0.15, r * 0.4, r * 0.95);
+    ctx.fillRect(cx + r * 0.72, cy - r * 0.15, r * 0.4, r * 0.95);
+    ctx.fillStyle = "#fff";
+    for (const p of [[-0.1, 0.35], [0.25, 0.5], [-0.4, 0.55]]) {
+      ctx.beginPath(); ctx.ellipse(cx + p[0] * r, cy + p[1] * r, r * 0.08, r * 0.05, 0.3, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (f.head === "coffeecup") {
+    // ring handle, rim highlight, and rising steam curls
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = Math.max(1.4, r * 0.16);
+    ctx.beginPath(); ctx.arc(cx + r * 1.0, cy, r * 0.42, -Math.PI * 0.6, Math.PI * 0.6); ctx.stroke();
+    ctx.fillStyle = "#6d4c41";
+    ctx.beginPath(); ctx.ellipse(cx, cy - r * 0.9, r * 0.85, r * 0.16, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.save();
+    ctx.strokeStyle = "#bcaaa4"; ctx.globalAlpha = 0.75;
+    ctx.lineWidth = Math.max(1, r * 0.1); ctx.lineCap = "round";
+    for (const ox of [-0.3, 0.3]) {
+      const wob = Math.sin(t * 3 + ox * 10) * r * 0.15;
+      ctx.beginPath();
+      ctx.moveTo(cx + ox * r, cy - r * 1.05);
+      ctx.quadraticCurveTo(cx + ox * r + wob, cy - r * 1.6, cx + ox * r, cy - r * 2.05);
+      ctx.stroke();
+    }
+    ctx.restore();
+  } else if (f.head === "popcorn") {
+    // red/white bucket stripes + puffs of popcorn spilling over the top
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.72, cy - r * 0.55); ctx.lineTo(cx - r * 0.65, cy + r * 1.05);
+    ctx.lineTo(cx - r * 0.22, cy + r * 1.05); ctx.lineTo(cx - r * 0.28, cy - r * 0.55);
+    ctx.closePath();
+    ctx.moveTo(cx + r * 0.18, cy - r * 0.55); ctx.lineTo(cx + r * 0.24, cy + r * 1.05);
+    ctx.lineTo(cx + r * 0.68, cy + r * 1.05); ctx.lineTo(cx + r * 0.72, cy - r * 0.55);
+    ctx.closePath();
+    ctx.fillStyle = "#c62828"; ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = "#fff8e1";
+    for (const p of [[-0.55, -0.7], [-0.1, -0.9], [0.35, -0.72], [0.05, -0.55], [-0.32, -0.5]]) {
+      ctx.beginPath(); ctx.arc(cx + p[0] * r, cy + p[1] * r, r * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+  } else if (f.head === "mysterybox") {
+    // crate seams + a big shifting-colour "?"
+    ctx.strokeStyle = "#00000033";
+    ctx.lineWidth = Math.max(0.8, r * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.35, cy - r * 1.05); ctx.lineTo(cx - r * 0.35, cy + r * 1.05);
+    ctx.moveTo(cx + r * 0.35, cy - r * 1.05); ctx.lineTo(cx + r * 0.35, cy + r * 1.05);
+    ctx.stroke();
+    ctx.fillStyle = `hsl(${(t * 90) % 360}, 80%, 55%)`;
+    ctx.font = `bold ${r * 1.5}px sans-serif`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("?", cx, cy + r * 0.08);
+  } else if (f.head === "giftbox") {
+    // ribbon cross + a bow on top
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(cx - r * 0.22, cy - r * 0.8, r * 0.44, r * 1.75);
+    ctx.fillRect(cx - r, cy - r * 0.14, r * 2, r * 0.4);
+    ctx.strokeRect(cx - r * 0.22, cy - r * 0.8, r * 0.44, r * 1.75);
+    ctx.strokeRect(cx - r, cy - r * 0.14, r * 2, r * 0.4);
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(cx - r * 0.42, cy - r * 0.9, r * 0.32, r * 0.22, 0.6, 0, Math.PI * 2);
+    ctx.ellipse(cx + r * 0.42, cy - r * 0.9, r * 0.32, r * 0.22, -0.6, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx, cy - r * 0.82, r * 0.16, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (f.head === "toybox") {
+    // dark rim + a ball, a block and a small robot arm peeking over the top
+    ctx.strokeStyle = "#5d4037";
+    ctx.lineWidth = Math.max(1.2, r * 0.14);
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.68, cy - r * 0.35); ctx.lineTo(cx + r * 0.68, cy - r * 0.35); ctx.stroke();
+    ctx.fillStyle = "#e53935";
+    ctx.beginPath(); ctx.arc(cx - r * 0.42, cy - r * 0.62, r * 0.28, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#1e88e5";
+    ctx.fillRect(cx - r * 0.06, cy - r * 0.85, r * 0.4, r * 0.4);
+    ctx.strokeRect(cx - r * 0.06, cy - r * 0.85, r * 0.4, r * 0.4);
+    ctx.fillStyle = "#8d6e63";
+    ctx.beginPath(); ctx.arc(cx + r * 0.5, cy - r * 0.58, r * 0.16, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(cx + r * 0.42, cy - r * 0.58, r * 0.16, r * 0.32);
+  } else if (f.head === "rubik") {
+    // 3x3 grid of tiles, hues drifting independently
+    const cell = (r * 2.1) / 3, x0 = cx - r * 1.05, y0 = cy - r * 1.05;
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const idx = row * 3 + col;
+        ctx.fillStyle = `hsl(${(t * 40 + idx * 47) % 360}, 80%, 55%)`;
+        ctx.fillRect(x0 + col * cell + 0.06 * r, y0 + row * cell + 0.06 * r, cell - 0.12 * r, cell - 0.12 * r);
+        ctx.strokeRect(x0 + col * cell + 0.06 * r, y0 + row * cell + 0.06 * r, cell - 0.12 * r, cell - 0.12 * r);
+      }
+    }
+  } else if (f.head === "puzzlepiece") {
+    // a round tab bulging out one side, a punched notch on the other
+    ctx.fillStyle = f.headFill;
+    ctx.beginPath(); ctx.arc(cx + r * 1.05, cy, r * 0.42, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(cx - r * 0.9, cy, r * 0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  } else if (f.head === "domino") {
+    // dividing line + two groups of pips
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = Math.max(1, r * 0.1);
+    ctx.beginPath(); ctx.moveTo(cx - r * 0.75, cy); ctx.lineTo(cx + r * 0.75, cy); ctx.stroke();
+    ctx.fillStyle = f.color;
+    for (const p of [[-0.3, -0.7], [0.3, -0.35]]) {
+      ctx.beginPath(); ctx.arc(cx + p[0] * r, cy + p[1] * r, r * 0.13, 0, Math.PI * 2); ctx.fill();
+    }
+    for (const p of [[-0.35, 0.35], [0, 0.68], [0.35, 1.0], [0.35, 0.35]]) {
+      ctx.beginPath(); ctx.arc(cx + p[0] * r, cy + p[1] * r, r * 0.13, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (f.head === "legobrick") {
+    // two round studs on top
+    ctx.fillStyle = f.headFill;
+    ctx.strokeStyle = f.color;
+    for (const sx of [-0.42, 0.42]) {
+      ctx.beginPath(); ctx.arc(cx + sx * r, cy - r * 0.4, r * 0.34, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+  } else if (f.head === "balloon") {
+    // knotted base + a string swaying below
+    ctx.fillStyle = f.headFill;
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.14, cy + r * 1.0);
+    ctx.lineTo(cx + r * 0.14, cy + r * 1.0);
+    ctx.lineTo(cx, cy + r * 1.2);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = Math.max(0.8, r * 0.06);
+    const sway = Math.sin(t * 2.4) * r * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + r * 1.2);
+    ctx.quadraticCurveTo(cx + sway, cy + r * 1.9, cx, cy + r * 2.6);
+    ctx.stroke();
+  } else if (f.head === "discoball") {
+    // a mirror-facet grid clipped to the sphere, with a couple of roving glints
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.strokeStyle = "#90a4ae"; ctx.lineWidth = Math.max(0.6, r * 0.05);
+    ctx.beginPath();
+    for (let i = -3; i <= 3; i++) {
+      ctx.moveTo(cx - r * 1.2, cy + i * r * 0.3); ctx.lineTo(cx + r * 1.2, cy + i * r * 0.3);
+      ctx.moveTo(cx + i * r * 0.3, cy - r * 1.2); ctx.lineTo(cx + i * r * 0.3, cy + r * 1.2);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < 2; i++) {
+      const a = t * 2.5 + i * Math.PI;
+      const gx = cx + Math.cos(a) * r * 0.5, gy = cy + Math.sin(a * 1.3) * r * 0.5;
+      ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 6 + i * 3);
+      ctx.beginPath(); ctx.arc(gx, gy, r * 0.1, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  } else if (f.head === "cabbage") {
+    // curved leaf-vein ridges following the bumpy outline
+    ctx.strokeStyle = "#2e7d32";
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 0.7); ctx.quadraticCurveTo(cx - r * 0.15, cy, cx, cy + r * 0.75);
+    ctx.moveTo(cx - r * 0.6, cy - r * 0.3); ctx.quadraticCurveTo(cx - r * 0.35, cy, cx - r * 0.5, cy + r * 0.55);
+    ctx.moveTo(cx + r * 0.6, cy - r * 0.3); ctx.quadraticCurveTo(cx + r * 0.35, cy, cx + r * 0.5, cy + r * 0.55);
+    ctx.stroke();
+  } else if (f.head === "watermelon") {
+    // a wedge cut away showing pink flesh + black seeds, thin white rind
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = "#f48fb1";
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r * 1.3, -0.15, 0.95); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "#fce4ec"; ctx.lineWidth = Math.max(1, r * 0.1);
+    ctx.beginPath(); ctx.arc(cx, cy, r * 1.02, -0.15, 0.95); ctx.stroke();
+    ctx.fillStyle = "#212121";
+    for (const p of [[0.55, 0.25], [0.68, 0.45], [0.45, 0.55], [0.72, 0.65]]) {
+      ctx.beginPath(); ctx.ellipse(cx + p[0] * r, cy + p[1] * r, r * 0.06, r * 0.1, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  } else if (f.head === "knightpiece") {
+    // eye + mane notches on the horse-head silhouette
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(cx - r * 0.02, cy - r * 0.55, r * 0.09, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = Math.max(0.8, r * 0.07);
+    ctx.beginPath();
+    for (const fr of [0.15, 0.4, 0.65]) {
+      const px = cx - r * 0.5 + fr * r * 0.8, py = cy - r * 0.75 + fr * r * 0.65;
+      ctx.moveTo(px, py); ctx.lineTo(px - r * 0.16, py + r * 0.16);
+    }
+    ctx.stroke();
+    ctx.fillRect(cx - r * 0.55, cy + r * 1.05, r * 1.1, r * 0.14);
   }
   // neck bolts + arcing electricity (Franken)
   if (f.boltEars) {
@@ -1394,6 +2086,11 @@ function drawHead(ctx, f, cx, cy, r, t) {
       const a = i * 1.05 + 0.4;
       ctx.fillRect(cx + Math.cos(a) * r * 0.66 - 1, cy + Math.sin(a) * r * 0.66 - 0.5, 2.4, 1.2);
     }
+  } else if (f.headDots === "chips") { // chocolate chips studded across a cookie head
+    ctx.fillStyle = "#4e342e";
+    for (const p of [[-0.5, -0.4], [0.35, -0.55], [0.55, 0.15], [-0.15, 0.5], [-0.5, 0.2], [0.05, -0.05]]) {
+      ctx.beginPath(); ctx.arc(cx + p[0] * r, cy + p[1] * r, r * 0.12, 0, Math.PI * 2); ctx.fill();
+    }
   }
   if (f.stem) {
     ctx.strokeStyle = "#4e342e";
@@ -1401,6 +2098,12 @@ function drawHead(ctx, f, cx, cy, r, t) {
     ctx.fillStyle = "#43a047";
     ctx.beginPath(); ctx.ellipse(cx + r * 0.45, cy - r * 1.35, r * 0.3, r * 0.15, -0.5, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = f.color;
+  }
+  if (f.shine) { // a soft highlight for glossy round objects
+    ctx.fillStyle = f.shineColor || "#ffffffaa";
+    ctx.beginPath();
+    ctx.ellipse(cx - r * 0.35, cy - r * 0.45, r * 0.28, r * 0.16, -0.5, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   // eyes
@@ -1425,6 +2128,13 @@ function drawHead(ctx, f, cx, cy, r, t) {
   } else if (f.eyes === "shades") {
     ctx.fillStyle = "#1b1b1b";
     ctx.fillRect(cx - r * 0.75, cy - r * 0.3, r * 1.5, r * 0.35);
+  } else if (f.eyes === "closed") {
+    ctx.strokeStyle = "#222";
+    ctx.lineWidth = Math.max(0.9, r * 0.1);
+    ctx.beginPath();
+    ctx.moveTo(cx - r * 0.45, cy - r * 0.08); ctx.quadraticCurveTo(cx - r * 0.33, cy + r * 0.05, cx - r * 0.2, cy - r * 0.08);
+    ctx.moveTo(cx + r * 0.2, cy - r * 0.08); ctx.quadraticCurveTo(cx + r * 0.33, cy + r * 0.05, cx + r * 0.45, cy - r * 0.08);
+    ctx.stroke();
   } else if (f.eyes) {
     ctx.fillStyle = f.eyes === "red" ? "#ff1744" : f.eyes === "glow" ? "#ffee58" : "#fff";
     ctx.beginPath();
@@ -1491,6 +2201,8 @@ function drawHat(ctx, f, cx, topY, r) {
     : f.hat === "chef" ? "#fff"
     : f.hat === "party" || f.hat === "jester" ? "#ab47bc"
     : f.hat === "helmet" ? "#fdd835"
+    : f.hat === "kettle" ? "#c0392b"
+    : f.hat === "clown" ? "#e53935"
     : f.color;
   ctx.strokeStyle = f.color;
   switch (f.hat) {
@@ -1832,6 +2544,14 @@ function drawHat(ctx, f, cx, topY, r) {
       ctx.beginPath(); ctx.moveTo(cx, topY + r * 0.14 - r * 0.88); ctx.lineTo(cx, topY + r * 0.14); ctx.stroke();
       ctx.strokeStyle = f.color;
       break;
+    case "visor": // a sleek glowing HUD band across the eyes
+      ctx.save();
+      ctx.fillStyle = "#37474f";
+      ctx.beginPath(); ctx.rect(cx - r * 1.05, topY + r * 0.55, r * 2.1, r * 0.5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#4fc3f7"; ctx.shadowColor = "#4fc3f7"; ctx.shadowBlur = 5;
+      ctx.fillRect(cx - r * 0.9, topY + r * 0.65, r * 1.8, r * 0.28);
+      ctx.restore();
+      break;
     case "castle": { // a small castle turret worn on the head
       const w = r * 1.6, baseY = topY + r * 0.32;
       ctx.fillStyle = "#b0bec5";
@@ -1878,6 +2598,57 @@ function drawHat(ctx, f, cx, topY, r) {
           ctx.fillRect(cx + bx + bw * 0.6, wy, r * 0.08, r * 0.08);
         }
       }
+      ctx.strokeStyle = f.color;
+      break;
+    }
+    case "kettle": { // a teapot worn as a hat: body, spout, handle, lid knob
+      ctx.fillStyle = "#c0392b";
+      ctx.beginPath();
+      ctx.ellipse(cx, topY - r * 0.35, r * 0.85, r * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      ctx.beginPath(); // spout
+      ctx.moveTo(cx - r * 0.8, topY - r * 0.55);
+      ctx.lineTo(cx - r * 1.3, topY - r * 1.0);
+      ctx.lineTo(cx - r * 1.05, topY - r * 1.05);
+      ctx.lineTo(cx - r * 0.65, topY - r * 0.3);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); // handle
+      ctx.arc(cx + r * 0.95, topY - r * 0.35, r * 0.32, -Math.PI * 0.6, Math.PI * 0.6);
+      ctx.stroke();
+      ctx.fillStyle = "#a93226";
+      ctx.beginPath(); ctx.ellipse(cx, topY - r * 0.85, r * 0.32, r * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, topY - r * 1.0, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      break;
+    }
+    case "clown": { // wide-brimmed cone with pompom + polka dots
+      ctx.fillStyle = "#e53935";
+      ctx.beginPath(); ctx.ellipse(cx, topY, r * 1.3, r * 0.32, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.62, topY); ctx.lineTo(cx + r * 0.62, topY); ctx.lineTo(cx, topY - r * 1.7);
+      ctx.closePath(); ctx.fillStyle = "#1e88e5"; ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#fff176";
+      for (const p of [[-0.2, -0.35], [0.18, -0.65], [0.05, -1.0]]) {
+        ctx.beginPath(); ctx.arc(cx + p[0] * r, topY + p[1] * r, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = "#f4b400";
+      ctx.beginPath(); ctx.arc(cx, topY - r * 1.75, r * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      break;
+    }
+    case "snakecrown": { // a coiled serpent wrapped around the brow, head rearing up front
+      ctx.strokeStyle = "#2e7d32"; ctx.fillStyle = "#43a047";
+      ctx.lineWidth = Math.max(2, r * 0.3);
+      ctx.beginPath();
+      ctx.moveTo(cx - r * 0.95, topY + r * 0.18);
+      ctx.quadraticCurveTo(cx - r * 0.3, topY - r * 0.15, cx + r * 0.3, topY + r * 0.05);
+      ctx.quadraticCurveTo(cx + r * 0.75, topY + r * 0.2, cx + r * 0.55, topY - r * 0.55);
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx + r * 0.55, topY - r * 0.6, r * 0.18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = "#b71c1c";
+      ctx.beginPath();
+      ctx.moveTo(cx + r * 0.68, topY - r * 0.66); ctx.lineTo(cx + r * 0.85, topY - r * 0.72);
+      ctx.moveTo(cx + r * 0.68, topY - r * 0.66); ctx.lineTo(cx + r * 0.82, topY - r * 0.58);
+      ctx.stroke();
       ctx.strokeStyle = f.color;
       break;
     }
@@ -2339,6 +3110,151 @@ function drawAccessory(ctx, f, hx, hy, s, t) {
       ctx.restore();
       break;
     }
+    case "cards": { // a fanned hand of three playing cards
+      ctx.save();
+      for (const [ang, col] of [[-0.35, "#c62828"], [0, "#212121"], [0.35, "#c62828"]]) {
+        ctx.save();
+        ctx.translate(hx + 2 * s, hy);
+        ctx.rotate(ang);
+        ctx.fillStyle = "#fff"; ctx.strokeStyle = "#9e9e9e";
+        ctx.lineWidth = Math.max(0.7, f.lineW * s * 0.4);
+        ctx.fillRect(-2.2 * s, -6.5 * s, 4.4 * s, 6.5 * s);
+        ctx.strokeRect(-2.2 * s, -6.5 * s, 4.4 * s, 6.5 * s);
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(0, -3.3 * s, 1.1 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+      break;
+    }
+    case "katana": { // a curved blade held ready, with motion-slash lines
+      ctx.save();
+      ctx.strokeStyle = "#cfd8dc";
+      ctx.lineWidth = Math.max(1.4, f.lineW * s * 1.1);
+      ctx.beginPath();
+      ctx.moveTo(hx - 1 * s, hy + 1 * s);
+      ctx.quadraticCurveTo(hx + 6 * s, hy - 4 * s, hx + 11 * s, hy - 10 * s);
+      ctx.stroke();
+      ctx.strokeStyle = "#212121";
+      ctx.lineWidth = Math.max(1.8, f.lineW * s * 1.3);
+      ctx.beginPath(); ctx.moveTo(hx - 1 * s, hy + 1 * s); ctx.lineTo(hx - 3.5 * s, hy + 3 * s); ctx.stroke();
+      ctx.strokeStyle = "#90a4ae";
+      ctx.lineWidth = Math.max(0.7, f.lineW * s * 0.4);
+      ctx.globalAlpha = 0.55;
+      for (const off of [1.4, 2.6]) {
+        ctx.beginPath();
+        ctx.moveTo(hx - off * s, hy + (1 + off * 0.4) * s);
+        ctx.quadraticCurveTo(hx + (6 - off * 0.4) * s, hy - (4 - off * 0.3) * s, hx + (11 - off) * s, hy - (10 - off * 0.4) * s);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    }
+    case "gamepad": { // two-handed game controller with a joystick nub
+      ctx.save();
+      ctx.fillStyle = "#263238"; ctx.strokeStyle = "#111";
+      ctx.beginPath();
+      ctx.moveTo(hx - 5 * s, hy);
+      ctx.quadraticCurveTo(hx - 6 * s, hy - 3 * s, hx - 2 * s, hy - 3 * s);
+      ctx.lineTo(hx + 2 * s, hy - 3 * s);
+      ctx.quadraticCurveTo(hx + 6 * s, hy - 3 * s, hx + 5 * s, hy);
+      ctx.quadraticCurveTo(hx + 4 * s, hy + 3 * s, hx + 2 * s, hy + 1 * s);
+      ctx.lineTo(hx - 2 * s, hy + 1 * s);
+      ctx.quadraticCurveTo(hx - 4 * s, hy + 3 * s, hx - 5 * s, hy);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#e53935";
+      ctx.beginPath(); ctx.arc(hx + 3 * s, hy - 1.5 * s, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#78909c";
+      ctx.beginPath(); ctx.arc(hx - 3 * s, hy - 1.5 * s, 0.7 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case "remote": { // held remote control, buttons in rows, pointed forward
+      ctx.save();
+      ctx.fillStyle = "#212121"; ctx.strokeStyle = "#000";
+      ctx.fillRect(hx, hy - 5 * s, 2.4 * s, 7 * s);
+      ctx.strokeRect(hx, hy - 5 * s, 2.4 * s, 7 * s);
+      ctx.fillStyle = "#4fc3f7";
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath(); ctx.arc(hx + 1.2 * s, hy - 3.5 * s + i * 1.8 * s, 0.5 * s, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+      break;
+    }
+    case "newspaper": { // folded paper with headline lines
+      ctx.save();
+      ctx.fillStyle = "#fafafa"; ctx.strokeStyle = "#9e9e9e";
+      ctx.fillRect(hx - 1 * s, hy - 5 * s, 6 * s, 4.4 * s);
+      ctx.strokeRect(hx - 1 * s, hy - 5 * s, 6 * s, 4.4 * s);
+      ctx.strokeStyle = "#616161";
+      ctx.lineWidth = Math.max(0.6, f.lineW * s * 0.35);
+      ctx.beginPath();
+      for (let i = 0; i < 3; i++) {
+        ctx.moveTo(hx - 0.3 * s, hy - 4 * s + i * 1.3 * s);
+        ctx.lineTo(hx + 4.3 * s, hy - 4 * s + i * 1.3 * s);
+      }
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "pillow": { // hugged fluffy pillow
+      ctx.save();
+      ctx.fillStyle = "#eceff1"; ctx.strokeStyle = "#b0bec5";
+      ctx.beginPath(); ctx.ellipse(hx + 1 * s, hy - 1 * s, 4 * s, 3 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "scanner": { // handheld scanner with a small screen and a sweeping beam
+      ctx.save();
+      ctx.fillStyle = "#37474f"; ctx.strokeStyle = "#111";
+      ctx.fillRect(hx, hy - 3 * s, 4 * s, 3 * s); ctx.strokeRect(hx, hy - 3 * s, 4 * s, 3 * s);
+      ctx.fillStyle = "#69f0ae";
+      ctx.fillRect(hx + 0.6 * s, hy - 2.5 * s, 2.8 * s, 1.6 * s);
+      ctx.strokeStyle = "#69f0ae"; ctx.globalAlpha = 0.6 + Math.sin(t * 6) * 0.3;
+      ctx.beginPath(); ctx.moveTo(hx + 2 * s, hy); ctx.lineTo(hx + 2 * s - 5 * s, hy + 9 * s); ctx.lineTo(hx + 2 * s + 5 * s, hy + 9 * s); ctx.closePath(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "photostack": { // a thick held stack of tiny photographs
+      ctx.save();
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#9e9e9e";
+      for (let i = 0; i < 4; i++) {
+        ctx.save();
+        ctx.translate(hx + i * 0.3 * s, hy - i * 0.4 * s); ctx.rotate((i - 1.5) * 0.12);
+        ctx.fillRect(-2 * s, -2.6 * s, 4 * s, 5.2 * s); ctx.strokeRect(-2 * s, -2.6 * s, 4 * s, 5.2 * s);
+        ctx.restore();
+      }
+      ctx.restore();
+      break;
+    }
+    case "detector": { // a wand-tipped rarity detector, pulsing with a found-something glow
+      ctx.save();
+      ctx.strokeStyle = "#78909c"; ctx.lineWidth = Math.max(1.2, f.lineW * s * 0.7);
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + 6 * s, hy - 4 * s); ctx.stroke();
+      const pulse = 0.6 + Math.sin(t * 8) * 0.4;
+      ctx.fillStyle = `rgba(255, 214, 0, ${pulse})`;
+      ctx.shadowColor = "#ffd600"; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(hx + 6 * s, hy - 4 * s, 1.4 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      break;
+    }
+    case "cup": { // championship cup raised overhead
+      ctx.save();
+      ctx.translate(hx, hy - 14 * s);
+      ctx.fillStyle = "#ffd700"; ctx.strokeStyle = "#b8860b";
+      ctx.beginPath();
+      ctx.moveTo(-2.4 * s, -2 * s); ctx.lineTo(2.4 * s, -2 * s);
+      ctx.lineTo(1.6 * s, 2 * s); ctx.lineTo(-1.6 * s, 2 * s);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-2.4 * s, -1 * s); ctx.quadraticCurveTo(-4.4 * s, -1 * s, -3.6 * s, 1 * s);
+      ctx.moveTo(2.4 * s, -1 * s); ctx.quadraticCurveTo(4.4 * s, -1 * s, 3.6 * s, 1 * s);
+      ctx.stroke();
+      ctx.fillRect(-0.5 * s, 2 * s, 1 * s, 1.6 * s);
+      ctx.fillRect(-1.6 * s, 3.4 * s, 3.2 * s, 0.8 * s);
+      ctx.restore();
+      break;
+    }
   }
   ctx.lineWidth = f.lineW * 1;
 }
@@ -2537,6 +3453,33 @@ function drawChestIcon(ctx, f, cxp, cyp, s, t) {
       ctx.restore();
       break;
     }
+    case "musicbox": { // an ornate little box with a note popping out the lid
+      ctx.save();
+      ctx.fillStyle = "#8d6e63"; ctx.strokeStyle = "#5d4037";
+      ctx.lineWidth = Math.max(0.8, f.lineW * s * 0.45);
+      ctx.fillRect(cxp - 3.2 * s, cyp - 1.6 * s, 6.4 * s, 4.2 * s);
+      ctx.strokeRect(cxp - 3.2 * s, cyp - 1.6 * s, 6.4 * s, 4.2 * s);
+      ctx.fillStyle = "#c9a227";
+      ctx.fillRect(cxp - 3.2 * s, cyp - 2.1 * s, 6.4 * s, 0.8 * s);
+      const bob = Math.sin(t * 2.5) * 0.6 * s;
+      ctx.fillStyle = "#c9a227";
+      ctx.font = `bold ${4.4 * s}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("♪", cxp + 1.5 * s, cyp - 3 * s + bob);
+      ctx.restore();
+      break;
+    }
+    case "medals": { // three ribboned medal discs pinned across the chest
+      const cols = [["#ffd700", "#b8860b"], ["#c0c0c0", "#8c8c8c"], ["#cd7f32", "#8c5a2b"]];
+      for (let i = 0; i < 3; i++) {
+        const mx = cxp + (i - 1) * 2.6 * s, my = cyp + (i % 2 === 0 ? 0.6 * s : -0.2 * s);
+        ctx.strokeStyle = "#b71c1c";
+        ctx.beginPath(); ctx.moveTo(mx, my - 2.6 * s); ctx.lineTo(mx, my - 1 * s); ctx.stroke();
+        ctx.fillStyle = cols[i][0]; ctx.strokeStyle = cols[i][1];
+        ctx.beginPath(); ctx.arc(mx, my, 1.3 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      break;
+    }
   }
   // a glowing word or number stamped on the chest (e.g. "1", "1000", "999")
   if (f.emblemText) {
@@ -2669,6 +3612,61 @@ function drawOverhead(ctx, f, hxp, hyp, s, t) {
       };
       drawShip(hxp - 5 * s, y - 1 * s, -0.15 + Math.sin(t * 1.4) * 0.1, 1.0);
       drawShip(hxp + 5.5 * s, y + 2 * s, 0.2 + Math.sin(t * 1.1 + 2) * 0.1, 0.78);
+      break;
+    }
+    case "controlbar": { // a puppeteer's wooden cross-bar, gently tilting
+      const tilt = Math.sin(t * 1.6) * 0.12;
+      ctx.save();
+      ctx.translate(hxp, y - 2 * s); ctx.rotate(tilt);
+      ctx.strokeStyle = "#6d4c41";
+      ctx.lineWidth = Math.max(1.1, s * 0.6);
+      ctx.beginPath();
+      ctx.moveTo(-4.5 * s, 0); ctx.lineTo(4.5 * s, 0);
+      ctx.moveTo(0, -1.6 * s); ctx.lineTo(0, 1.6 * s);
+      ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "antenna": { // a tall thin antenna trailing floating message glyphs
+      ctx.strokeStyle = "#455a64";
+      ctx.lineWidth = Math.max(1, 0.6 * s);
+      ctx.beginPath(); ctx.moveTo(hxp, hyp + 1 * s); ctx.lineTo(hxp, hyp - 6 * s); ctx.stroke();
+      ctx.beginPath(); ctx.arc(hxp, hyp - 6.6 * s, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+      const glyphs = ["♪", "!", "?", "#"];
+      ctx.fillStyle = "#26a69a";
+      ctx.font = `bold ${3.2 * s}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      for (let i = 0; i < 3; i++) {
+        const a = t * 1.4 + i * 2.1;
+        const gx = hxp + Math.cos(a) * 5 * s, gy = hyp - 7 * s + Math.sin(a) * 2.4 * s;
+        ctx.fillText(glyphs[(i + Math.floor(t)) % glyphs.length], gx, gy);
+      }
+      break;
+    }
+    case "thoughtbubble": { // a rising chain of bubbles leading to an idea
+      ctx.save();
+      ctx.fillStyle = "#fff"; ctx.strokeStyle = "#78909c";
+      ctx.lineWidth = Math.max(0.6, 0.4 * s);
+      for (const [ox2, oy2, rr] of [[1.4, 2.2, 0.7], [2.4, 0.6, 1.1]]) {
+        ctx.beginPath(); ctx.arc(hxp + ox2 * s, y - oy2 * s, rr * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.ellipse(hxp + 3.4 * s, y - 3.6 * s, 3.4 * s, 2.4 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      break;
+    }
+    case "flame": { // small candle flame flickering above the head
+      const flick = 1 + Math.sin(t * 10) * 0.18;
+      ctx.save();
+      ctx.shadowColor = "#ff9800"; ctx.shadowBlur = 6;
+      ctx.fillStyle = "#ffca28";
+      ctx.beginPath();
+      ctx.moveTo(hxp - 1 * s, y);
+      ctx.quadraticCurveTo(hxp - 1.3 * s, y - 2.4 * s * flick, hxp, y - 3.6 * s * flick);
+      ctx.quadraticCurveTo(hxp + 1.3 * s, y - 2.4 * s * flick, hxp + 1 * s, y);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ff7043";
+      ctx.beginPath(); ctx.ellipse(hxp, y - 0.6 * s, 0.6 * s, 1 * s * flick, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
       break;
     }
   }
@@ -2820,26 +3818,29 @@ function drawMotorcycleOutline(ctx, s, t) {
   ctx.restore();
 }
 
-// Bridge (#433): the whole figure is replaced by this outline — no human parts.
-function drawBridgeOutline(ctx, s, t) {
+// Bridge (#433): stands in for the whole torso+head; legs and arms poke out normally.
+function drawBridgeBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top;
+  const deckY = top + h * 0.3, deckH = Math.max(1.3 * s, h * 0.1);
+  const spanL = -5.6 * s, spanR = 5.6 * s, pierW = 1.7 * s;
   ctx.save();
-  ctx.strokeStyle = "#111111"; ctx.fillStyle = "#ffffff";
-  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
   ctx.lineJoin = "round";
-  const deckY = -9 * s, deckH = 1.6 * s, spanL = -15 * s, spanR = 15 * s, pierW = 3 * s;
-  for (const px of [spanL + pierW / 2, spanR - pierW / 2]) { // piers down to the ground
-    ctx.beginPath(); ctx.rect(px - pierW / 2, deckY + deckH, pierW, -deckY - deckH); ctx.fill(); ctx.stroke();
+  for (const px of [spanL + pierW / 2, spanR - pierW / 2]) { // piers from deck down to the hips
+    ctx.beginPath(); ctx.rect(px - pierW / 2, deckY + deckH, pierW, bottom - (deckY + deckH)); ctx.fill(); ctx.stroke();
   }
   ctx.beginPath(); ctx.rect(spanL, deckY, spanR - spanL, deckH); ctx.fill(); ctx.stroke(); // deck
   ctx.beginPath(); // arch opening between the piers
-  ctx.moveTo(spanL + pierW + 1 * s, deckY + deckH);
-  ctx.quadraticCurveTo(0, 2.5 * s, spanR - pierW - 1 * s, deckY + deckH);
+  ctx.moveTo(spanL + pierW + 0.6 * s, deckY + deckH);
+  ctx.quadraticCurveTo(0, bottom - 0.4 * s, spanR - pierW - 0.6 * s, deckY + deckH);
   ctx.stroke();
-  ctx.beginPath(); // railing posts + top rail
-  for (let x = spanL + 2 * s; x <= spanR - 2 * s; x += 4 * s) {
-    ctx.moveTo(x, deckY); ctx.lineTo(x, deckY - 1.8 * s);
+  ctx.beginPath(); // railing posts + top rail, up towards the head
+  for (let x = spanL + 1.2 * s; x <= spanR - 1.2 * s; x += 2.6 * s) {
+    ctx.moveTo(x, deckY); ctx.lineTo(x, top);
   }
-  ctx.moveTo(spanL, deckY - 1.8 * s); ctx.lineTo(spanR, deckY - 1.8 * s);
+  ctx.moveTo(spanL, top); ctx.lineTo(spanR, top);
   ctx.stroke();
   ctx.restore();
 }
@@ -2909,6 +3910,197 @@ function drawTowerBody(ctx, hipY, s, t) {
   for (const wy of [top + height * 0.28, top + height * 0.58]) {
     ctx.beginPath(); ctx.rect(-0.7 * s, wy - 2 * s, 1.4 * s, 4 * s); ctx.fill(); ctx.stroke();
   }
+  ctx.restore();
+}
+
+// Computer (#354): a monitor-on-tower body; arms and legs poke out normally.
+function drawComputerBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 5.2 * s;
+  ctx.save();
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  const scrY = top + h * 0.08, scrH = h * 0.42;
+  ctx.beginPath(); ctx.rect(-w, scrY, w * 2, scrH); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#263238";
+  ctx.fillRect(-w * 0.8, scrY + h * 0.06, w * 1.6, scrH - h * 0.12);
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath(); ctx.rect(-1 * s, scrY + scrH, 2 * s, h * 0.12); ctx.fill(); ctx.stroke();
+  const towY = scrY + scrH + h * 0.12;
+  ctx.beginPath(); ctx.rect(-w * 0.55, towY, w * 1.1, bottom - towY); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#4fc3f7";
+  ctx.beginPath(); ctx.arc(0, towY + (bottom - towY) * 0.5, 0.7 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// Treasure trunk (#368): a wooden chest overflowing with gold; arms and legs poke out normally.
+function drawTrunkBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 5 * s;
+  ctx.save();
+  ctx.fillStyle = "#8d6e63"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  const lidY = top + h * 0.35;
+  ctx.beginPath(); ctx.rect(-w, lidY, w * 2, bottom - lidY); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.arc(0, lidY, w, Math.PI, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#ffd700";
+  for (const gx of [-2.4, -0.6, 1.2, 2.8]) {
+    ctx.beginPath(); ctx.arc(gx * s, lidY - 0.5 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = "#5d4037";
+  ctx.lineWidth = Math.max(1, 0.9 * s);
+  ctx.beginPath(); ctx.moveTo(-w, lidY); ctx.lineTo(w, lidY); ctx.stroke();
+  ctx.fillStyle = "#c9a227";
+  ctx.fillRect(-0.6 * s, lidY + h * 0.15, 1.2 * s, 1.2 * s);
+  ctx.restore();
+}
+
+// Toaster (#377): a chrome toaster body; arms and legs poke out normally.
+function drawToasterBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 4.6 * s;
+  ctx.save();
+  ctx.fillStyle = "#eeeeee"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  const rr = 1.6 * s;
+  ctx.beginPath();
+  ctx.moveTo(-w, bottom); ctx.lineTo(-w, top + rr);
+  ctx.quadraticCurveTo(-w, top, -w + rr, top);
+  ctx.lineTo(w - rr, top); ctx.quadraticCurveTo(w, top, w, top + rr);
+  ctx.lineTo(w, bottom); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#212121";
+  ctx.fillRect(-w * 0.55, top + h * 0.12, w * 0.3, h * 0.28);
+  ctx.fillRect(w * 0.25, top + h * 0.12, w * 0.3, h * 0.28);
+  ctx.restore();
+}
+
+// Fridge (#378): a tall white fridge body; arms and legs poke out normally.
+function drawFridgeBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 4.4 * s;
+  ctx.save();
+  ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.rect(-w, top, w * 2, h); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-w, top + h * 0.32); ctx.lineTo(w, top + h * 0.32); ctx.stroke();
+  ctx.fillStyle = "#cfd8dc";
+  ctx.fillRect(w * 0.55, top + h * 0.06, w * 0.2, h * 0.2);
+  ctx.fillRect(w * 0.55, top + h * 0.42, w * 0.2, h * 0.4);
+  ctx.restore();
+}
+
+// Oven (#379): a black oven body with a glowing window; arms and legs poke out normally.
+function drawOvenBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 4.6 * s;
+  ctx.save();
+  ctx.fillStyle = "#424242"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.rect(-w, top, w * 2, h); ctx.fill(); ctx.stroke();
+  ctx.save();
+  ctx.shadowColor = "#ff7043"; ctx.shadowBlur = 6;
+  ctx.fillStyle = "#ff7043aa";
+  ctx.fillRect(-w * 0.65, top + h * 0.28, w * 1.3, h * 0.45);
+  ctx.restore();
+  ctx.strokeRect(-w * 0.65, top + h * 0.28, w * 1.3, h * 0.45);
+  ctx.fillStyle = "#bdbdbd";
+  ctx.beginPath(); ctx.arc(w * 0.55, top + h * 0.14, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+// Vacuum (#380): an upright vacuum body; arms and legs poke out normally.
+function drawVacuumBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 3.2 * s;
+  ctx.save();
+  ctx.fillStyle = "#e57373"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.rect(-w, top, w * 2, h * 0.62); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.3, top + h * 0.62); ctx.lineTo(-w * 0.7, bottom); ctx.lineTo(w * 0.7, bottom); ctx.lineTo(w * 0.3, top + h * 0.62);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#bdbdbd";
+  ctx.beginPath(); ctx.moveTo(0, top); ctx.quadraticCurveTo(w * 1.6, top - 3 * s, w * 1.8, top + 3 * s); ctx.stroke();
+  ctx.restore();
+}
+
+// Chair (#373): a plain wooden chair walking on its own four legs — no human parts.
+function drawChairOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#5d4037"; ctx.fillStyle = "#8d6e63";
+  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.lineCap = "round";
+  const seatY = -10 * s, seatW = 7 * s;
+  for (const lx of [-seatW * 0.8, seatW * 0.8]) {
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, seatY); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.rect(-seatW, seatY - 1.4 * s, seatW * 2, 1.4 * s); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); // backrest slats
+  ctx.rect(-seatW * 0.85, seatY - 10 * s, seatW * 1.7, 1.2 * s);
+  ctx.rect(-seatW * 0.85, seatY - 6 * s, seatW * 1.7, 1.2 * s);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-seatW * 0.8, seatY - 10 * s); ctx.lineTo(-seatW * 0.8, seatY);
+  ctx.moveTo(seatW * 0.8, seatY - 10 * s); ctx.lineTo(seatW * 0.8, seatY);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Table (#374): a flat tabletop gliding on four long legs — no human parts.
+function drawTableOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#4e342e"; ctx.fillStyle = "#6d4c41";
+  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.lineCap = "round";
+  const topY = -12 * s, topW = 13 * s;
+  for (const lx of [-topW * 0.75, topW * 0.75]) {
+    ctx.beginPath(); ctx.moveTo(lx, 0); ctx.lineTo(lx, topY + 1.4 * s); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.rect(-topW, topY, topW * 2, 1.8 * s); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+
+// Sofa (#375): a cushioned couch shuffling along on stubby feet — no human parts.
+function drawSofaOutline(ctx, s, t) {
+  ctx.save();
+  ctx.strokeStyle = "#37474f"; ctx.fillStyle = "#78909c";
+  ctx.lineWidth = Math.max(1.3, 1.5 * s);
+  ctx.lineJoin = "round";
+  const seatY = -6 * s, w = 15 * s;
+  ctx.beginPath(); ctx.rect(-w, seatY, w * 2, 6 * s); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.rect(-w, seatY - 6 * s, w * 2, 4 * s); ctx.fill(); ctx.stroke(); // backrest
+  ctx.beginPath(); // armrests
+  ctx.rect(-w - 1.4 * s, seatY - 4 * s, 2.4 * s, 10 * s);
+  ctx.rect(w - 1 * s, seatY - 4 * s, 2.4 * s, 10 * s);
+  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#455a64";
+  for (const lx of [-w * 0.7, -w * 0.2, w * 0.2, w * 0.7]) {
+    ctx.beginPath(); ctx.moveTo(lx, seatY); ctx.lineTo(lx, seatY + 6 * s); ctx.stroke();
+  }
+  for (const fx of [-w * 0.85, w * 0.85]) {
+    ctx.beginPath(); ctx.moveTo(fx, seatY + 6 * s); ctx.lineTo(fx, 0); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Robot Vacuum (#381): a low disc gliding randomly — no human parts.
+function drawRoombaOutline(ctx, s, t) {
+  ctx.save();
+  ctx.fillStyle = "#78909c"; ctx.strokeStyle = "#111111";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  const w = 8 * s, hgt = 3.4 * s, cy = -hgt * 0.5;
+  ctx.beginPath(); ctx.ellipse(0, cy, w, hgt, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#455a64";
+  ctx.beginPath(); ctx.arc(0, cy, w * 0.32, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#37474f";
+  ctx.beginPath(); ctx.arc(-w * 0.5, cy, 0.9 * s, 0, Math.PI * 2); ctx.arc(w * 0.5, cy, 0.9 * s, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
 }
 
@@ -3043,6 +4235,13 @@ function drawStickman(ctx, inst, t) {
     case "moto": // riding a motorcycle: seated, leaning into the handlebars, engine vibration
       legsMode = "moto"; armsMode = "moto";
       bob = 0.5 * s; lean = 2.5 * s; airLift = 0; break;
+    case "pop": // a sudden vertical spring pop, then a pause, on repeat
+      stride = legH * 0.15; lift = legH * 0.1;
+      airLift = Math.max(0, Math.pow(Math.max(0, Math.sin(ph * 0.5)), 6)) * 11 * s;
+      armAmp = 0.6; break;
+    case "droop": // a sad, dulled, slumped shuffle
+      stride = legH * 0.18; lift = legH * 0.08; bob = 0.35 * s;
+      lean = 4.5 * s; armAmp = 0.25; break;
     case "trip": { // stumble → fall flat → push back up (driven by inst.tripT 0..1)
       const p = inst.tripT || 0;
       bob = 0;
@@ -3108,7 +4307,10 @@ function drawStickman(ctx, inst, t) {
   if (f.vehicleOnly) {
     if (f.vehicleOnly === "car") drawCarOutline(ctx, s, t);
     else if (f.vehicleOnly === "train") drawTrainOutline(ctx, s, t);
-    else if (f.vehicleOnly === "bridge") drawBridgeOutline(ctx, s, t);
+    else if (f.vehicleOnly === "chair") drawChairOutline(ctx, s, t);
+    else if (f.vehicleOnly === "table") drawTableOutline(ctx, s, t);
+    else if (f.vehicleOnly === "sofa") drawSofaOutline(ctx, s, t);
+    else if (f.vehicleOnly === "roomba") drawRoombaOutline(ctx, s, t);
     ctx.restore();
     if (inst.shot) {
       ctx.save();
@@ -3732,6 +4934,21 @@ function drawStickman(ctx, inst, t) {
   } else if (f.vehicleBody === "tower") {
     // a tall tower silhouette stands in for the whole torso and head
     drawTowerBody(ctx, hipY, s, t);
+  } else if (f.vehicleBody === "bridge") {
+    // a small bridge silhouette stands in for the whole torso and head
+    drawBridgeBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "computer") {
+    drawComputerBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "trunk") {
+    drawTrunkBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "toaster") {
+    drawToasterBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "fridge") {
+    drawFridgeBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "oven") {
+    drawOvenBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "vacuum") {
+    drawVacuumBody(ctx, hipY, headCY - headR, s, t);
   } else {
     ctx.beginPath();
     ctx.moveTo(0, hipY);
@@ -3924,6 +5141,151 @@ function drawStickman(ctx, inst, t) {
         ctx.lineTo(shoX * fr + 1.2 * s, yy);
       }
       ctx.stroke();
+      ctx.restore();
+    } else if (f.marksKind === "puzzle") {
+      // jigsaw seam lines drifting slowly across the torso
+      ctx.save();
+      ctx.strokeStyle = f.marksColor;
+      ctx.lineWidth = Math.max(0.8, 0.5 * s);
+      const drift = Math.sin(t * 0.6) * 0.6 * s;
+      ctx.beginPath();
+      for (let i = 1; i < 3; i++) {
+        const xx = shoX * (i / 3) + drift;
+        ctx.moveTo(xx, shoY); ctx.lineTo(xx, hipY);
+      }
+      for (let i = 1; i < 2; i++) {
+        const yy = shoY + (hipY - shoY) * (i / 2) - drift;
+        ctx.moveTo(shoX * 0.15, yy); ctx.lineTo(shoX * 0.85, yy);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else if (f.marksKind === "chess") {
+      // black-and-white checkerboard squares across the torso
+      const cols = 3, rows = 3, cw = (shoX * 0.9) / cols;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          if ((row + col) % 2 === 0) continue;
+          ctx.fillStyle = "#111";
+          const xx = shoX * 0.05 + col * cw, yy = shoY + (hipY - shoY) * (row / rows);
+          ctx.fillRect(xx, yy, cw, (hipY - shoY) / rows);
+        }
+      }
+    } else if (f.marksKind === "cracks") {
+      // jagged crack lines, like a chipped toy
+      ctx.save();
+      ctx.strokeStyle = f.marksColor;
+      ctx.lineWidth = Math.max(0.8, 0.45 * s);
+      ctx.beginPath();
+      ctx.moveTo(shoX * 0.2, shoY + 1 * s);
+      ctx.lineTo(shoX * 0.5, shoY + (hipY - shoY) * 0.3);
+      ctx.lineTo(shoX * 0.3, shoY + (hipY - shoY) * 0.5);
+      ctx.lineTo(shoX * 0.6, hipY - 1 * s);
+      ctx.stroke();
+      ctx.restore();
+    } else if (f.marksKind === "crumbs") {
+      // small crumbs gently falling off the body
+      ctx.fillStyle = f.marksColor;
+      for (let i = 0; i < 4; i++) {
+        const fall = (t * 14 + i * 9) % 22;
+        const xx = shoX * (0.15 + i * 0.22);
+        const yy = shoY + fall * s;
+        if (yy > hipY + 10 * s) continue;
+        ctx.beginPath(); ctx.arc(xx, yy, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (f.marksKind === "paper") { // loose paper corners peeking from the top edge
+      ctx.save();
+      ctx.fillStyle = "#ffffff"; ctx.strokeStyle = "#bdbdbd";
+      const flutter = Math.sin(t * 2) * 0.4 * s;
+      for (let i = 0; i < 2; i++) {
+        const xx = shoX * (0.3 + i * 0.35) + flutter;
+        ctx.save();
+        ctx.translate(xx, shoY - 0.5 * s); ctx.rotate((i - 0.5) * 0.3);
+        ctx.fillRect(-1.4 * s, -1.8 * s, 2.8 * s, 2 * s);
+        ctx.strokeRect(-1.4 * s, -1.8 * s, 2.8 * s, 2 * s);
+        ctx.restore();
+      }
+      ctx.restore();
+    } else if (f.marksKind === "keys") { // grid of tiled keycap squares covering the body
+      ctx.fillStyle = "#eceff1"; ctx.strokeStyle = f.marksColor;
+      const cols = 3, rows = 3, cw = (shoX * 0.85) / cols;
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const xx = shoX * 0.08 + col * cw, yy = shoY + (hipY - shoY) * (row / rows) + 1 * s;
+          ctx.fillRect(xx, yy, cw * 0.82, ((hipY - shoY) / rows) * 0.7);
+          ctx.strokeRect(xx, yy, cw * 0.82, ((hipY - shoY) / rows) * 0.7);
+        }
+      }
+    } else if (f.marksKind === "text") { // tiny scribbled unreadable lines
+      ctx.save();
+      ctx.strokeStyle = f.marksColor;
+      ctx.lineWidth = Math.max(0.6, 0.35 * s);
+      ctx.beginPath();
+      for (let row = 0; row < 5; row++) {
+        const yy = shoY + (hipY - shoY) * ((row + 0.5) / 5);
+        ctx.moveTo(shoX * 0.15, yy); ctx.lineTo(shoX * 0.8, yy);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else if (f.marksKind === "gems") { // colourful gem facets scattered over the body
+      const gemCols = ["#e91e63", "#42a5f5", "#66bb6a", "#ffca28"];
+      for (let i = 0; i < 4; i++) {
+        const fr = (i + 0.5) / 4;
+        const xx = shoX * fr * 0.8, yy = shoY + (hipY - shoY) * fr;
+        ctx.fillStyle = gemCols[i % gemCols.length];
+        regularPoly(ctx, xx, yy, 1 * s, 4, t * 0.5 + i);
+        ctx.fill();
+      }
+    } else if (f.marksKind === "code") { // green command-line text streaming downward
+      ctx.save();
+      ctx.fillStyle = f.marksColor;
+      ctx.font = `${1.8 * s}px monospace`;
+      ctx.textAlign = "center";
+      const chars = "01>_#";
+      for (let col = 0; col < 3; col++) {
+        const xx = shoX * (0.2 + col * 0.3);
+        for (let row = 0; row < 4; row++) {
+          const fall = (t * 10 + row * 6 + col * 3) % 24;
+          const yy = shoY + fall * s;
+          if (yy > hipY + 2 * s) continue;
+          ctx.fillText(chars[(row + col + Math.floor(t)) % chars.length], xx, yy);
+        }
+      }
+      ctx.restore();
+    } else if (f.marksKind === "paint") { // soft daubs of oil-paint colour across the body
+      const paintCols = ["#c62828", "#1565c0", "#f9a825", "#2e7d32"];
+      for (let i = 0; i < 4; i++) {
+        const fr = (i + 0.5) / 4;
+        ctx.fillStyle = paintCols[i % paintCols.length];
+        ctx.beginPath();
+        ctx.ellipse(shoX * fr * 0.7 + (i % 2 ? 1.4 : -1.4) * s, shoY + (hipY - shoY) * fr, 1.6 * s, 1 * s, i, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (f.marksKind === "pencil") { // graphite cross-hatch shading lines
+      ctx.save();
+      ctx.strokeStyle = f.marksColor;
+      ctx.lineWidth = Math.max(0.5, 0.3 * s);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const fr = i / 6;
+        const yy = shoY + (hipY - shoY) * fr;
+        ctx.moveTo(shoX * 0.1, yy); ctx.lineTo(shoX * 0.9, yy + 3 * s);
+      }
+      ctx.stroke();
+      ctx.restore();
+    } else if (f.marksKind === "keyring") { // several small keys dangling and swinging
+      ctx.save();
+      ctx.strokeStyle = f.marksColor; ctx.fillStyle = f.marksColor;
+      ctx.lineWidth = Math.max(0.7, 0.4 * s);
+      for (let i = 0; i < 3; i++) {
+        const fr = (i + 0.5) / 3;
+        const baseX = shoX * fr, baseY = shoY + (hipY - shoY) * 0.15;
+        const swing = Math.sin(t * 3 + i * 2) * 0.3;
+        ctx.save();
+        ctx.translate(baseX, baseY); ctx.rotate(swing);
+        ctx.beginPath(); ctx.arc(0, 1.4 * s, 0.6 * s, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillRect(-0.3 * s, 1.9 * s, 0.6 * s, 1.6 * s);
+        ctx.restore();
+      }
       ctx.restore();
     } else {
       ctx.fillStyle = f.marksColor;
@@ -4476,6 +5838,90 @@ function drawStickman(ctx, inst, t) {
         ctx.font = `bold ${6 * s}px sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText("♪", ox, oy);
+      } else if (f.orbitKind === "ingredient") { // tomato / egg / pepper cycling
+        const kind = i % 3;
+        if (kind === 0) { ctx.fillStyle = "#e53935"; ctx.beginPath(); ctx.arc(ox, oy, 1.9 * s, 0, Math.PI * 2); ctx.fill(); }
+        else if (kind === 1) { ctx.fillStyle = "#fff9c4"; ctx.beginPath(); ctx.ellipse(ox, oy, 1.4 * s, 1.9 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#fdd835"; ctx.beginPath(); ctx.arc(ox, oy, 0.7 * s, 0, Math.PI * 2); ctx.fill(); }
+        else { ctx.fillStyle = "#66bb6a"; ctx.beginPath(); ctx.ellipse(ox, oy, 1.1 * s, 2 * s, 0.4, 0, Math.PI * 2); ctx.fill(); }
+      } else if (f.orbitKind === "cup") { // small floating teacup
+        ctx.fillStyle = "#fff"; ctx.strokeStyle = "#90a4ae";
+        ctx.lineWidth = Math.max(0.6, s * 0.35);
+        ctx.beginPath(); ctx.arc(ox, oy + 0.6 * s, 1.7 * s, 0, Math.PI); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(ox + 2 * s, oy + 0.6 * s, 0.7 * s, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
+      } else if (f.orbitKind === "candy") { // wrapped candy twist
+        ctx.fillStyle = `hsl(${(i * 90 + f.id * 13) % 360}, 80%, 58%)`;
+        ctx.beginPath(); ctx.ellipse(ox, oy, 1.8 * s, 1.1 * s, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(ox - 1.8 * s, oy); ctx.lineTo(ox - 2.6 * s, oy - 0.9 * s); ctx.lineTo(ox - 2.6 * s, oy + 0.9 * s); ctx.closePath();
+        ctx.moveTo(ox + 1.8 * s, oy); ctx.lineTo(ox + 2.6 * s, oy - 0.9 * s); ctx.lineTo(ox + 2.6 * s, oy + 0.9 * s); ctx.closePath();
+        ctx.fill();
+      } else if (f.orbitKind === "card") { // small orbiting playing card
+        ctx.save();
+        ctx.translate(ox, oy); ctx.rotate(a);
+        ctx.fillStyle = "#fff"; ctx.strokeStyle = "#616161";
+        ctx.lineWidth = Math.max(0.5, s * 0.3);
+        ctx.fillRect(-1.6 * s, -2.2 * s, 3.2 * s, 4.4 * s); ctx.strokeRect(-1.6 * s, -2.2 * s, 3.2 * s, 4.4 * s);
+        ctx.fillStyle = i % 2 ? "#c62828" : "#212121";
+        ctx.beginPath(); ctx.arc(0, 0, 0.8 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (f.orbitKind === "bubble") { // translucent soap bubble
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.strokeStyle = "#81d4fa"; ctx.fillStyle = "#e1f5fe55";
+        ctx.lineWidth = Math.max(0.5, s * 0.3);
+        ctx.beginPath(); ctx.arc(ox, oy, 1.8 * s + Math.sin(t * 3 + i) * 0.3 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      } else if (f.orbitKind === "ball") { // juggling ball on a bouncing arc
+        const bob = Math.abs(Math.sin(a * 1.7)) * 3 * s;
+        ctx.fillStyle = `hsl(${(i * 120) % 360}, 75%, 55%)`;
+        ctx.beginPath(); ctx.arc(ox, oy - bob, 1.7 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      } else if (f.orbitKind === "wave") { // a small soundwave arc
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(0.8, s * 0.4);
+        ctx.beginPath(); ctx.arc(ox, oy, 1.8 * s, -Math.PI * 0.4, Math.PI * 0.4); ctx.stroke();
+        ctx.beginPath(); ctx.arc(ox, oy, 1 * s, -Math.PI * 0.4, Math.PI * 0.4); ctx.stroke();
+      } else if (f.orbitKind === "block") { // small floating toy block
+        ctx.fillStyle = `hsl(${(i * 90 + 20) % 360}, 70%, 55%)`;
+        ctx.fillRect(ox - 1.6 * s, oy - 1.6 * s, 3.2 * s, 3.2 * s);
+        ctx.strokeRect(ox - 1.6 * s, oy - 1.6 * s, 3.2 * s, 3.2 * s);
+      } else if (f.orbitKind === "balloon") { // small balloon on a curling string
+        ctx.save();
+        ctx.strokeStyle = "#9e9e9e"; ctx.lineWidth = Math.max(0.5, s * 0.25);
+        ctx.beginPath(); ctx.moveTo(ox, oy + 1.6 * s); ctx.quadraticCurveTo(ox + 0.6 * s, oy + 3 * s, ox, oy + 4.2 * s); ctx.stroke();
+        ctx.fillStyle = `hsl(${(i * 110 + f.id * 7) % 360}, 80%, 60%)`;
+        ctx.beginPath(); ctx.ellipse(ox, oy, 1.6 * s, 2 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      } else if (f.orbitKind === "planet") { // a tiny ringed planet cooking in a pan
+        ctx.fillStyle = `hsl(${(i * 130 + 40) % 360}, 60%, 55%)`;
+        ctx.beginPath(); ctx.arc(ox, oy, 1.6 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = `hsl(${(i * 130 + 40) % 360}, 60%, 75%)`;
+        ctx.lineWidth = Math.max(0.5, s * 0.3);
+        ctx.beginPath(); ctx.ellipse(ox, oy, 2.6 * s, 0.7 * s, 0.3, 0, Math.PI * 2); ctx.stroke();
+      } else if (f.orbitKind === "specimen") { // tiny collected stickman silhouettes, orbiting
+        ctx.save();
+        ctx.fillStyle = `hsl(${(i * 100 + f.id * 11) % 360}, 55%, 50%)`;
+        ctx.beginPath();
+        ctx.arc(ox, oy - 1.1 * s, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.lineWidth = Math.max(0.6, s * 0.35); ctx.strokeStyle = ctx.fillStyle;
+        ctx.beginPath(); ctx.moveTo(ox, oy - 0.5 * s); ctx.lineTo(ox, oy + 1 * s);
+        ctx.moveTo(ox - 0.8 * s, oy); ctx.lineTo(ox + 0.8 * s, oy);
+        ctx.moveTo(ox, oy + 1 * s); ctx.lineTo(ox - 0.7 * s, oy + 1.9 * s);
+        ctx.moveTo(ox, oy + 1 * s); ctx.lineTo(ox + 0.7 * s, oy + 1.9 * s);
+        ctx.stroke();
+        ctx.restore();
+      } else if (f.orbitKind === "eye") { // a single unblinking eye, following
+        ctx.save();
+        ctx.fillStyle = "#fff"; ctx.strokeStyle = "#616161";
+        ctx.beginPath(); ctx.ellipse(ox, oy, 2 * s, 1.3 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#37474f";
+        ctx.beginPath(); ctx.arc(ox, oy, 0.85 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      } else if (f.orbitKind === "miniobj") { // tiny printed copies of random shapes
+        const kind = i % 3;
+        ctx.fillStyle = `hsl(${(i * 70 + f.id * 5) % 360}, 55%, 60%)`;
+        if (kind === 0) { ctx.fillRect(ox - 1.3 * s, oy - 1.3 * s, 2.6 * s, 2.6 * s); }
+        else if (kind === 1) { ctx.beginPath(); ctx.arc(ox, oy, 1.4 * s, 0, Math.PI * 2); ctx.fill(); }
+        else { regularPoly(ctx, ox, oy, 1.5 * s, 3, a); ctx.fill(); }
       } else {
         ctx.fillStyle = color;
         ctx.beginPath();

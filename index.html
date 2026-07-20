@@ -22,6 +22,13 @@
         <circle cx="12" cy="13" r="4"/>
       </svg>
     </button>
+    <button id="shop-btn" class="icon-btn" title="Shop" aria-label="Shop">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+        <path d="M3 6h18"/>
+        <path d="M16 10a4 4 0 0 1-8 0"/>
+      </svg>
+    </button>
     <button id="folder-btn" class="icon-btn" title="Stickdex" aria-label="Stickdex folder">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -50,13 +57,6 @@
 <!-- Wipe save data -->
 <button id="wipe-btn" title="Delete all progress">Wipe Data</button>
 
-<!-- TEST ONLY: spawn-any-stickman panel — remove this whole block for release -->
-<button id="test-btn" title="Test: queue any stickman to walk on">&#129514; Spawn</button>
-<div id="test-panel" class="hidden">
-  <input id="test-search" type="text" placeholder="Search all 1000 stickmen&hellip;" autocomplete="off">
-  <div id="test-list"></div>
-</div>
-
 <!-- Stickdex -->
 <div id="stickdex" class="hidden">
   <div id="dex-header">
@@ -66,6 +66,84 @@
     <div id="dex-count">0/???</div>
   </div>
   <div id="dex-grid"></div>
+</div>
+
+<!-- Shop -->
+<div id="shop" class="hidden">
+  <div id="shop-header">
+    <button id="shop-back" class="icon-btn" title="Back" aria-label="Back">&#8592;</button>
+    <h2>Shop</h2>
+    <div id="shop-money">$0</div>
+  </div>
+  <div id="shop-list">
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+          <path d="M12 2v4M8 2l1.5 2M16 2l-1.5 2"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Faster Camera</div>
+        <div class="shop-item-desc">Snap 3 photos back-to-back with no cooldown between them.</div>
+      </div>
+      <button id="buy-fastercam" class="shop-buy-btn">$15,000</button>
+    </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="8" y="1.5" width="8" height="6" rx="1"/>
+          <path d="M12 7.5v6M12 13.5l-7 9M12 13.5l7 9M6 22.5h2M16 22.5h2"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Camera Tripod</div>
+        <div class="shop-item-desc">Place it down and it auto-photographs any stickman that wanders into range for about a minute.</div>
+        <div class="shop-item-owned">Owned: <span id="tripod-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-tripod" class="shop-buy-btn">$3,000</button>
+    </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M12 7v5l4 2"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Time Freeze</div>
+        <div class="shop-item-desc">One-use. Slows every stickman on screen to a crawl for 5 seconds.</div>
+        <div class="shop-item-owned">Owned: <span id="timefreeze-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-timefreeze" class="shop-buy-btn">$5,000</button>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory bar (bottom of screen): usable items the player has bought -->
+<div id="inventory-bar">
+  <button id="tripod-inv-btn" class="inv-btn hidden" title="Place a tripod" aria-label="Place tripod">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="8" y="1.5" width="8" height="6" rx="1"/>
+      <path d="M12 7.5v6M12 13.5l-7 9M12 13.5l7 9M6 22.5h2M16 22.5h2"/>
+    </svg>
+    <span id="tripod-inv-count">0</span>
+  </button>
+  <button id="timefreeze-inv-btn" class="inv-btn hidden" title="Use a Time Freeze" aria-label="Use time freeze">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <path d="M12 7v5l4 2"/>
+    </svg>
+    <span id="timefreeze-inv-count">0</span>
+  </button>
+</div>
+
+<!-- Tripod placement hint + confirm buttons -->
+<div id="tripod-hint" class="hidden">Tap / click to set the tripod down &middot; ESC to cancel</div>
+<div id="tripod-confirm" class="hidden">
+  <button id="tripod-confirm-yes" title="Confirm placement" aria-label="Confirm">&#10003;</button>
+  <button id="tripod-confirm-no" title="Cancel" aria-label="Cancel">&#10005;</button>
 </div>
 
 <script src="js/data.js"></script>
