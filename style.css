@@ -183,6 +183,16 @@ body.camera-mode #world { cursor: none; }
 #wipe-btn:active { transform: scale(0.95); }
 body.camera-mode #wipe-btn { display: none; }
 
+/* ---------- Deploy version badge ---------- */
+#version-badge {
+  position: fixed; bottom: 10px; right: 10px;
+  color: #bbb;
+  font-size: 11px; font-weight: 500;
+  pointer-events: none;
+  z-index: 10;
+}
+body.camera-mode #version-badge { display: none; }
+
 /* ---------- Stickdex ---------- */
 #stickdex {
   position: fixed; inset: 0;
