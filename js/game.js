@@ -28,6 +28,7 @@ const els = {
   shopBack: document.getElementById("shop-back"),
   shopMoney: document.getElementById("shop-money"),
   buyFasterCam: document.getElementById("buy-fastercam"),
+  buyMultiCapture: document.getElementById("buy-multicapture"),
   buyTripod: document.getElementById("buy-tripod"),
   buyTimefreeze: document.getElementById("buy-timefreeze"),
   tripodOwnedCount: document.getElementById("tripod-owned-count"),
@@ -48,6 +49,7 @@ const BOUNTY_TIMEOUT_MS = 10 * 60 * 1000;
 
 // Shop
 const FASTER_CAMERA_COST = 15000;
+const MULTI_CAPTURE_COST = 25000;
 const TRIPOD_COST = 3000;
 const TRIPOD_MAX = 99;
 const TRIPOD_RANGE = 100;             // px radius a placed tripod watches
@@ -70,9 +72,17 @@ const state = {
   bountyId: null,
   bountySetAt: 0,
   fasterCamera: false, // owns the Faster Camera upgrade
+  multiCapture: false, // owns the Multi Capture upgrade
   tripodCount: 0,        // unplaced tripods in inventory
-  timeFreezeCount: 0     // unused Time Freezes in inventory
+  timeFreezeCount: 0,    // unused Time Freezes in inventory
+  spawnCredits: null,      // available spawn "rolls"; regenerates over real time, not on reload
+  lastCreditUpdate: 0    // timestamp spawnCredits was last topped up
 };
+
+// Spawns are rate-limited by a persisted, wall-clock-driven credit budget so
+// reloading the page can't grant free extra spawn rolls (and thus faster
+// rare-hunting) beyond what would have naturally trickled in over that time.
+const SPAWN_REGEN_PER_SEC = 6; // refilling an empty screen from scratch takes a few seconds
 
 // Placed tripods (transient — not saved, they only last about a minute anyway)
 const tripods = [];
@@ -460,7 +470,12 @@ function updateWorld(dt, t) {
   const max = maxOnScreen();
   // escorts don't count toward the cap, and aren't replaced when they leave.
   // (population is frozen during the coronation — nobody new wanders in.)
-  if (!kingEvent && stickmen.length - escortAlive < max) spawn(null, false); // refill one per frame, staggered
+  state.spawnCredits = Math.min(max, state.spawnCredits + dt * SPAWN_REGEN_PER_SEC);
+  state.lastCreditUpdate = Date.now(); // keep in sync with wall clock for the next reload's elapsed-time check
+  if (!kingEvent && stickmen.length - escortAlive < max && state.spawnCredits >= 1) {
+    state.spawnCredits--;
+    spawn(null, false); // refill one per frame, staggered, budget permitting
+  }
 
   // ---- very rarely, a plain Circle trips over another stickman or the ground ----
   if (!kingEvent && t >= nextTripAt) {
@@ -788,11 +803,17 @@ function takePhoto() {
   state.shots++;
 
   const valueType = focus.type;
-  const gained = bountyHit ? valueType.value * 20 : valueType.value;
+
+  // Multi Capture: every fresh stickman in frame pays out, not just the
+  // focus. Only the focus is ever recorded in the Stickdex either way.
+  const payers = state.multiCapture ? fresh : [focus];
+  let gained = 0;
+  for (const s of payers) {
+    gained += state.bountyId && s.type.id === state.bountyId ? s.type.value * 20 : s.type.value;
+    s.shot = true;
+  }
   state.money += gained;
 
-  // record only the focus in the Stickdex
-  focus.shot = true;
   let newType = false;
   if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
   state.dex[valueType.id].c++;
@@ -806,11 +827,18 @@ function takePhoto() {
   saveDirty = true;
 
   const others = captured.length - 1;
+  const paidOthers = payers.length - 1;
+  let othersMsg = "";
+  if (state.multiCapture && paidOthers > 0) {
+    othersMsg = ` <small>+${paidOthers} more counted for money</small>`;
+  } else if (others > 0) {
+    othersMsg = ` <small>+${others} in the background</small>`;
+  }
   showToast(
     `<span class="t-money">+${formatMoney(gained)}</span><br>` +
     (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
     `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
-    (others > 0 ? ` <small>+${others} in the background</small>` : "") +
+    othersMsg +
     (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
   );
 
@@ -957,6 +985,16 @@ function buildShop() {
     els.buyFasterCam.classList.remove("owned");
   }
 
+  if (state.multiCapture) {
+    els.buyMultiCapture.textContent = "Owned";
+    els.buyMultiCapture.disabled = true;
+    els.buyMultiCapture.classList.add("owned");
+  } else {
+    els.buyMultiCapture.textContent = formatMoney(MULTI_CAPTURE_COST);
+    els.buyMultiCapture.disabled = state.money < MULTI_CAPTURE_COST;
+    els.buyMultiCapture.classList.remove("owned");
+  }
+
   els.tripodOwnedCount.textContent = state.tripodCount;
   els.buyTripod.textContent = formatMoney(TRIPOD_COST);
   els.buyTripod.disabled = state.money < TRIPOD_COST || state.tripodCount >= TRIPOD_MAX;
@@ -976,6 +1014,15 @@ els.buyFasterCam.addEventListener("click", () => {
   saveDirty = true;
   buildShop();
   showToast(`<span class="t-new">Faster Camera purchased!</span>`);
+});
+
+els.buyMultiCapture.addEventListener("click", () => {
+  if (state.multiCapture || state.money < MULTI_CAPTURE_COST) return;
+  state.money -= MULTI_CAPTURE_COST;
+  state.multiCapture = true;
+  saveDirty = true;
+  buildShop();
+  showToast(`<span class="t-new">Multi Capture purchased!</span>`);
 });
 
 els.buyTripod.addEventListener("click", () => {
@@ -1293,9 +1340,20 @@ updateTripodInvBadge();
 updateTimefreezeInvBadge();
 if (state.bountyId) renderBounty(); else pickBounty();
 
-// initial population spread across the screen
+// initial population spread across the screen — gated by the same spawn
+// credit budget as ongoing refills, so a reload can't grant more rare-hunting
+// rolls than would have naturally trickled in over the real elapsed time.
 const initial = maxOnScreen();
-for (let i = 0; i < initial; i++) spawn(null, true);
+if (typeof state.spawnCredits !== "number") state.spawnCredits = initial; // first-ever visit: fully populated
+else if (state.lastCreditUpdate) {
+  const elapsedSec = Math.max(0, (Date.now() - state.lastCreditUpdate) / 1000);
+  state.spawnCredits = Math.min(initial, state.spawnCredits + elapsedSec * SPAWN_REGEN_PER_SEC);
+}
+state.lastCreditUpdate = Date.now();
+for (let i = 0; i < initial && state.spawnCredits >= 1; i++) {
+  state.spawnCredits--;
+  spawn(null, true);
+}
 
 setInterval(() => { saveDirty = true; saveState(); }, 8000);
 window.addEventListener("beforeunload", () => saveState(true));
