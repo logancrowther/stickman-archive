@@ -17,6 +17,126 @@ html, body {
   touch-action: none;
 }
 
+/* ---------- Rainbow Event ---------- */
+#rainbow-overlay {
+  position: fixed; inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(120deg,
+    #ff0044, #ff8800, #ffee00, #22ff44, #00ccff, #6644ff, #ff00cc, #ff0044);
+  background-size: 400% 400%;
+  mix-blend-mode: multiply;
+  box-shadow: inset 0 0 110px 30px rgba(255, 0, 200, 0.55);
+  transition: opacity 0.6s ease;
+}
+body.rainbow-event #rainbow-overlay {
+  opacity: 0.28;
+  animation: rainbowShift 6s linear infinite;
+}
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+#rainbow-timer {
+  position: fixed; bottom: 14px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #fff;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #rainbow-timer { bottom: 54px; }
+#rainbow-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#rainbow-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #ff0044, #ff8800, #ffee00, #22ff44, #00ccff, #6644ff);
+  background-size: 300% 100%;
+  animation: rainbowShift 4s linear infinite;
+}
+#rainbow-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- Golden Event ---------- */
+#golden-overlay {
+  position: fixed; inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(120deg, #fff4c2, #ffd700, #b8860b, #ffd700, #fff4c2);
+  background-size: 300% 300%;
+  mix-blend-mode: multiply;
+  box-shadow: inset 0 0 130px 40px rgba(255, 200, 0, 0.6);
+  transition: opacity 0.6s ease;
+}
+body.golden-event #golden-overlay {
+  opacity: 0.35;
+  animation: goldenShift 6s linear infinite;
+}
+@keyframes goldenShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
+#golden-timer {
+  position: fixed; bottom: 64px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #ffd700;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #golden-timer { bottom: 104px; }
+#golden-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#golden-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #fff4c2, #ffd700, #b8860b);
+  background-size: 300% 100%;
+  animation: goldenShift 4s linear infinite;
+}
+#golden-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- Lucky Charm ---------- */
+#luck-timer {
+  position: fixed; bottom: 114px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #69f0ae;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #luck-timer { bottom: 154px; }
+#luck-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#luck-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #1b5e20, #43a047, #69f0ae);
+}
+#luck-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
 .hidden { display: none !important; }
 
 /* ---------- HUD ---------- */
@@ -182,16 +302,6 @@ body.camera-mode #world { cursor: none; }
 #wipe-btn:hover { color: #c62828; border-color: #c62828; }
 #wipe-btn:active { transform: scale(0.95); }
 body.camera-mode #wipe-btn { display: none; }
-
-/* ---------- Deploy version badge ---------- */
-#version-badge {
-  position: fixed; bottom: 10px; right: 10px;
-  color: #bbb;
-  font-size: 11px; font-weight: 500;
-  pointer-events: none;
-  z-index: 10;
-}
-body.camera-mode #version-badge { display: none; }
 
 /* ---------- Stickdex ---------- */
 #stickdex {

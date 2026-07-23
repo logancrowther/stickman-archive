@@ -31,16 +31,29 @@ const els = {
   buyMultiCapture: document.getElementById("buy-multicapture"),
   buyTripod: document.getElementById("buy-tripod"),
   buyTimefreeze: document.getElementById("buy-timefreeze"),
+  buyLuckyCharm: document.getElementById("buy-luckycharm"),
   tripodOwnedCount: document.getElementById("tripod-owned-count"),
   timefreezeOwnedCount: document.getElementById("timefreeze-owned-count"),
+  luckyCharmOwnedCount: document.getElementById("luckycharm-owned-count"),
   tripodInvBtn: document.getElementById("tripod-inv-btn"),
   tripodInvCount: document.getElementById("tripod-inv-count"),
   timefreezeInvBtn: document.getElementById("timefreeze-inv-btn"),
   timefreezeInvCount: document.getElementById("timefreeze-inv-count"),
+  luckyCharmInvBtn: document.getElementById("luckycharm-inv-btn"),
+  luckyCharmInvCount: document.getElementById("luckycharm-inv-count"),
   tripodHint: document.getElementById("tripod-hint"),
   tripodConfirm: document.getElementById("tripod-confirm"),
   tripodConfirmYes: document.getElementById("tripod-confirm-yes"),
-  tripodConfirmNo: document.getElementById("tripod-confirm-no")
+  tripodConfirmNo: document.getElementById("tripod-confirm-no"),
+  rainbowTimer: document.getElementById("rainbow-timer"),
+  rainbowTimerFill: document.getElementById("rainbow-timer-fill"),
+  rainbowTimerTime: document.getElementById("rainbow-timer-time"),
+  goldenTimer: document.getElementById("golden-timer"),
+  goldenTimerFill: document.getElementById("golden-timer-fill"),
+  goldenTimerTime: document.getElementById("golden-timer-time"),
+  luckTimer: document.getElementById("luck-timer"),
+  luckTimerFill: document.getElementById("luck-timer-fill"),
+  luckTimerTime: document.getElementById("luck-timer-time")
 };
 
 const SAVE_KEY = "stickmanArchiveSaveV1";
@@ -59,6 +72,24 @@ const TIME_FREEZE_COST = 5000;
 const TIME_FREEZE_MAX = 99;
 const TIME_FREEZE_DURATION_MS = 5000;
 const TIME_FREEZE_SCALE = 0.04; // how much the world slows to while frozen
+const LUCKY_CHARM_COST = 7777;
+const LUCKY_CHARM_MAX = 99;
+const LUCKY_CHARM_DURATION_MS = 3 * 60 * 1000;
+const LUCKY_CHARM_RARE_CUTOFF = 1;    // % rarity — types rarer than this are boosted
+const LUCKY_CHARM_RARE_MULT = 2;      // "2x luck"
+
+// Rainbow Event
+const RAINBOW_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
+const RAINBOW_EVENT_CHANCE = 0.01;    // 1% chance on each roll
+const RAINBOW_DURATION_MS = 3 * 60 * 1000;
+const RAINBOW_RARE_CUTOFF = 1;        // % rarity — types rarer than this are boosted
+const RAINBOW_RARE_MULT = 3;
+
+// Golden Event
+const GOLDEN_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
+const GOLDEN_EVENT_CHANCE = 0.01;    // 1% chance on each roll
+const GOLDEN_DURATION_MS = 3 * 60 * 1000;
+const GOLDEN_MONEY_MULT = 2;         // photos taken during the event pay double
 
 // ------------------------------------------------------------------
 // State
@@ -75,6 +106,7 @@ const state = {
   multiCapture: false, // owns the Multi Capture upgrade
   tripodCount: 0,        // unplaced tripods in inventory
   timeFreezeCount: 0,    // unused Time Freezes in inventory
+  luckyCharmCount: 0,    // unused Lucky Charms in inventory
   spawnCredits: null,      // available spawn "rolls"; regenerates over real time, not on reload
   lastCreditUpdate: 0    // timestamp spawnCredits was last topped up
 };
@@ -90,6 +122,20 @@ const tripodFlashes = [];
 
 // Time Freeze: transient — not saved, it always finishes long before any reload matters
 let timeFreezeUntil = 0;
+
+// Lucky Charm: transient — not saved, it always finishes long before any reload matters
+let luckUntil = 0;
+
+// Rainbow Event: transient — not saved. rainbowUntil is a performance.now() timestamp
+// (0 = inactive). rainbowCheckBlock tracks which 7-minute block of state.playMinutes
+// (persisted) was last rolled, so reloading can't grant extra rolls.
+let rainbowUntil = 0;
+let rainbowCheckBlock = 0;
+
+// Golden Event: transient — not saved. Rolls independently of the Rainbow
+// Event on its own 7-minute blocks, same pattern as above.
+let goldenUntil = 0;
+let goldenCheckBlock = 0;
 
 function loadState() {
   try {
@@ -121,16 +167,22 @@ function saveState(force) {
 // Spawn distribution: exactly each type's listed rarity, except the type
 // currently shown in the bounty frame is 1.5x more likely to spawn.
 // ------------------------------------------------------------------
-let cumWeights = null, cumTotal = 0, weightsBountyId = -1;
+let cumWeights = null, cumTotal = 0, weightsBountyId = -1, weightsRainbowActive = false, weightsLuckActive = false;
 
 function rebuildWeights() {
-  if (cumWeights && weightsBountyId === state.bountyId) return;
+  const rainbowActive = rainbowUntil > performance.now();
+  const luckActive = luckUntil > performance.now();
+  if (cumWeights && weightsBountyId === state.bountyId && weightsRainbowActive === rainbowActive && weightsLuckActive === luckActive) return;
   weightsBountyId = state.bountyId;
+  weightsRainbowActive = rainbowActive;
+  weightsLuckActive = luckActive;
   cumWeights = new Float64Array(TYPES.length);
   let acc = 0;
   for (let i = 0; i < TYPES.length; i++) {
     let w = TYPES[i].r;
     if (state.bountyId === i + 1) w *= 1.5;
+    if (rainbowActive && TYPES[i].r < RAINBOW_RARE_CUTOFF) w *= RAINBOW_RARE_MULT;
+    if (luckActive && TYPES[i].r < LUCKY_CHARM_RARE_CUTOFF) w *= LUCKY_CHARM_RARE_MULT;
     acc += w;
     cumWeights[i] = acc;
   }
@@ -172,9 +224,10 @@ function maxOnScreen() {
 
 const MOVES = ["walk", "walk", "walk", "run", "skip", "hop", "dance"];
 
-// King's-guard knights live outside the population budget: while they're
-// alive the count runs over the cap, and when they leave nothing replaces
-// them — so escorts can never inflate the world population.
+// King's-guard knights (and magician-conjured companions, below) live
+// outside the population budget: while they're alive the count runs over
+// the cap, and when they leave nothing replaces them — so they can never
+// inflate the world population.
 let escortAlive = 0;
 
 function spawn(typeId, onScreen) {
@@ -223,6 +276,13 @@ function spawn(typeId, onScreen) {
       kn.y = inst.y + (k === 1 ? -4 : 4);
       kn.phase = inst.phase + k * 0.4;
     }
+  }
+
+  // Magician's conjuring: 5% of magicians will wave their wand and summon
+  // a random companion once they wander into the middle of the screen.
+  if (id === 45 && Math.random() < 0.05) {
+    inst.willCast = true;
+    inst.castAt = 0.4 + Math.random() * 0.2; // trigger fraction, centered on mid-screen
   }
   return inst;
 }
@@ -463,6 +523,78 @@ function updateKingFlash(dt) {
   kingFlash.style.opacity = String(Math.max(0, a));
 }
 
+// ------------------------------------------------------------------
+// Rainbow Event: every RAINBOW_CHECK_INTERVAL_MIN minutes of play, a
+// RAINBOW_EVENT_CHANCE chance the map starts glowing and rare stickmen get
+// a spawn-weight boost for RAINBOW_DURATION_MS, shown as a bottom timer.
+// ------------------------------------------------------------------
+function startRainbowEvent(now) {
+  rainbowUntil = now + RAINBOW_DURATION_MS;
+  document.body.classList.add("rainbow-event");
+  els.rainbowTimer.classList.remove("hidden");
+}
+
+function endRainbowEvent() {
+  rainbowUntil = 0;
+  document.body.classList.remove("rainbow-event");
+  els.rainbowTimer.classList.add("hidden");
+}
+
+function updateRainbowEvent(now) {
+  const block = Math.floor(state.playMinutes / RAINBOW_CHECK_INTERVAL_MIN);
+  if (block > rainbowCheckBlock) {
+    rainbowCheckBlock = block;
+    if (!rainbowUntil && Math.random() < RAINBOW_EVENT_CHANCE) startRainbowEvent(now);
+  }
+
+  if (rainbowUntil) {
+    const remain = rainbowUntil - now;
+    if (remain <= 0) {
+      endRainbowEvent();
+    } else {
+      els.rainbowTimerFill.style.width = (Math.max(0, Math.min(1, remain / RAINBOW_DURATION_MS)) * 100) + "%";
+      const secs = Math.ceil(remain / 1000);
+      els.rainbowTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+    }
+  }
+}
+
+// ------------------------------------------------------------------
+// Golden Event: every GOLDEN_CHECK_INTERVAL_MIN minutes of play, a
+// GOLDEN_EVENT_CHANCE chance the map turns gold and photos taken during it
+// pay GOLDEN_MONEY_MULT money, shown as a bottom timer.
+// ------------------------------------------------------------------
+function startGoldenEvent(now) {
+  goldenUntil = now + GOLDEN_DURATION_MS;
+  document.body.classList.add("golden-event");
+  els.goldenTimer.classList.remove("hidden");
+}
+
+function endGoldenEvent() {
+  goldenUntil = 0;
+  document.body.classList.remove("golden-event");
+  els.goldenTimer.classList.add("hidden");
+}
+
+function updateGoldenEvent(now) {
+  const block = Math.floor(state.playMinutes / GOLDEN_CHECK_INTERVAL_MIN);
+  if (block > goldenCheckBlock) {
+    goldenCheckBlock = block;
+    if (!goldenUntil && Math.random() < GOLDEN_EVENT_CHANCE) startGoldenEvent(now);
+  }
+
+  if (goldenUntil) {
+    const remain = goldenUntil - now;
+    if (remain <= 0) {
+      endGoldenEvent();
+    } else {
+      els.goldenTimerFill.style.width = (Math.max(0, Math.min(1, remain / GOLDEN_DURATION_MS)) * 100) + "%";
+      const secs = Math.ceil(remain / 1000);
+      els.goldenTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+    }
+  }
+}
+
 let nextTripAt = 25 + Math.random() * 45; // runtime seconds until the next possible trip
 
 function updateWorld(dt, t) {
@@ -539,6 +671,33 @@ function updateWorld(dt, t) {
             });
           }
         }
+      }
+    }
+    if (s.willCast && !s.castDone) { // magician: wait until mid-screen, then wave the wand
+      const frac = s.x / W;
+      if ((s.dir === 1 && frac >= s.castAt) || (s.dir === -1 && frac <= s.castAt)) {
+        s.castDone = true;
+        s.castTimer = 0.5; // brief pause to wave the wand
+      }
+    }
+    if (s.castTimer > 0) {
+      speed = 0;
+      s.castTimer -= dt;
+      if (particles.length < 240) { // sparkle burst while the wand waves
+        particles.push({
+          x: s.x + s.dir * 8, y: s.y - instHeight(s) * 0.6 + (Math.random() - 0.5) * 10,
+          kind: "star", life: 0.4 + Math.random() * 0.3,
+          vx: (Math.random() - 0.5) * 20, vy: -10 - Math.random() * 14,
+          r: 1.5 + Math.random() * 2
+        });
+      }
+      if (s.castTimer <= 0) { // the flash: a random companion appears beside the magician
+        const conjured = spawn(null, true);
+        conjured.x = s.x - s.dir * 18;
+        conjured.y = s.y;
+        conjured.dir = Math.random() < 0.5 ? 1 : -1;
+        conjured.noRefill = true;
+        escortAlive++;
       }
     }
     if (s.escortOf) { // knight guard: hold formation behind the king
@@ -812,6 +971,7 @@ function takePhoto() {
     gained += state.bountyId && s.type.id === state.bountyId ? s.type.value * 20 : s.type.value;
     s.shot = true;
   }
+  if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
   state.money += gained;
 
   let newType = false;
@@ -1003,8 +1163,13 @@ function buildShop() {
   els.buyTimefreeze.textContent = formatMoney(TIME_FREEZE_COST);
   els.buyTimefreeze.disabled = state.money < TIME_FREEZE_COST || state.timeFreezeCount >= TIME_FREEZE_MAX;
 
+  els.luckyCharmOwnedCount.textContent = state.luckyCharmCount;
+  els.buyLuckyCharm.textContent = formatMoney(LUCKY_CHARM_COST);
+  els.buyLuckyCharm.disabled = state.money < LUCKY_CHARM_COST || state.luckyCharmCount >= LUCKY_CHARM_MAX;
+
   updateTripodInvBadge();
   updateTimefreezeInvBadge();
+  updateLuckyCharmInvBadge();
 }
 
 els.buyFasterCam.addEventListener("click", () => {
@@ -1043,6 +1208,15 @@ els.buyTimefreeze.addEventListener("click", () => {
   showToast(`Time Freeze purchased <small>(${state.timeFreezeCount}/${TIME_FREEZE_MAX})</small>`);
 });
 
+els.buyLuckyCharm.addEventListener("click", () => {
+  if (state.money < LUCKY_CHARM_COST || state.luckyCharmCount >= LUCKY_CHARM_MAX) return;
+  state.money -= LUCKY_CHARM_COST;
+  state.luckyCharmCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Lucky Charm purchased <small>(${state.luckyCharmCount}/${LUCKY_CHARM_MAX})</small>`);
+});
+
 // ------------------------------------------------------------------
 // Time Freeze: one-use, slows every stickman on screen to a crawl for 5s.
 // ------------------------------------------------------------------
@@ -1058,6 +1232,37 @@ function useTimeFreeze() {
   timeFreezeUntil = performance.now() + TIME_FREEZE_DURATION_MS;
   updateTimefreezeInvBadge();
   showToast(`<span class="t-bounty">TIME FREEZE!</span> Stickmen slow to a crawl…`);
+}
+
+// ------------------------------------------------------------------
+// Lucky Charm: one-use, doubles the spawn weight of rare stickmen for 3m.
+// ------------------------------------------------------------------
+function updateLuckyCharmInvBadge() {
+  els.luckyCharmInvCount.textContent = state.luckyCharmCount;
+  els.luckyCharmInvBtn.classList.toggle("hidden", state.luckyCharmCount <= 0);
+}
+
+function useLuckyCharm() {
+  if (state.luckyCharmCount <= 0) { showToast("No Lucky Charms left — buy more in the Shop!"); return; }
+  state.luckyCharmCount--;
+  saveDirty = true;
+  luckUntil = performance.now() + LUCKY_CHARM_DURATION_MS;
+  updateLuckyCharmInvBadge();
+  showToast(`<span class="t-bounty">LUCKY CHARM!</span> 2x luck for 3 minutes…`);
+}
+
+function updateLuckTimer(now) {
+  if (!luckUntil) return;
+  const remain = luckUntil - now;
+  if (remain <= 0) {
+    luckUntil = 0;
+    els.luckTimer.classList.add("hidden");
+  } else {
+    els.luckTimer.classList.remove("hidden");
+    els.luckTimerFill.style.width = (Math.max(0, Math.min(1, remain / LUCKY_CHARM_DURATION_MS)) * 100) + "%";
+    const secs = Math.ceil(remain / 1000);
+    els.luckTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  }
 }
 
 // ------------------------------------------------------------------
@@ -1157,7 +1362,8 @@ function tripodCapture(tp, focus) {
 
   const valueType = focus.type;
   const bountyHit = state.bountyId === valueType.id;
-  const gained = bountyHit ? valueType.value * 20 : valueType.value;
+  let gained = bountyHit ? valueType.value * 20 : valueType.value;
+  if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
   state.money += gained;
 
   focus.shot = true;
@@ -1247,6 +1453,7 @@ els.tripodInvBtn.addEventListener("click", () => {
 els.tripodConfirmYes.addEventListener("click", confirmTripod);
 els.tripodConfirmNo.addEventListener("click", cancelTripodMode);
 els.timefreezeInvBtn.addEventListener("click", useTimeFreeze);
+els.luckyCharmInvBtn.addEventListener("click", useLuckyCharm);
 
 document.getElementById("wipe-btn").addEventListener("click", () => {
   if (confirm("Wipe ALL progress?\n\nThis permanently deletes your money and your entire Stickdex. This cannot be undone.")) {
@@ -1272,7 +1479,8 @@ window.__debug = {
   peek: () => ({
     money: state.money, fasterCamera: state.fasterCamera,
     tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
-    tripodMode, tripods: tripods.length, timeFreezeUntil, now: performance.now()
+    luckyCharmCount: state.luckyCharmCount,
+    tripodMode, tripods: tripods.length, timeFreezeUntil, luckUntil, now: performance.now()
   })
 }; // headless inspection hook
 
@@ -1305,6 +1513,9 @@ function frame(now) {
   lastTime = now;
   const t = now / 1000;
   state.playMinutes += dt / 60;
+  updateRainbowEvent(now);
+  updateGoldenEvent(now);
+  updateLuckTimer(now);
 
   const frozen = now < timeFreezeUntil;
   const worldDt = frozen ? dt * TIME_FREEZE_SCALE : dt;
@@ -1335,9 +1546,12 @@ function frame(now) {
 // Boot
 // ------------------------------------------------------------------
 loadState();
+rainbowCheckBlock = Math.floor(state.playMinutes / RAINBOW_CHECK_INTERVAL_MIN); // don't retroactively roll past blocks
+goldenCheckBlock = Math.floor(state.playMinutes / GOLDEN_CHECK_INTERVAL_MIN);   // don't retroactively roll past blocks
 updateMoneyDisplay(false);
 updateTripodInvBadge();
 updateTimefreezeInvBadge();
+updateLuckyCharmInvBadge();
 if (state.bountyId) renderBounty(); else pickBounty();
 
 // initial population spread across the screen — gated by the same spawn

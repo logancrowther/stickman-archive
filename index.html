@@ -8,6 +8,8 @@
 </head>
 <body>
 <canvas id="world"></canvas>
+<div id="rainbow-overlay"></div>
+<div id="golden-overlay"></div>
 
 <!-- HUD -->
 <div id="hud">
@@ -57,8 +59,26 @@
 <!-- Wipe save data -->
 <button id="wipe-btn" title="Delete all progress">Wipe Data</button>
 
-<!-- Deploy version — bump the text on every deploy to confirm freshness -->
-<div id="version-badge" title="Deploy version">v2026-07-22 11:53 UTC</div>
+<!-- Rainbow Event countdown -->
+<div id="rainbow-timer" class="hidden">
+  <span id="rainbow-timer-label">Rainbow Event! Rare stickmen x3</span>
+  <div id="rainbow-timer-bar"><div id="rainbow-timer-fill"></div></div>
+  <span id="rainbow-timer-time">3:00</span>
+</div>
+
+<!-- Golden Event countdown -->
+<div id="golden-timer" class="hidden">
+  <span id="golden-timer-label">Golden Event! Photos pay x2</span>
+  <div id="golden-timer-bar"><div id="golden-timer-fill"></div></div>
+  <span id="golden-timer-time">3:00</span>
+</div>
+
+<!-- Lucky Charm countdown -->
+<div id="luck-timer" class="hidden">
+  <span id="luck-timer-label">Lucky Charm! 2x luck</span>
+  <div id="luck-timer-bar"><div id="luck-timer-fill"></div></div>
+  <span id="luck-timer-time">3:00</span>
+</div>
 
 <!-- Stickdex -->
 <div id="stickdex" class="hidden">
@@ -135,6 +155,23 @@
       </div>
       <button id="buy-timefreeze" class="shop-buy-btn">$5,000</button>
     </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 12c0-3 -3-3 -3-3a3 3 0 1 1 3 3z"/>
+          <path d="M12 12c0-3 3-3 3-3a3 3 0 1 1 -3 3z"/>
+          <path d="M12 12c-3 0-3 3-3 3a3 3 0 1 0 3-3z"/>
+          <path d="M12 12c3 0 3 3 3 3a3 3 0 1 1 -3-3z"/>
+          <path d="M12 12v8"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Lucky Charm</div>
+        <div class="shop-item-desc">One-use. 2x luck for 3 minutes — rare stickmen become much more likely to spawn.</div>
+        <div class="shop-item-owned">Owned: <span id="luckycharm-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-luckycharm" class="shop-buy-btn">$7,777</button>
+    </div>
   </div>
 </div>
 
@@ -153,6 +190,16 @@
       <path d="M12 7v5l4 2"/>
     </svg>
     <span id="timefreeze-inv-count">0</span>
+  </button>
+  <button id="luckycharm-inv-btn" class="inv-btn hidden" title="Use a Lucky Charm" aria-label="Use lucky charm">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 12c0-3 -3-3 -3-3a3 3 0 1 1 3 3z"/>
+      <path d="M12 12c0-3 3-3 3-3a3 3 0 1 1 -3 3z"/>
+      <path d="M12 12c-3 0-3 3-3 3a3 3 0 1 0 3-3z"/>
+      <path d="M12 12c3 0 3 3 3 3a3 3 0 1 1 -3-3z"/>
+      <path d="M12 12v8"/>
+    </svg>
+    <span id="luckycharm-inv-count">0</span>
   </button>
 </div>
 

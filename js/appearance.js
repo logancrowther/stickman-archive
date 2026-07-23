@@ -67,7 +67,8 @@ function getFeatures(id) {
     noFlip: false, photoFrameColor: null, sepia: false,
     // civic/vehicle (425-439) flags
     vehicleBody: null, vehicleOnly: null, rideVehicle: null,
-    holdMachine: false, offAcc: null
+    holdMachine: false, offAcc: null,
+    centaurBody: false
   };
 
   // ---- head shape ----
@@ -373,6 +374,7 @@ const APPEARANCE_OVERRIDES = {
   118: { chest: "swirl", color: "#212121", headFill: "#37474f", eyes: "white" }, // Black Hole
   120: { hat: "horn", wings: "feather", color: "#5c6bc0", headFill: "#f6f6ff",
          tail: true, glow: "#e1bee766", lineW: 2.6 },                    // Pegasus: winged unicorn
+  121: { centaurBody: true },                                             // Centaur: structured horse lower body
   122: { move: "float", tail: true, color: "#00838f", headFill: "#80deea" },     // Merfolk
   125: { multiHead: 3, color: "#2e7d32", headFill: "#a5d6a7" },          // Hydra
   126: { wings: "feather", beak: "#f9a825", ears: "owltuft", lionTail: true,
@@ -4104,6 +4106,78 @@ function drawRoombaOutline(ctx, s, t) {
   ctx.restore();
 }
 
+// Centaur (#121): a full horse body — rounded barrel, four trotting legs
+// with hooves, and a swishing tail — stands in for the human legs; the
+// human torso/arms/head still ride on top of it. Kept pure black-and-white
+// (ignoring any type color) so it reads as a continuation of the stick
+// figure's line art rather than a separate colored creature.
+function drawCentaurBody(ctx, hipY, s, t, ph, stride, lift) {
+  ctx.save();
+  ctx.strokeStyle = "#000000";
+  ctx.fillStyle = "#ffffff";
+  ctx.lineWidth = Math.max(1.4, 1.6 * s);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+
+  // barrel spans from the chest (attached under the human waist) back to
+  // the rump; it hangs mostly below hipY so the human torso still reads as
+  // rising up out of the horse's withers, not out of thin air above it.
+  const cx = -7 * s, cy = hipY + 5.5 * s;
+  const rx = 9.5 * s, ry = 6 * s;
+  const rump = cx - rx, chest = cx + rx, belly = cy + ry;
+
+  // ---- barrel ----
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  // ---- four legs, diagonal trot (front pair near the chest, back pair near the rump) ----
+  const legHipXs = [chest - 2.5 * s, rump + 2.5 * s];
+  for (let pair = 0; pair < 2; pair++) {
+    const legX = legHipXs[pair];
+    const legTopY = cy + ry * 0.75;
+    for (let i = 0; i < 2; i++) {
+      const p = ph + i * Math.PI + pair * Math.PI;
+      const stepX = Math.sin(p) * stride * 0.45;
+      const stepLift = Math.max(0, Math.cos(p)) * lift * 0.5;
+      const fx = legX + stepX, fy = -stepLift;
+      ctx.globalAlpha = i ? 1 : 0.62; // far leg of the pair dimmed, like the human legs
+      ctx.beginPath();
+      ctx.moveTo(legX, legTopY);
+      ctx.quadraticCurveTo(legX + stepX * 0.3, (legTopY + fy) / 2, fx, fy);
+      ctx.stroke();
+      ctx.beginPath(); // hoof
+      ctx.moveTo(fx - 1.1 * s, fy);
+      ctx.lineTo(fx + 1.1 * s, fy);
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // ---- long swishing tail off the rump, kept clear of the hind legs ----
+  const tailX = rump - 0.5 * s, tailY = cy - ry * 0.15;
+  const sway = Math.sin(t * 3) * 1.8 * s;
+  ctx.beginPath();
+  ctx.moveTo(tailX, tailY);
+  ctx.quadraticCurveTo(tailX - 5.5 * s + sway, tailY + 6 * s, tailX - 4 * s + sway, tailY + 13 * s);
+  ctx.quadraticCurveTo(tailX - 3 * s + sway, tailY + 7 * s, tailX - 1 * s + sway, tailY + 3 * s);
+  ctx.quadraticCurveTo(tailX + 1.3 * s, tailY + 5 * s, tailX + 1.4 * s, tailY);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // ---- mane, swept back along the top of the neck/withers ----
+  ctx.lineWidth = Math.max(1.1, 1.2 * s);
+  for (let i = 0; i < 3; i++) {
+    const mx = chest - (2.5 + i * 2.2) * s;
+    const my = cy - ry * (0.95 - i * 0.08);
+    ctx.beginPath();
+    ctx.moveTo(mx, my);
+    ctx.lineTo(mx - 2.6 * s, my - 3 * s);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 // ------------------------------------------------------------------
 // Full-body rendering.
 // inst needs: x, y (feet), dir, phase, f (features), size, move, shot
@@ -4271,6 +4345,7 @@ function drawStickman(ctx, inst, t) {
     }
   }
   if (f.snowman) { legsMode = "none"; armsMode = "out"; }
+  if (f.centaurBody) legsMode = "none";
   if (f.spiderLegs) legsMode = "spider";
   if (f.tentacles) legsMode = "tentacles";
   if (f.branchArms) armsMode = "branches";
@@ -4949,6 +5024,16 @@ function drawStickman(ctx, inst, t) {
     drawOvenBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.vehicleBody === "vacuum") {
     drawVacuumBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.centaurBody) {
+    drawCentaurBody(ctx, hipY, s, t, ph, stride, lift);
+    ctx.beginPath();
+    ctx.moveTo(0, hipY);
+    ctx.quadraticCurveTo((shoX / 2) + lean * 0.55 + 0.6 * s, (hipY + shoY) / 2, shoX, shoY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(shoX, shoY);
+    ctx.lineTo(headCX, headCY + (move === "headspin" ? -headR * 0.9 : headR * 0.9));
+    ctx.stroke();
   } else {
     ctx.beginPath();
     ctx.moveTo(0, hipY);
