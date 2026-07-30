@@ -61,7 +61,7 @@
 
 <!-- Rainbow Event countdown -->
 <div id="rainbow-timer" class="hidden">
-  <span id="rainbow-timer-label">Rainbow Event! Rare stickmen x3</span>
+  <span id="rainbow-timer-label">Rainbow Event! Rare stickmen x5</span>
   <div id="rainbow-timer-bar"><div id="rainbow-timer-fill"></div></div>
   <span id="rainbow-timer-time">3:00</span>
 </div>
@@ -80,12 +80,20 @@
   <span id="luck-timer-time">3:00</span>
 </div>
 
+<!-- Extra Lucky Clover countdown -->
+<div id="clover-timer" class="hidden">
+  <span id="clover-timer-label">Extra Lucky Clover! 3x luck</span>
+  <div id="clover-timer-bar"><div id="clover-timer-fill"></div></div>
+  <span id="clover-timer-time">3:00</span>
+</div>
+
 <!-- Stickdex -->
 <div id="stickdex" class="hidden">
   <div id="dex-header">
     <button id="dex-back" class="icon-btn" title="Back" aria-label="Back">&#8592;</button>
     <h2>Stickdex</h2>
     <div id="dex-money">$0</div>
+    <input id="dex-code" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="code">
     <div id="dex-count">0/???</div>
   </div>
   <div id="dex-grid"></div>
@@ -172,6 +180,23 @@
       </div>
       <button id="buy-luckycharm" class="shop-buy-btn">$7,000</button>
     </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="7.5" r="4.3"/>
+          <circle cx="15" cy="7.5" r="4.3"/>
+          <circle cx="9" cy="14.5" r="4.3"/>
+          <circle cx="15" cy="14.5" r="4.3"/>
+          <path d="M12 15v7"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Extra Lucky Clover</div>
+        <div class="shop-item-desc">One-use. 3x luck for 3 minutes — rare stickmen become extremely likely to spawn.</div>
+        <div class="shop-item-owned">Owned: <span id="extraclover-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-extraclover" class="shop-buy-btn">$15,000</button>
+    </div>
   </div>
 </div>
 
@@ -200,6 +225,16 @@
       <path d="M12 14v8"/>
     </svg>
     <span id="luckycharm-inv-count">0</span>
+  </button>
+  <button id="extraclover-inv-btn" class="inv-btn hidden" title="Use an Extra Lucky Clover" aria-label="Use extra lucky clover">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="7.5" r="4.3"/>
+      <circle cx="15" cy="7.5" r="4.3"/>
+      <circle cx="9" cy="14.5" r="4.3"/>
+      <circle cx="15" cy="14.5" r="4.3"/>
+      <path d="M12 15v7"/>
+    </svg>
+    <span id="extraclover-inv-count">0</span>
   </button>
 </div>
 

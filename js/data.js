@@ -1,12 +1,22 @@
 // Stickman Archive — all 1000 stickman types.
 // NAMES[i] = [name, description]. Rarity (in %) is computed by rarityOf(id):
-// ids 1-150 have explicit values; ids 151+ follow the repeating per-50-block
-// pattern from the master list (with explicit overrides where the list differs).
+// ids 1-150 use the explicit hand-tuned values below (scaled down by
+// RARITY_SCALE); ids 151-999 fall on a single smooth, strictly-decreasing
+// curve between them (see TAIL_START_R / TAIL_END_R) so rarity is guaranteed
+// to only ever go down as id goes up — no id is ever easier to find than a
+// lower one. #1000 (The Archive Itself) is pinned to its original value and
+// is not affected by RARITY_SCALE.
+//
+// The old ids-151+ formula repeated the same "50-block" shape over and over
+// with a magnitude that stopped shrinking after a few blocks, which produced
+// ties and even reversals (e.g. #501 used to spawn *more* often than #500,
+// and #600/#650/.../#950 were all identical). The curve below replaces that
+// entirely.
 
 "use strict";
 
 const RARITY_1_150 = [
-  90, 3, 1, 0.90, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55,
+  70, 2, 1.1225, 0.90, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55,
   0.50, 0.48, 0.46, 0.44, 0.42, 0.40, 0.39, 0.38, 0.37, 0.36,
   0.35, 0.34, 0.33, 0.32, 0.31, 0.30, 0.29, 0.28, 0.27, 0.26,
   0.25, 0.20, 0.19, 0.18, 0.17, 0.16, 0.15, 0.14, 0.13, 0.12,
@@ -23,30 +33,32 @@ const RARITY_1_150 = [
   0.00018, 0.00016, 0.00014, 0.00012, 0.00010, 0.00008, 0.00006, 0.00005, 0.00003, 0.00001
 ];
 
-// The repeating 50-value shape used by blocks of ids 151-200, 201-250, ...
-const SEQ50 = [
-  9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5,
-  4.8, 4.6, 4.4, 4.2, 4, 3.8, 3.6, 3.4, 3.2, 3,
-  2.8, 2.6, 2.4, 2.2, 2, 1.8, 1.6, 1.4, 1.2, 1,
-  0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5,
-  0.45, 0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.08, 0.05, 0.01
-];
-// Later blocks (401+) end ...0.10, 0.05, 0.02, 0.01 instead of ...0.10, 0.08, 0.05, 0.01
-const SEQ50B = SEQ50.slice();
-SEQ50B[47] = 0.05; SEQ50B[48] = 0.02;
+// Uniform reduction applied to every type's chance except #1000, which stays
+// exactly as rare as it has always been.
+const RARITY_SCALE = 0.7;
 
-// Magnitude (multiplier, in %) of each 50-block starting at id 151.
-const BLOCK_MAGS = [1e-6, 1e-12, 1e-12, 1e-15, 1e-18];
-const RARITY_OVERRIDES = { 365: 3.9e-18 }; // Old Man (was duplicate "Rich"): 0.0000000000000000039%
+// #1000, The Archive Itself, untouched by RARITY_SCALE — the one number
+// nothing else is ever allowed to be rarer than.
+const RARITY_1000_FIXED = 1e-23;
+
+// ids 151-999 sit on one continuous geometric curve from TAIL_START_R (just
+// under the scaled #150) down to TAIL_END_R (just above #1000's fixed
+// rarity), so every id in between is strictly rarer than the id before it.
+const TAIL_START_ID = 151;
+const TAIL_END_ID = 999;
+const TAIL_START_R = 0.000009 * RARITY_SCALE;      // just under scaled #150
+const TAIL_END_R = RARITY_1000_FIXED * 50;         // clearly above #1000, never equal to it
 
 function rarityOf(id) {
-  if (RARITY_OVERRIDES[id] !== undefined) return RARITY_OVERRIDES[id];
-  if (id <= 150) return RARITY_1_150[id - 1];
-  const block = Math.floor((id - 151) / 50);
-  const pos = (id - 151) % 50;
-  const mag = block < BLOCK_MAGS.length ? BLOCK_MAGS[block] : 1e-21;
-  const seq = block >= 5 ? SEQ50B : SEQ50;
-  return seq[pos] * mag;
+  if (id === 1000) return RARITY_1000_FIXED;
+  // #1-3 are pinned to exact requested values (not run through RARITY_SCALE):
+  // Circle 70%, Square 2%, Triangle sits at the geometric midpoint between
+  // Square and the (scaled) #4 so the drop-off there is even, rather than
+  // the old near-tie between #3 and #4.
+  if (id <= 3) return RARITY_1_150[id - 1];
+  if (id <= 150) return RARITY_1_150[id - 1] * RARITY_SCALE;
+  const t = (id - TAIL_START_ID) / (TAIL_END_ID - TAIL_START_ID);
+  return TAIL_START_R * Math.pow(TAIL_END_R / TAIL_START_R, t);
 }
 
 // Display a rarity percentage exactly like the master list (no scientific notation).

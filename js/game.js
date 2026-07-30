@@ -21,6 +21,7 @@ const els = {
   stickdex: document.getElementById("stickdex"),
   dexBack: document.getElementById("dex-back"),
   dexMoney: document.getElementById("dex-money"),
+  dexCode: document.getElementById("dex-code"),
   dexCount: document.getElementById("dex-count"),
   dexGrid: document.getElementById("dex-grid"),
   shopBtn: document.getElementById("shop-btn"),
@@ -32,15 +33,19 @@ const els = {
   buyTripod: document.getElementById("buy-tripod"),
   buyTimefreeze: document.getElementById("buy-timefreeze"),
   buyLuckyCharm: document.getElementById("buy-luckycharm"),
+  buyExtraClover: document.getElementById("buy-extraclover"),
   tripodOwnedCount: document.getElementById("tripod-owned-count"),
   timefreezeOwnedCount: document.getElementById("timefreeze-owned-count"),
   luckyCharmOwnedCount: document.getElementById("luckycharm-owned-count"),
+  extraCloverOwnedCount: document.getElementById("extraclover-owned-count"),
   tripodInvBtn: document.getElementById("tripod-inv-btn"),
   tripodInvCount: document.getElementById("tripod-inv-count"),
   timefreezeInvBtn: document.getElementById("timefreeze-inv-btn"),
   timefreezeInvCount: document.getElementById("timefreeze-inv-count"),
   luckyCharmInvBtn: document.getElementById("luckycharm-inv-btn"),
   luckyCharmInvCount: document.getElementById("luckycharm-inv-count"),
+  extraCloverInvBtn: document.getElementById("extraclover-inv-btn"),
+  extraCloverInvCount: document.getElementById("extraclover-inv-count"),
   tripodHint: document.getElementById("tripod-hint"),
   tripodConfirm: document.getElementById("tripod-confirm"),
   tripodConfirmYes: document.getElementById("tripod-confirm-yes"),
@@ -53,7 +58,10 @@ const els = {
   goldenTimerTime: document.getElementById("golden-timer-time"),
   luckTimer: document.getElementById("luck-timer"),
   luckTimerFill: document.getElementById("luck-timer-fill"),
-  luckTimerTime: document.getElementById("luck-timer-time")
+  luckTimerTime: document.getElementById("luck-timer-time"),
+  cloverTimer: document.getElementById("clover-timer"),
+  cloverTimerFill: document.getElementById("clover-timer-fill"),
+  cloverTimerTime: document.getElementById("clover-timer-time")
 };
 
 const SAVE_KEY = "stickmanArchiveSaveV1";
@@ -77,13 +85,17 @@ const LUCKY_CHARM_MAX = 99;
 const LUCKY_CHARM_DURATION_MS = 3 * 60 * 1000;
 const LUCKY_CHARM_RARE_CUTOFF = 1;    // % rarity — types rarer than this are boosted
 const LUCKY_CHARM_RARE_MULT = 2;      // "2x luck"
+const EXTRA_CLOVER_COST = 15000;
+const EXTRA_CLOVER_MAX = 99;
+const EXTRA_CLOVER_DURATION_MS = 3 * 60 * 1000;
+const EXTRA_CLOVER_RARE_MULT = 3;     // "3x luck"
 
 // Rainbow Event
 const RAINBOW_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
 const RAINBOW_EVENT_CHANCE = 0.01;    // 1% chance on each roll
 const RAINBOW_DURATION_MS = 3 * 60 * 1000;
 const RAINBOW_RARE_CUTOFF = 1;        // % rarity — types rarer than this are boosted
-const RAINBOW_RARE_MULT = 3;
+const RAINBOW_RARE_MULT = 5;
 
 // Golden Event
 const GOLDEN_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
@@ -107,6 +119,7 @@ const state = {
   tripodCount: 0,        // unplaced tripods in inventory
   timeFreezeCount: 0,    // unused Time Freezes in inventory
   luckyCharmCount: 0,    // unused Lucky Charms in inventory
+  extraCloverCount: 0,   // unused Extra Lucky Clovers in inventory
   spawnCredits: null,      // available spawn "rolls"; regenerates over real time, not on reload
   lastCreditUpdate: 0    // timestamp spawnCredits was last topped up
 };
@@ -120,11 +133,19 @@ const SPAWN_REGEN_PER_SEC = 6; // refilling an empty screen from scratch takes a
 const tripods = [];
 const tripodFlashes = [];
 
+// Debug spawn queue: typeIds queued here take the place of the next
+// natural refill spawns (see updateWorld) instead of a random roll. Transient,
+// not saved — only reachable via the Stickdex code box (code 9872).
+const spawnQueue = [];
+
 // Time Freeze: transient — not saved, it always finishes long before any reload matters
 let timeFreezeUntil = 0;
 
 // Lucky Charm: transient — not saved, it always finishes long before any reload matters
 let luckUntil = 0;
+
+// Extra Lucky Clover: transient — not saved, it always finishes long before any reload matters
+let cloverUntil = 0;
 
 // Rainbow Event: transient — not saved. rainbowUntil is a performance.now() timestamp
 // (0 = inactive). rainbowCheckBlock tracks which 7-minute block of state.playMinutes
@@ -167,22 +188,25 @@ function saveState(force) {
 // Spawn distribution: exactly each type's listed rarity, except the type
 // currently shown in the bounty frame is 1.5x more likely to spawn.
 // ------------------------------------------------------------------
-let cumWeights = null, cumTotal = 0, weightsBountyId = -1, weightsRainbowActive = false, weightsLuckActive = false;
+let cumWeights = null, cumTotal = 0, weightsBountyId = -1, weightsRainbowActive = false, weightsLuckMult = 1;
 
 function rebuildWeights() {
-  const rainbowActive = rainbowUntil > performance.now();
-  const luckActive = luckUntil > performance.now();
-  if (cumWeights && weightsBountyId === state.bountyId && weightsRainbowActive === rainbowActive && weightsLuckActive === luckActive) return;
+  const now = performance.now();
+  const rainbowActive = rainbowUntil > now;
+  let luckMult = 1;
+  if (luckUntil > now) luckMult *= LUCKY_CHARM_RARE_MULT;
+  if (cloverUntil > now) luckMult *= EXTRA_CLOVER_RARE_MULT;
+  if (cumWeights && weightsBountyId === state.bountyId && weightsRainbowActive === rainbowActive && weightsLuckMult === luckMult) return;
   weightsBountyId = state.bountyId;
   weightsRainbowActive = rainbowActive;
-  weightsLuckActive = luckActive;
+  weightsLuckMult = luckMult;
   cumWeights = new Float64Array(TYPES.length);
   let acc = 0;
   for (let i = 0; i < TYPES.length; i++) {
     let w = TYPES[i].r;
     if (state.bountyId === i + 1) w *= 1.5;
     if (rainbowActive && TYPES[i].r < RAINBOW_RARE_CUTOFF) w *= RAINBOW_RARE_MULT;
-    if (luckActive && TYPES[i].r < LUCKY_CHARM_RARE_CUTOFF) w *= LUCKY_CHARM_RARE_MULT;
+    if (luckMult > 1 && TYPES[i].r < LUCKY_CHARM_RARE_CUTOFF) w *= luckMult;
     acc += w;
     cumWeights[i] = acc;
   }
@@ -606,7 +630,8 @@ function updateWorld(dt, t) {
   state.lastCreditUpdate = Date.now(); // keep in sync with wall clock for the next reload's elapsed-time check
   if (!kingEvent && stickmen.length - escortAlive < max && state.spawnCredits >= 1) {
     state.spawnCredits--;
-    spawn(null, false); // refill one per frame, staggered, budget permitting
+    const queuedId = spawnQueue.length ? spawnQueue.shift() : null;
+    spawn(queuedId, false); // refill one per frame, staggered, budget permitting
   }
 
   // ---- very rarely, a plain Circle trips over another stickman or the ground ----
@@ -786,7 +811,14 @@ function updateWorld(dt, t) {
 // ------------------------------------------------------------------
 // Bounty frame
 // ------------------------------------------------------------------
-function pickBounty() {
+// Picks the new bounty id and commits it to state, but doesn't touch the DOM.
+// Split out from pickBounty() so a successful bounty capture can rotate
+// state.bountyId the instant it's earned — otherwise state.bountyId stayed
+// pointed at the just-captured type for the ~1.6s fly-to-folder animation,
+// and a Faster Camera burst (or any second stickman of that type still in
+// frame) could cash in the x20 bounty payout several more times before the
+// frame visually moved on.
+function rollBounty() {
   const now = Date.now();
   const K = 8 + Math.min(42, Math.floor(state.playMinutes));
   let best = null;
@@ -805,6 +837,10 @@ function pickBounty() {
     if (now - state.frameCooldowns[k] > FRAME_COOLDOWN_MS) delete state.frameCooldowns[k];
   }
   saveDirty = true;
+}
+
+function pickBounty() {
+  rollBounty();
   renderBounty();
 }
 
@@ -971,6 +1007,11 @@ function takePhoto() {
     gained += state.bountyId && s.type.id === state.bountyId ? s.type.value * 20 : s.type.value;
     s.shot = true;
   }
+  // Roll the next bounty target right away so a Faster Camera burst (or a
+  // second instance of this type still in frame) can't cash in x20 more than
+  // once for the same bounty — only the visual refresh waits for the
+  // fly-to-folder animation (see playFrameAnimation).
+  if (bountyHit) rollBounty();
   if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
   state.money += gained;
 
@@ -1033,7 +1074,9 @@ function playFrameAnimation(photoURL, bountyCaptured) {
     setTimeout(() => {
       fly.remove();
       els.frameTick.classList.remove("stamp");
-      if (bountyCaptured || Date.now() - state.bountySetAt > BOUNTY_TIMEOUT_MS) {
+      if (bountyCaptured) {
+        renderBounty(); // rollBounty() already ran immediately in takePhoto() — just catch up the visual
+      } else if (Date.now() - state.bountySetAt > BOUNTY_TIMEOUT_MS) {
         pickBounty();
       } else {
         renderBounty();
@@ -1167,9 +1210,14 @@ function buildShop() {
   els.buyLuckyCharm.textContent = formatMoney(LUCKY_CHARM_COST);
   els.buyLuckyCharm.disabled = state.money < LUCKY_CHARM_COST || state.luckyCharmCount >= LUCKY_CHARM_MAX;
 
+  els.extraCloverOwnedCount.textContent = state.extraCloverCount;
+  els.buyExtraClover.textContent = formatMoney(EXTRA_CLOVER_COST);
+  els.buyExtraClover.disabled = state.money < EXTRA_CLOVER_COST || state.extraCloverCount >= EXTRA_CLOVER_MAX;
+
   updateTripodInvBadge();
   updateTimefreezeInvBadge();
   updateLuckyCharmInvBadge();
+  updateExtraCloverInvBadge();
 }
 
 els.buyFasterCam.addEventListener("click", () => {
@@ -1217,6 +1265,15 @@ els.buyLuckyCharm.addEventListener("click", () => {
   showToast(`Lucky Charm purchased <small>(${state.luckyCharmCount}/${LUCKY_CHARM_MAX})</small>`);
 });
 
+els.buyExtraClover.addEventListener("click", () => {
+  if (state.money < EXTRA_CLOVER_COST || state.extraCloverCount >= EXTRA_CLOVER_MAX) return;
+  state.money -= EXTRA_CLOVER_COST;
+  state.extraCloverCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Extra Lucky Clover purchased <small>(${state.extraCloverCount}/${EXTRA_CLOVER_MAX})</small>`);
+});
+
 // ------------------------------------------------------------------
 // Time Freeze: one-use, slows every stickman on screen to a crawl for 5s.
 // ------------------------------------------------------------------
@@ -1262,6 +1319,37 @@ function updateLuckTimer(now) {
     els.luckTimerFill.style.width = (Math.max(0, Math.min(1, remain / LUCKY_CHARM_DURATION_MS)) * 100) + "%";
     const secs = Math.ceil(remain / 1000);
     els.luckTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  }
+}
+
+// ------------------------------------------------------------------
+// Extra Lucky Clover: one-use, triples the spawn weight of rare stickmen for 3m.
+// ------------------------------------------------------------------
+function updateExtraCloverInvBadge() {
+  els.extraCloverInvCount.textContent = state.extraCloverCount;
+  els.extraCloverInvBtn.classList.toggle("hidden", state.extraCloverCount <= 0);
+}
+
+function useExtraClover() {
+  if (state.extraCloverCount <= 0) { showToast("No Extra Lucky Clovers left — buy more in the Shop!"); return; }
+  state.extraCloverCount--;
+  saveDirty = true;
+  cloverUntil = performance.now() + EXTRA_CLOVER_DURATION_MS;
+  updateExtraCloverInvBadge();
+  showToast(`<span class="t-bounty">EXTRA LUCKY CLOVER!</span> 3x luck for 3 minutes…`);
+}
+
+function updateCloverTimer(now) {
+  if (!cloverUntil) return;
+  const remain = cloverUntil - now;
+  if (remain <= 0) {
+    cloverUntil = 0;
+    els.cloverTimer.classList.add("hidden");
+  } else {
+    els.cloverTimer.classList.remove("hidden");
+    els.cloverTimerFill.style.width = (Math.max(0, Math.min(1, remain / EXTRA_CLOVER_DURATION_MS)) * 100) + "%";
+    const secs = Math.ceil(remain / 1000);
+    els.cloverTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
   }
 }
 
@@ -1454,12 +1542,30 @@ els.tripodConfirmYes.addEventListener("click", confirmTripod);
 els.tripodConfirmNo.addEventListener("click", cancelTripodMode);
 els.timefreezeInvBtn.addEventListener("click", useTimeFreeze);
 els.luckyCharmInvBtn.addEventListener("click", useLuckyCharm);
+els.extraCloverInvBtn.addEventListener("click", useExtraClover);
 
 document.getElementById("wipe-btn").addEventListener("click", () => {
   if (confirm("Wipe ALL progress?\n\nThis permanently deletes your money and your entire Stickdex. This cannot be undone.")) {
     wiping = true;
     localStorage.removeItem(SAVE_KEY);
     location.reload();
+  }
+});
+
+els.dexCode.addEventListener("input", () => {
+  const v = els.dexCode.value.trim();
+  if (v === "3874") {
+    els.dexCode.value = "";
+    wiping = true;
+    localStorage.removeItem(SAVE_KEY);
+    location.reload();
+  } else if (v === "9872") {
+    els.dexCode.value = "";
+    const type = TYPES.find(t => t.id === 242);
+    if (type) {
+      spawnQueue.push(type.id);
+      showToast(`Queued <strong>#${type.id} ${type.name}</strong>`);
+    }
   }
 });
 
@@ -1516,6 +1622,7 @@ function frame(now) {
   updateRainbowEvent(now);
   updateGoldenEvent(now);
   updateLuckTimer(now);
+  updateCloverTimer(now);
 
   const frozen = now < timeFreezeUntil;
   const worldDt = frozen ? dt * TIME_FREEZE_SCALE : dt;
@@ -1552,6 +1659,7 @@ updateMoneyDisplay(false);
 updateTripodInvBadge();
 updateTimefreezeInvBadge();
 updateLuckyCharmInvBadge();
+updateExtraCloverInvBadge();
 if (state.bountyId) renderBounty(); else pickBounty();
 
 // initial population spread across the screen — gated by the same spawn
