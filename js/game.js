@@ -61,7 +61,15 @@ const els = {
   luckTimerTime: document.getElementById("luck-timer-time"),
   cloverTimer: document.getElementById("clover-timer"),
   cloverTimerFill: document.getElementById("clover-timer-fill"),
-  cloverTimerTime: document.getElementById("clover-timer-time")
+  cloverTimerTime: document.getElementById("clover-timer-time"),
+  stampedeTimer: document.getElementById("stampede-timer"),
+  stampedeTimerFill: document.getElementById("stampede-timer-fill"),
+  stampedeTimerTime: document.getElementById("stampede-timer-time"),
+  achievementsBtn: document.getElementById("achievements-btn"),
+  achievements: document.getElementById("achievements"),
+  achievementsBackdrop: document.getElementById("achievements-backdrop"),
+  achBack: document.getElementById("ach-back"),
+  achList: document.getElementById("ach-list")
 };
 
 const SAVE_KEY = "stickmanArchiveSaveV1";
@@ -103,6 +111,12 @@ const GOLDEN_EVENT_CHANCE = 0.01;    // 1% chance on each roll
 const GOLDEN_DURATION_MS = 3 * 60 * 1000;
 const GOLDEN_MONEY_MULT = 2;         // photos taken during the event pay double
 
+// Stampede Event
+const STAMPEDE_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
+const STAMPEDE_EVENT_CHANCE = 0.02;    // 2% chance on each roll
+const STAMPEDE_DURATION_MS = 60 * 1000;
+const STAMPEDE_SPEED_MULT = 3;         // every stickman moves 3x as fast
+
 // ------------------------------------------------------------------
 // State
 // ------------------------------------------------------------------
@@ -121,13 +135,19 @@ const state = {
   luckyCharmCount: 0,    // unused Lucky Charms in inventory
   extraCloverCount: 0,   // unused Extra Lucky Clovers in inventory
   spawnCredits: null,      // available spawn "rolls"; regenerates over real time, not on reload
-  lastCreditUpdate: 0    // timestamp spawnCredits was last topped up
+  lastCreditUpdate: 0,    // timestamp spawnCredits was last topped up
+  achFlags: {             // one-shot flags achievements check against
+    boughtTripod: false, sawRainbow: false, sawGolden: false,
+    caughtTripping: false
+  },
+  achievements: {}        // key -> { seen: bool, claimed: bool }
 };
 
 // Spawns are rate-limited by a persisted, wall-clock-driven credit budget so
 // reloading the page can't grant free extra spawn rolls (and thus faster
 // rare-hunting) beyond what would have naturally trickled in over that time.
 const SPAWN_REGEN_PER_SEC = 6; // refilling an empty screen from scratch takes a few seconds
+const LUCKY_BLOCK_SPAWN_CHANCE = 0.0015; // per natural refill tick, when none is already on screen
 
 // Placed tripods (transient — not saved, they only last about a minute anyway)
 const tripods = [];
@@ -135,8 +155,14 @@ const tripodFlashes = [];
 
 // Debug spawn queue: typeIds queued here take the place of the next
 // natural refill spawns (see updateWorld) instead of a random roll. Transient,
-// not saved — only reachable via the Stickdex code box (code 9872).
+// not saved — reachable via the Stickdex code box (code 8395) and as an
+// achievement reward delivery mechanism (Lucky Block / Titan grants).
 const spawnQueue = [];
+
+// Sentinel typeId (not a real 1-1000 id) meaning "spawn a Lucky Block here
+// instead of a normal type" — recognized by spawn() and the natural refill
+// roll in updateWorld.
+const LUCKY_BLOCK_ID = -1;
 
 // Time Freeze: transient — not saved, it always finishes long before any reload matters
 let timeFreezeUntil = 0;
@@ -157,6 +183,11 @@ let rainbowCheckBlock = 0;
 // Event on its own 7-minute blocks, same pattern as above.
 let goldenUntil = 0;
 let goldenCheckBlock = 0;
+
+// Stampede Event: transient — not saved. Rolls independently of Rainbow/
+// Golden on its own 7-minute blocks, same pattern as above.
+let stampedeUntil = 0;
+let stampedeCheckBlock = 0;
 
 function loadState() {
   try {
@@ -256,6 +287,7 @@ let escortAlive = 0;
 
 function spawn(typeId, onScreen) {
   let id = typeId || sampleTypeId();
+  if (id === LUCKY_BLOCK_ID) return spawnLuckyBlock(onScreen);
   const type = TYPES[id - 1];
   const f = getFeatures(id);
   const dir = Math.random() < 0.5 ? 1 : -1;
@@ -311,6 +343,32 @@ function spawn(typeId, onScreen) {
   return inst;
 }
 
+// Lucky Block: not a real Stickdex type — a synthetic stickman that pays no
+// money and never enters the dex. Photographing it (as the photo's focus)
+// "opens" it into a random real character from #150-250 (see takePhoto).
+function spawnLuckyBlock(onScreen) {
+  const f = Object.assign({}, getFeatures(379), { vehicleBody: "luckyblock", color: "#000000", headFill: "#ffffff" });
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  const size = 0.95 + Math.random() * 0.35;
+  const laneTop = 120, laneBottom = H - 15;
+  const inst = {
+    instId: nextInstId++,
+    type: { id: LUCKY_BLOCK_ID, name: "Lucky Block", desc: "A mysterious block. Photograph it to see what's inside.", r: 0, value: 0 },
+    f,
+    x: onScreen ? Math.random() * W : (dir === 1 ? -50 : W + 50),
+    y: laneTop + Math.random() * Math.max(40, laneBottom - laneTop),
+    dir, size,
+    move: f.move || "walk",
+    phase: Math.random() * Math.PI * 2,
+    baseSpeed: (35 + Math.random() * 45) * f.speed,
+    shot: false,
+    tpTimer: 0, tpAlpha: 1,
+    emitTimer: Math.random() * 0.2
+  };
+  stickmen.push(inst);
+  return inst;
+}
+
 function instHeight(inst) {
   const f = inst.f, s = inst.size * f.size;
   return (14.5 * f.legLen + 12 * f.bodyLen + 11 * f.headScale + 6) * s;
@@ -340,6 +398,7 @@ function emitTrail(inst, dt) {
     p.life = 0.85; p.r = 1.6 + Math.random() * 2.2;
   }
   if (kind === "candy") { p.vx = 0; p.vy = 0; p.life = 1.0; p.hue = Math.random() * 360; }
+  if (kind === "candyfall") { p.y = inst.y - Math.random() * instHeight(inst); p.vx = -inst.dir * 3; p.vy = 26 + Math.random() * 12; p.life = 0.7; p.hue = Math.random() * 360; }
   if (kind === "choco") { p.vx = 0; p.vy = 0; p.life = 1.4; p.r = 3 + Math.random() * 2; }
   if (kind === "cards") { p.vx = 0; p.vy = 0; p.life = 0.9; p.pip = Math.random() < 0.5; }
   if (kind === "domino") { p.vx = 0; p.vy = 0; p.life = 1.3; }
@@ -350,6 +409,22 @@ function emitTrail(inst, dt) {
   if (kind === "clean") { p.vx = 0; p.vy = 0; p.life = 0.5; p.rot = Math.random() * Math.PI; }
   if (kind === "confetti") { p.vx = (Math.random() - 0.5) * 30; p.vy = -20 - Math.random() * 12; p.life = 0.7; p.hue = Math.random() * 360; }
   if (kind === "ink") { p.vx = 0; p.vy = 8 + Math.random() * 6; p.life = 0.9; p.r = 1.5 + Math.random() * 1.8; }
+  if (kind === "sand") { // rains straight down off the whole body
+    p.y = inst.y - Math.random() * instHeight(inst);
+    p.vx = -inst.dir * 3; p.vy = 30 + Math.random() * 14;
+    p.life = 0.55; p.r = 1 + Math.random() * 1.2;
+  }
+  if (kind === "paint") { p.vx = -inst.dir * 4 + (Math.random() - 0.5) * 8; p.vy = 10 + Math.random() * 10; p.life = 1.0; p.r = 2 + Math.random() * 2; p.hue = Math.random() * 360; }
+  if (kind === "smoke") {
+    p.y = inst.y - 4 - Math.random() * instHeight(inst) * 0.5;
+    p.vx = -inst.dir * 3 + (Math.random() - 0.5) * 8;
+    p.vy = -14 - Math.random() * 10;
+    p.life = 1.1; p.r = 2.4 + Math.random() * 2.4;
+  }
+  if (kind === "splash") { p.vx = -inst.dir * 10 + (Math.random() - 0.5) * 20; p.vy = -18 - Math.random() * 10; p.life = 0.5; p.r = 1.4 + Math.random() * 1.4; }
+  if (kind === "ooze") { p.vx = 0; p.vy = 6 + Math.random() * 5; p.life = 1.0; p.r = 1.6 + Math.random() * 1.6; }
+  if (kind === "paintline") { p.vx = 0; p.vy = 0; p.life = 1.4; p.r = 4 + Math.random() * 1; p.hue = Math.random() * 360; }
+  if (kind === "comettail") { p.vx = 0; p.vy = 0; p.life = 1.6; p.r = 2.5 + Math.random() * 1.5; }
   particles.push(p);
 }
 
@@ -384,6 +459,14 @@ function drawParticles(dt, t) {
       case "clean": ctx.strokeStyle = "#fff59d"; break;
       case "confetti": ctx.fillStyle = `hsl(${p.hue}, 85%, 60%)`; break;
       case "ink": ctx.fillStyle = "#0d0d0d"; break;
+      case "sand": ctx.fillStyle = "#d7bd7a"; break;
+      case "paint": ctx.fillStyle = `hsl(${p.hue}, 80%, 55%)`; break;
+      case "smoke": ctx.fillStyle = "#9e9e9e"; break;
+      case "splash": ctx.fillStyle = "#4fc3f7"; break;
+      case "ooze": ctx.fillStyle = "#76ff03"; break;
+      case "candyfall": ctx.fillStyle = `hsl(${p.hue}, 80%, 58%)`; break;
+      case "paintline": ctx.fillStyle = `hsl(${p.hue}, 85%, 55%)`; break;
+      case "comettail": ctx.fillStyle = "#ffb74d"; break;
       default: ctx.fillStyle = "#999";
     }
     if (p.kind === "bubble") {
@@ -396,12 +479,19 @@ function drawParticles(dt, t) {
       ctx.fillRect(p.x - p.r, p.y - 1.6, p.r * 2, 3.2);
       ctx.fillStyle = "#fdd835";
       ctx.fillRect(p.x - p.r * 0.35, p.y - 0.5, p.r * 0.7, 1);
-    } else if (p.kind === "candy") {
+    } else if (p.kind === "candy" || p.kind === "candyfall") {
       ctx.fillRect(p.x - 2, p.y - 1.4, 4, 2.8);
       ctx.beginPath();
       ctx.moveTo(p.x - 2, p.y); ctx.lineTo(p.x - 3.3, p.y - 1); ctx.lineTo(p.x - 3.3, p.y + 1); ctx.closePath();
       ctx.moveTo(p.x + 2, p.y); ctx.lineTo(p.x + 3.3, p.y - 1); ctx.lineTo(p.x + 3.3, p.y + 1); ctx.closePath();
       ctx.fill();
+    } else if (p.kind === "paintline") {
+      ctx.fillRect(p.x - p.r, p.y - 1.4, p.r * 2, 2.8);
+    } else if (p.kind === "comettail") {
+      ctx.save();
+      ctx.shadowColor = "#ffb74d"; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 1.8, p.r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
     } else if (p.kind === "choco") {
       ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 1.6, p.r * 0.6, 0, 0, Math.PI * 2); ctx.fill();
     } else if (p.kind === "cards") {
@@ -442,6 +532,17 @@ function drawParticles(dt, t) {
       ctx.fillRect(-1.6, -1, 3.2, 2);
       ctx.restore();
     } else if (p.kind === "ink") {
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.6, p.r, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "sand") {
+      ctx.fillRect(p.x - p.r * 0.5, p.y - p.r * 0.5, p.r, p.r);
+    } else if (p.kind === "paint") {
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.7, p.r, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "smoke") {
+      ctx.globalAlpha *= 0.45;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "splash") {
+      ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.7, 0, 0, Math.PI * 2); ctx.fill();
+    } else if (p.kind === "ooze") {
       ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 0.6, p.r, 0, 0, Math.PI * 2); ctx.fill();
     } else {
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
@@ -556,6 +657,8 @@ function startRainbowEvent(now) {
   rainbowUntil = now + RAINBOW_DURATION_MS;
   document.body.classList.add("rainbow-event");
   els.rainbowTimer.classList.remove("hidden");
+  state.achFlags.sawRainbow = true; // achievement: "Magical"
+  saveDirty = true;
 }
 
 function endRainbowEvent() {
@@ -592,6 +695,8 @@ function startGoldenEvent(now) {
   goldenUntil = now + GOLDEN_DURATION_MS;
   document.body.classList.add("golden-event");
   els.goldenTimer.classList.remove("hidden");
+  state.achFlags.sawGolden = true; // achievement: "Shiny"
+  saveDirty = true;
 }
 
 function endGoldenEvent() {
@@ -619,6 +724,179 @@ function updateGoldenEvent(now) {
   }
 }
 
+// ------------------------------------------------------------------
+// Stampede Event: every STAMPEDE_CHECK_INTERVAL_MIN minutes of play, a
+// STAMPEDE_EVENT_CHANCE chance every stickman speeds up STAMPEDE_SPEED_MULT
+// for STAMPEDE_DURATION_MS, shown as a bottom timer. Can also be triggered
+// directly as an achievement reward (see claimAchievement).
+// ------------------------------------------------------------------
+function startStampedeEvent(now) {
+  stampedeUntil = now + STAMPEDE_DURATION_MS;
+  document.body.classList.add("stampede-event");
+  els.stampedeTimer.classList.remove("hidden");
+}
+
+function endStampedeEvent() {
+  stampedeUntil = 0;
+  document.body.classList.remove("stampede-event");
+  els.stampedeTimer.classList.add("hidden");
+}
+
+function updateStampedeEvent(now) {
+  const block = Math.floor(state.playMinutes / STAMPEDE_CHECK_INTERVAL_MIN);
+  if (block > stampedeCheckBlock) {
+    stampedeCheckBlock = block;
+    if (!stampedeUntil && Math.random() < STAMPEDE_EVENT_CHANCE) startStampedeEvent(now);
+  }
+
+  if (stampedeUntil) {
+    const remain = stampedeUntil - now;
+    if (remain <= 0) {
+      endStampedeEvent();
+    } else {
+      els.stampedeTimerFill.style.width = (Math.max(0, Math.min(1, remain / STAMPEDE_DURATION_MS)) * 100) + "%";
+      const secs = Math.ceil(remain / 1000);
+      els.stampedeTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+    }
+  }
+}
+
+// ------------------------------------------------------------------
+// Achievements: each has a progress()/target pair (done when progress() >=
+// target), an optional secret flag (name/desc show "???" until done, then
+// reveal), and a reward the player claims via the Achievements panel.
+// ------------------------------------------------------------------
+function maxDexId() {
+  let m = 0;
+  for (const k in state.dex) { const n = +k; if (n > m) m = n; }
+  return m;
+}
+
+const ACHIEVEMENTS = [
+  { key: "start_archive", name: "Starting The Archive", desc: "Collect 10 entries in your Stickdex.",
+    progress: () => Object.keys(state.dex).length, target: 10,
+    reward: { type: "money", amount: 200 } },
+  { key: "cube_chaos", name: "Cube Chaos", desc: "Collect 10 photos of Square.",
+    progress: () => (state.dex[2] ? state.dex[2].c : 0), target: 10,
+    reward: { type: "money", amount: 961 } },
+  { key: "beginning", name: "The Beginning", desc: "Collect 50 entries in your Stickdex.",
+    progress: () => Object.keys(state.dex).length, target: 50,
+    reward: { type: "money", amount: 10000 } },
+  { key: "oops", name: "Oops", desc: "Catch a stickman while it's falling over.",
+    progress: () => (state.achFlags.caughtTripping ? 1 : 0), target: 1,
+    reward: { type: "event", event: "stampede" } },
+  { key: "tripod_first", name: "Tripod!!!", desc: "Buy a tripod for the first time.",
+    progress: () => (state.achFlags.boughtTripod ? 1 : 0), target: 1,
+    reward: { type: "item", item: "tripod", amount: 1 } },
+  { key: "magical", name: "Magical", desc: "Witness the Rainbow Event for the first time.",
+    progress: () => (state.achFlags.sawRainbow ? 1 : 0), target: 1,
+    reward: { type: "item", item: "extraClover", amount: 1 } },
+  { key: "shiny", name: "Shiny", desc: "Witness the Golden Event for the first time.",
+    progress: () => (state.achFlags.sawGolden ? 1 : 0), target: 1,
+    reward: { type: "money", amount: 20000 } },
+  { key: "lucky_200", name: "Lucky", desc: "Obtain a #200 or higher character.",
+    progress: () => (maxDexId() >= 200 ? 1 : 0), target: 1,
+    reward: { type: "spawn", ids: [LUCKY_BLOCK_ID] } },
+  { key: "collector1", name: "Collector 1", desc: "Collect 100 entries in your Stickdex.",
+    progress: () => Object.keys(state.dex).length, target: 100,
+    reward: { type: "money", amount: 30000 } },
+  { key: "best_stick", name: "Best Stick", desc: "Obtain the Moon Walker entry.",
+    progress: () => (state.dex[113] ? 1 : 0), target: 1,
+    reward: { type: "money", amount: 32000 } },
+  { key: "even_luckier", name: "Even Luckier", desc: "Obtain a #250 or higher character.",
+    progress: () => (maxDexId() >= 250 ? 1 : 0), target: 1,
+    reward: { type: "spawn", ids: [LUCKY_BLOCK_ID, LUCKY_BLOCK_ID] } },
+  { key: "wealthy", name: "Wealthy", desc: "Obtain $250,000 or more at once.",
+    progress: () => state.money, target: 250000,
+    reward: { type: "money", amount: 50000 } },
+  { key: "circle_500", name: "???", desc: "???", secret: true,
+    revealName: "Circle Overlord", revealDesc: "Capture Circle 500 times.",
+    progress: () => (state.dex[1] ? state.dex[1].c : 0), target: 500,
+    reward: { type: "spawn", ids: [320] } },
+  { key: "circle_1000", name: "???", desc: "???", secret: true,
+    revealName: "Circle Emperor", revealDesc: "Capture Circle 1000 times.",
+    progress: () => (state.dex[1] ? state.dex[1].c : 0), target: 1000,
+    reward: { type: "spawn", ids: [320, 320] } },
+  { key: "endless", name: "Endless", desc: "???", secret: true,
+    revealDesc: "Collect every entry in the game to receive absolutely nothing but pride.",
+    progress: () => Object.keys(state.dex).length, target: TYPES.length,
+    reward: { type: "none" } }
+];
+
+function achState(key) {
+  if (!state.achievements[key]) state.achievements[key] = { seen: false, claimed: false };
+  return state.achievements[key];
+}
+
+function achDisplay(a) {
+  const done = a.progress() >= a.target;
+  return {
+    done,
+    name: done && a.revealName ? a.revealName : a.name,
+    desc: done && a.revealDesc ? a.revealDesc : a.desc
+  };
+}
+
+function rewardLabel(r) {
+  if (r.type === "money") return formatMoney(r.amount);
+  if (r.type === "item") {
+    const names = { tripod: "Tripod", extraClover: "Extra Lucky Charm" };
+    return `${r.amount}x ${names[r.item] || r.item}`;
+  }
+  if (r.type === "event") return r.event === "stampede" ? "Triggers a Stampede Event" : "Special event";
+  if (r.type === "spawn") {
+    const counts = {};
+    for (const id of r.ids) {
+      const label = id === LUCKY_BLOCK_ID ? "Lucky Block" : (TYPES[id - 1] ? TYPES[id - 1].name : `#${id}`);
+      counts[label] = (counts[label] || 0) + 1;
+    }
+    return Object.entries(counts).map(([name, n]) => `${n}x ${name}`).join(", ");
+  }
+  return "Nothing — just pride";
+}
+
+let achCheckAccum = 0;
+function checkAchievements(dt) {
+  achCheckAccum += dt;
+  if (achCheckAccum < 0.5) return;
+  achCheckAccum = 0;
+  for (const a of ACHIEVEMENTS) {
+    const st = achState(a.key);
+    if (st.seen) continue;
+    if (a.progress() >= a.target) {
+      st.seen = true;
+      saveDirty = true;
+      const disp = achDisplay(a);
+      showToast(`<span class="t-new">Achievement complete: ${disp.name}!</span><br><small>Claim it in the Achievements panel.</small>`);
+    }
+  }
+}
+
+function claimAchievement(key) {
+  const a = ACHIEVEMENTS.find(x => x.key === key);
+  if (!a) return;
+  const st = achState(key);
+  if (a.progress() < a.target || st.claimed) return;
+  const r = a.reward;
+  if (r.type === "money") {
+    state.money += r.amount;
+    updateMoneyDisplay(true);
+  } else if (r.type === "item") {
+    if (r.item === "tripod") state.tripodCount += r.amount;
+    else if (r.item === "extraClover") state.extraCloverCount += r.amount;
+    buildShop();
+  } else if (r.type === "event") {
+    if (r.event === "stampede") startStampedeEvent(performance.now());
+  } else if (r.type === "spawn") {
+    for (const id of r.ids) spawnQueue.push(id);
+  }
+  st.claimed = true;
+  saveDirty = true;
+  const disp = achDisplay(a);
+  showToast(`<span class="t-money">Reward claimed:</span> ${disp.name}`);
+  buildAchievements();
+}
+
 let nextTripAt = 25 + Math.random() * 45; // runtime seconds until the next possible trip
 
 function updateWorld(dt, t) {
@@ -630,8 +908,20 @@ function updateWorld(dt, t) {
   state.lastCreditUpdate = Date.now(); // keep in sync with wall clock for the next reload's elapsed-time check
   if (!kingEvent && stickmen.length - escortAlive < max && state.spawnCredits >= 1) {
     state.spawnCredits--;
-    const queuedId = spawnQueue.length ? spawnQueue.shift() : null;
+    let queuedId = spawnQueue.length ? spawnQueue.shift() : null;
+    if (queuedId === null && !stickmen.some(s => s.type.id === LUCKY_BLOCK_ID) && Math.random() < LUCKY_BLOCK_SPAWN_CHANCE) {
+      queuedId = LUCKY_BLOCK_ID;
+    }
     spawn(queuedId, false); // refill one per frame, staggered, budget permitting
+  }
+
+  // Reality Bender: any nearby stickman flickers with the glitch effect while close by
+  for (const src of stickmen) {
+    if (!src.f.glitchAura) continue;
+    for (const s of stickmen) {
+      if (s === src) continue;
+      if (Math.abs(s.x - src.x) < 70 && Math.abs(s.y - src.y) < 50) s.forceGlitchUntil = t + 0.3;
+    }
   }
 
   // ---- very rarely, a plain Circle trips over another stickman or the ground ----
@@ -998,15 +1288,20 @@ function takePhoto() {
   state.shots++;
 
   const valueType = focus.type;
+  const isLuckyBlockFocus = valueType.id === LUCKY_BLOCK_ID;
+  if (focus.tripping) state.achFlags.caughtTripping = true; // achievement: "Oops"
 
   // Multi Capture: every fresh stickman in frame pays out, not just the
   // focus. Only the focus is ever recorded in the Stickdex either way.
-  const payers = state.multiCapture ? fresh : [focus];
+  // A Lucky Block never pays out, whether it's the focus or just a
+  // background bystander in a Multi Capture photo (see spawnLuckyBlock).
+  const payers = fresh.filter(s => s.type.id !== LUCKY_BLOCK_ID && (state.multiCapture || s === focus));
   let gained = 0;
   for (const s of payers) {
     gained += state.bountyId && s.type.id === state.bountyId ? s.type.value * 20 : s.type.value;
     s.shot = true;
   }
+  focus.shot = true; // always mark the focus photographed, even a Lucky Block
   // Roll the next bounty target right away so a Faster Camera burst (or a
   // second instance of this type still in frame) can't cash in x20 more than
   // once for the same bounty — only the visual refresh waits for the
@@ -1016,32 +1311,50 @@ function takePhoto() {
   state.money += gained;
 
   let newType = false;
-  if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
-  state.dex[valueType.id].c++;
-  makeThumb(photoURL, thumb => {
-    const e = state.dex[valueType.id];
-    if (e && !e.t) e.t = thumb;
-    saveDirty = true;
-  });
+  if (!isLuckyBlockFocus) {
+    if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
+    state.dex[valueType.id].c++;
+    makeThumb(photoURL, thumb => {
+      const e = state.dex[valueType.id];
+      if (e && !e.t) e.t = thumb;
+      saveDirty = true;
+    });
+  }
 
   updateMoneyDisplay(true);
   saveDirty = true;
 
-  const others = captured.length - 1;
-  const paidOthers = payers.length - 1;
-  let othersMsg = "";
-  if (state.multiCapture && paidOthers > 0) {
-    othersMsg = ` <small>+${paidOthers} more counted for money</small>`;
-  } else if (others > 0) {
-    othersMsg = ` <small>+${others} in the background</small>`;
+  let replacement = null;
+  if (isLuckyBlockFocus) {
+    const idx = stickmen.indexOf(focus);
+    if (idx !== -1) stickmen.splice(idx, 1);
+    const replacementId = 150 + ((Math.random() * 101) | 0); // #150-250 inclusive, uniform
+    replacement = spawn(replacementId, true);
+    replacement.x = focus.x; replacement.y = focus.y; replacement.dir = focus.dir;
   }
-  showToast(
-    `<span class="t-money">+${formatMoney(gained)}</span><br>` +
-    (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
-    `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
-    othersMsg +
-    (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
-  );
+
+  if (isLuckyBlockFocus) {
+    showToast(
+      `<span class="t-bounty">LUCKY BLOCK!</span><br>` +
+      `It opens and a wild ${replacement.type.name} appears!`
+    );
+  } else {
+    const others = captured.length - 1;
+    const paidOthers = payers.length - 1;
+    let othersMsg = "";
+    if (state.multiCapture && paidOthers > 0) {
+      othersMsg = ` <small>+${paidOthers} more counted for money</small>`;
+    } else if (others > 0) {
+      othersMsg = ` <small>+${others} in the background</small>`;
+    }
+    showToast(
+      `<span class="t-money">+${formatMoney(gained)}</span><br>` +
+      (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
+      `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
+      othersMsg +
+      (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
+    );
+  }
 
   playFrameAnimation(photoURL, !!bountyHit);
 }
@@ -1113,6 +1426,7 @@ function updateMoneyDisplay(pop) {
 function openDex() {
   if (cameraMode) toggleCamera(false);
   closeShop();
+  closeAchievements();
   cancelTripodMode();
   buildDex();
   els.stickdex.classList.remove("hidden");
@@ -1164,10 +1478,67 @@ function buildDex() {
 }
 
 // ------------------------------------------------------------------
+// Achievements
+// ------------------------------------------------------------------
+function openAchievements() {
+  if (cameraMode) toggleCamera(false);
+  closeDex(); closeShop();
+  cancelTripodMode();
+  buildAchievements();
+  els.achievements.classList.add("open");
+  els.achievementsBackdrop.classList.add("open");
+}
+function closeAchievements() {
+  els.achievements.classList.remove("open");
+  els.achievementsBackdrop.classList.remove("open");
+}
+
+function buildAchievements() {
+  els.achList.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (const a of ACHIEVEMENTS) {
+    const st = achState(a.key);
+    const disp = achDisplay(a);
+    const row = document.createElement("div");
+    row.className = "ach-row" + (disp.done ? " done" : "");
+    const progressText = a.secret && !disp.done ? "???"
+      : a.target > 1 ? `${Math.min(a.progress(), a.target)}/${a.target}` : (disp.done ? "Done" : "Locked");
+    row.innerHTML =
+      `<div class="ach-row-top">` +
+        `<span class="ach-row-name"></span>` +
+        `<span class="ach-row-progress">${progressText}</span>` +
+      `</div>` +
+      `<div class="ach-row-desc"></div>` +
+      `<div class="ach-row-reward">Reward: <span></span></div>`;
+    row.querySelector(".ach-row-name").textContent = disp.name;
+    row.querySelector(".ach-row-desc").textContent = disp.desc;
+    row.querySelector(".ach-row-reward span").textContent = rewardLabel(a.reward);
+    if (disp.done) {
+      if (st.claimed) {
+        const badge = document.createElement("div");
+        badge.className = "ach-claimed-badge";
+        badge.textContent = "✓ Claimed";
+        row.appendChild(badge);
+      } else {
+        const btn = document.createElement("button");
+        btn.className = "ach-claim-btn";
+        btn.textContent = "Claim reward";
+        btn.addEventListener("click", () => claimAchievement(a.key));
+        row.appendChild(btn);
+      }
+    }
+    frag.appendChild(row);
+  }
+  els.achList.appendChild(frag);
+}
+
+// ------------------------------------------------------------------
 // Shop
 // ------------------------------------------------------------------
 function openShop() {
   if (cameraMode) toggleCamera(false);
+  closeDex();
+  closeAchievements();
   cancelTripodMode();
   buildShop();
   els.shop.classList.remove("hidden");
@@ -1242,6 +1613,7 @@ els.buyTripod.addEventListener("click", () => {
   if (state.money < TRIPOD_COST || state.tripodCount >= TRIPOD_MAX) return;
   state.money -= TRIPOD_COST;
   state.tripodCount++;
+  state.achFlags.boughtTripod = true; // achievement: "Tripod!!!"
   saveDirty = true;
   buildShop();
   showToast(`Tripod purchased <small>(${state.tripodCount}/${TRIPOD_MAX})</small>`);
@@ -1271,7 +1643,7 @@ els.buyExtraClover.addEventListener("click", () => {
   state.extraCloverCount++;
   saveDirty = true;
   buildShop();
-  showToast(`Extra Lucky Clover purchased <small>(${state.extraCloverCount}/${EXTRA_CLOVER_MAX})</small>`);
+  showToast(`Extra Lucky Charm purchased <small>(${state.extraCloverCount}/${EXTRA_CLOVER_MAX})</small>`);
 });
 
 // ------------------------------------------------------------------
@@ -1331,12 +1703,12 @@ function updateExtraCloverInvBadge() {
 }
 
 function useExtraClover() {
-  if (state.extraCloverCount <= 0) { showToast("No Extra Lucky Clovers left — buy more in the Shop!"); return; }
+  if (state.extraCloverCount <= 0) { showToast("No Extra Lucky Charms left — buy more in the Shop!"); return; }
   state.extraCloverCount--;
   saveDirty = true;
   cloverUntil = performance.now() + EXTRA_CLOVER_DURATION_MS;
   updateExtraCloverInvBadge();
-  showToast(`<span class="t-bounty">EXTRA LUCKY CLOVER!</span> 3x luck for 3 minutes…`);
+  showToast(`<span class="t-bounty">EXTRA LUCKY CHARM!</span> 3x luck for 3 minutes…`);
 }
 
 function updateCloverTimer(now) {
@@ -1449,31 +1821,51 @@ function tripodCapture(tp, focus) {
   state.shots++;
 
   const valueType = focus.type;
+  const isLuckyBlockFocus = valueType.id === LUCKY_BLOCK_ID;
+  if (focus.tripping) state.achFlags.caughtTripping = true; // achievement: "Oops"
   const bountyHit = state.bountyId === valueType.id;
-  let gained = bountyHit ? valueType.value * 20 : valueType.value;
+  let gained = isLuckyBlockFocus ? 0 : (bountyHit ? valueType.value * 20 : valueType.value);
   if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
   state.money += gained;
 
   focus.shot = true;
   let newType = false;
-  if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
-  state.dex[valueType.id].c++;
-  makeThumb(photoURL, thumb => {
-    const e = state.dex[valueType.id];
-    if (e && !e.t) e.t = thumb;
-    saveDirty = true;
-  });
+  if (!isLuckyBlockFocus) {
+    if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
+    state.dex[valueType.id].c++;
+    makeThumb(photoURL, thumb => {
+      const e = state.dex[valueType.id];
+      if (e && !e.t) e.t = thumb;
+      saveDirty = true;
+    });
+  }
 
   updateMoneyDisplay(true);
   saveDirty = true;
   tripodFlashes.push({ x: tp.x, y: tp.y, t: 0 });
 
-  showToast(
-    `<span class="t-money">+${formatMoney(gained)}</span> <small>(tripod)</small><br>` +
-    (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
-    `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
-    (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
-  );
+  let replacement = null;
+  if (isLuckyBlockFocus) {
+    const idx = stickmen.indexOf(focus);
+    if (idx !== -1) stickmen.splice(idx, 1);
+    const replacementId = 150 + ((Math.random() * 101) | 0); // #150-250 inclusive, uniform
+    replacement = spawn(replacementId, true);
+    replacement.x = focus.x; replacement.y = focus.y; replacement.dir = focus.dir;
+  }
+
+  if (isLuckyBlockFocus) {
+    showToast(
+      `<span class="t-bounty">LUCKY BLOCK!</span> <small>(tripod)</small><br>` +
+      `It opens and a wild ${replacement.type.name} appears!`
+    );
+  } else {
+    showToast(
+      `<span class="t-money">+${formatMoney(gained)}</span> <small>(tripod)</small><br>` +
+      (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
+      `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
+      (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
+    );
+  }
 
   if (bountyHit || Date.now() - state.bountySetAt > BOUNTY_TIMEOUT_MS) pickBounty();
 }
@@ -1534,6 +1926,9 @@ els.folderBtn.addEventListener("click", openDex);
 els.dexBack.addEventListener("click", closeDex);
 els.shopBtn.addEventListener("click", openShop);
 els.shopBack.addEventListener("click", closeShop);
+els.achievementsBtn.addEventListener("click", openAchievements);
+els.achBack.addEventListener("click", closeAchievements);
+els.achievementsBackdrop.addEventListener("click", closeAchievements);
 els.tripodInvBtn.addEventListener("click", () => {
   if (tripodMode) cancelTripodMode();
   else startTripodAiming();
@@ -1559,13 +1954,10 @@ els.dexCode.addEventListener("input", () => {
     wiping = true;
     localStorage.removeItem(SAVE_KEY);
     location.reload();
-  } else if (v === "9872") {
+  } else if (v === "8395") {
     els.dexCode.value = "";
-    const type = TYPES.find(t => t.id === 242);
-    if (type) {
-      spawnQueue.push(type.id);
-      showToast(`Queued <strong>#${type.id} ${type.name}</strong>`);
-    }
+    spawnQueue.push(LUCKY_BLOCK_ID);
+    showToast(`Queued <strong>Lucky Block</strong>`);
   }
 });
 
@@ -1575,13 +1967,14 @@ window.addEventListener("keydown", e => {
     if (tripodMode) cancelTripodMode();
     else if (!els.stickdex.classList.contains("hidden")) closeDex();
     else if (!els.shop.classList.contains("hidden")) closeShop();
+    else if (els.achievements.classList.contains("open")) closeAchievements();
     else if (cameraMode) toggleCamera(false);
   }
   if (e.key === "c" || e.key === "C") toggleCamera();
 });
 
 window.__debug = {
-  stickmen, portals, state, buildShop,
+  stickmen, portals, state, buildShop, spawn, spawnQueue, particles,
   peek: () => ({
     money: state.money, fasterCamera: state.fasterCamera,
     tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
@@ -1621,11 +2014,14 @@ function frame(now) {
   state.playMinutes += dt / 60;
   updateRainbowEvent(now);
   updateGoldenEvent(now);
+  updateStampedeEvent(now);
   updateLuckTimer(now);
   updateCloverTimer(now);
+  checkAchievements(dt);
 
   const frozen = now < timeFreezeUntil;
-  const worldDt = frozen ? dt * TIME_FREEZE_SCALE : dt;
+  const stampeding = now < stampedeUntil;
+  const worldDt = frozen ? dt * TIME_FREEZE_SCALE : stampeding ? dt * STAMPEDE_SPEED_MULT : dt;
   updateWorld(worldDt, t);
   updatePortals(dt);
   updateTripods(dt);

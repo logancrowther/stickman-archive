@@ -112,6 +112,27 @@ body.camera-mode #golden-timer { bottom: 104px; }
 }
 #golden-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
 
+/* ---------- Stampede Event ---------- */
+#stampede-overlay {
+  position: fixed; inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(120deg, #3e2412, #8d4b1f, #c97a2b, #8d4b1f, #3e2412);
+  background-size: 300% 300%;
+  mix-blend-mode: multiply;
+  box-shadow: inset 0 0 130px 40px rgba(140, 70, 20, 0.55);
+  transition: opacity 0.6s ease;
+}
+body.stampede-event #stampede-overlay {
+  opacity: 0.3;
+  animation: stampedeShift 1.2s linear infinite;
+}
+@keyframes stampedeShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+
 /* ---------- Lucky Charm ---------- */
 #luck-timer {
   position: fixed; bottom: 114px; left: 50%;
@@ -162,6 +183,30 @@ body.camera-mode #clover-timer { bottom: 204px; }
 }
 #clover-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
 
+#stampede-timer {
+  position: fixed; bottom: 214px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #ff8a3d;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #stampede-timer { bottom: 254px; }
+#stampede-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#stampede-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #8d4b1f, #c97a2b, #ff8a3d);
+}
+#stampede-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
 .hidden { display: none !important; }
 
 /* ---------- HUD ---------- */
@@ -171,11 +216,17 @@ body.camera-mode #clover-timer { bottom: 204px; }
   pointer-events: none;
   z-index: 10;
 }
+#title-row {
+  display: flex; align-items: center; gap: 6px;
+  pointer-events: auto;
+}
 #hud-left h1 {
   font-size: clamp(18px, 4vw, 28px);
   font-weight: 800;
   letter-spacing: 0.5px;
 }
+#achievements-btn { width: 34px; height: 34px; padding: 2px; }
+#achievements-btn svg { width: 24px; height: 24px; }
 #money {
   margin-top: 2px;
   font-size: clamp(14px, 3vw, 18px);
@@ -329,6 +380,68 @@ body.camera-mode #world { cursor: none; }
 body.camera-mode #wipe-btn { display: none; }
 
 /* ---------- Stickdex ---------- */
+/* ---------- Achievements (left-sliding drawer) ---------- */
+#achievements-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 119;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#achievements-backdrop.open { opacity: 1; pointer-events: auto; }
+
+#achievements {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 340px; max-width: 88vw;
+  background: #fff;
+  border-right: 3px solid #000;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.25);
+  z-index: 120;
+  display: flex; flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+#achievements.open { transform: translateX(0); }
+
+#ach-header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 10px 14px;
+  border-bottom: 3px solid #000;
+  flex-shrink: 0;
+}
+#ach-header h2 { font-size: clamp(18px, 4vw, 24px); font-weight: 800; }
+#ach-list {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 14px;
+}
+.ach-row {
+  padding: 12px 0;
+  border-bottom: 2px solid #eee;
+}
+.ach-row-top {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.ach-row-name { font-weight: 800; font-size: 15px; }
+.ach-row-progress { font-size: 12px; color: #777; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.ach-row-desc { font-size: 12.5px; color: #555; margin-top: 3px; }
+.ach-row-reward { font-size: 11.5px; font-weight: 700; color: #17a832; margin-top: 4px; }
+.ach-row:not(.done) .ach-row-name,
+.ach-row:not(.done) .ach-row-desc { color: #aaa; }
+.ach-row:not(.done) .ach-row-reward { color: #7dbf8d; }
+.ach-claim-btn {
+  margin-top: 8px;
+  background: #000; color: #fff;
+  border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 800;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.ach-claim-btn:active { transform: scale(0.95); }
+.ach-claimed-badge { margin-top: 8px; font-size: 12px; font-weight: 700; color: #17a832; }
+
 #stickdex {
   position: fixed; inset: 0;
   background: #fff;

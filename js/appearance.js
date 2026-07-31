@@ -38,11 +38,12 @@ function getFeatures(id) {
   const f = {
     id, head: "circle", headScale: 1, headFill: "#ffffff",
     color: "#000000", lineW: 2,
-    legLen: 1, armLen: 1, bodyLen: 1, size: 1,
+    legLen: 1, armLen: 1, bodyLen: 1, size: 1, stretchy: false,
+    legColor: null, torsoColor: null,
     alpha: 1, fade: false, glow: null, hueCycle: false, starBody: false,
-    hat: null, wings: null, halo: false, horns: false, ears: null, tail: false,
+    hat: null, hatScale: 1, wings: null, halo: false, horns: false, ears: null, tail: false,
     trail: null, orbit: 0, orbitKind: null, acc: null, back: null, eyes: null,
-    cloak: false, cloakColor: null, cape: false, marks: false, marksColor: "#f4b400",
+    cloak: false, cloakColor: null, cape: false, marks: false, marksColor: "#f4b400", jointMarks: false,
     shell: null, branchArms: false, cactus: false, spiderLegs: false,
     tentacles: false, snowman: false, stripes: null, belly: false,
     beak: null, gloves: null, beard: false, comb: false, ball: null,
@@ -52,7 +53,7 @@ function getFeatures(id) {
     multiHead: 0, bubbleHelm: false, invert: false, headDots: null, stem: false,
     shine: false, shineColor: null,
     mask: false, armor: false, fishTail: false, emblem: null,
-    move: null, speed: 1, glitch: false,
+    move: null, speed: 1, glitch: false, glitchAura: false,
     crest: null, firePlume: false, halfRobot: false, pixelate: false,
     mjGlove: false, mjShoes: false, collar: false, hair: null, fangs: false,
     furry: false, muzzle: null, claws: false, lionTail: false,
@@ -398,25 +399,66 @@ const APPEARANCE_OVERRIDES = {
   147: { chest: "hourglass" },                                           // Hourglass
   149: { fade: false, alpha: 1, dimWalk: true },                         // Dimension Walker: portal hops
   150: { morph: true, glitch: true },                                    // Glitch: flips through models
+  152: { trail: "splash" },                                              // Water: droplets kick up at each footfall
   153: { head: "earth", headFill: "#42a5f5" },                           // Earth head
   154: { alpha: 0.16, fade: false, windLines: true, color: "#78909c", headFill: "#eceff1" }, // Wind
   155: { head: "cloud", headFill: "#78909c", color: "#37474f", lightning: true }, // Storm
   156: { snowman: true, move: "waddle", beak: "#fb8c00", legLen: 0.55, bodyLen: 0.75, color: "#607d8b", headFill: "#fff" }, // Snowman
   157: { icicles: true, shiver: true, trail: "snow" },                   // Frostbite
+  158: { trail: "sand" },                                                // Sand: constantly raining off the body
+  159: { marks: true, shine: true },                                    // Glass: crack lines + a glassy highlight
+  160: { trail: "smoke" },                                               // Smoke: soft expanding puffs
+  161: { trail: "ooze", chest: "warning" },                              // Toxic: dripping green ooze + hazard warning symbol
+  168: { trail: "comettail", glow: "#ffb74d99" },                        // Comet Tail: a long glowing tail streaming behind it
+  162: { head: "radsign" },                                              // Radioactive: radiation trefoil head
   163: { orbit: 3 },                                                     // Magnet
+  166: { glow: "#9c6dff99", orbit: 3, orbitKind: "star", color: "#5e35b1", headFill: "#7c4dff" }, // Lunar: purple glow + drifting stars, keeps its crescent head
   171: { hat: "shako", color: "#2e7d32" },                               // Toy Soldier
   172: { back: "windkey" },                                              // Wind-Up
+  174: { color: "#f5dcd0", headFill: "#fbe8e0", jointMarks: true, eyes: null }, // Doll: porcelain skin + black joint marks + blank stare
   175: { strings: true },                                                // Marionette
+  176: { legColor: "#1565c0", torsoColor: "#43a047", headFill: "#fdd835" }, // LEGO: blue feet, green body, yellow head
+  177: { head: "origami", color: "#c9b896", headFill: "#e8dcc0" },       // Origami: folded-paper kite head
+  178: { vehicleBody: "paper", color: "#9e9e9e", headFill: "#faf6ea" },  // Paper: a sheet with a pencil stickman doodle on it
   179: { head: "square", headFill: "#bcaaa4" },                          // Cardboard
+  180: { stretchy: true, color: "#e64a8a", headFill: "#ff7fb0" },        // Rubber: legs stretch and snap back each stride
+  184: { trail: "candyfall" },                                          // Candy: little candies fall from it as it walks
+  185: { shine: true },                                                  // Chocolate: glossy glaze
+  186: { marks: true, marksColor: "#5d4037" },                           // Cookie: chocolate-chip dots
   187: { color: "#8d6e63", headFill: "#a1887f", marks: true, marksColor: "#fff" }, // Gingerbread
-  189: { ears: "rabbit" },                                               // Easter
+  189: { ears: "rabbit", acc: "basket" },                                // Easter: carries a basket of colorful eggs
   194: { acc: "clover" },                                                // Lucky
   195: { overhead: "orb" },                                              // Fortune
+  196: { trail: "bubble", color: "#7e57c2", headFill: "#b39ddb" },       // Dream: soft purple mist wisps
+  198: { sepia: true, alpha: 0.85 },                                     // Memory: faded old photograph
+  202: { marks: true, shine: true },                                    // Statue: chip/crack lines + marble sheen
+  203: { head: "dinoskull" },                                            // Fossil: preserved dino skull
+  205: { hat: "knight", armor: true, color: "#c9a227", headFill: "#e6c866" }, // Knight Lord: Knight's armor, in gold
+  207: { hat: "wizard", hatScale: 1.9 },                                 // Wizard King: fixes the crown-chain bug, much taller hat
+  209: { offAcc: "flaskRed" },                                          // Potion Master: a second, red potion in the other hand
+  213: { vehicleBody: "treeguardian", armor: true, color: "#33691e", headFill: "#7cb342" }, // Forest Guardian: tree trunk + real plate armor
+  217: { hat: "knight", armor: true, color: "#1a1a1a", headFill: "#0d0d0d" }, // Shadow Knight: real black armor (fixes the smoke-color bug)
   219: { orbit: 3, orbitKind: "note" },                                  // Music
-  220: { chest: "keys" },                                                // Piano
-  222: { acc: "drum" },                                                  // Drummer
+  220: { chest: "keys", acc: null },                                     // Piano: clears the stray "keyboard" briefcase misfire
+  222: { acc: "drum" },                                                  // Drummer: now actively bangs it (see armsMode "drum")
+  223: { acc: "violin" },                                                // Violinist: bowing motion via armsMode "wave"
   224: { orbit: 3, orbitKind: "note", acc: "wand" },                     // Conductor
   226: { ears: "phones" },                                               // DJ
+  227: { marks: true, marksColor: "#e91e63", acc: "brush", trail: "paintline" }, // Painter: paint-splash marks + brush that paints a colored line as it walks
+  228: { acc: "statue", color: "#000000", headFill: "#f5f5f5" },        // Sculptor: holds a tiny statue, clears the stray stone-gray misfire
+  229: { pixelate: true, color: "#e91e63", headFill: "#ffca28" },        // Pixel Artist: blocky 8-bit rendering
+  230: { lineW: 3.4, color: "#000000", headFill: "#ffeb3b" },            // Comic: bold black outlines
+  231: { dash: true },                                                   // Sketch: dashed pencil-sketch outline
+  232: { trail: "ink", color: "#0d0d0d", headFill: "#212121" },          // Ink: glossy black, drips as it goes
+  233: { trail: "paint" },                                               // Paint Spill: colorful paint drips
+  235: { trail: "bubble", color: "#7e57c2", headFill: "#b39ddb" },       // Dream Painter: floating dream bubbles behind it
+  236: { echo: true, shine: true, color: "#607d8b", headFill: "#cfd8dc" }, // Mirror Master: a faint mirrored reflection trails it
+  237: { echo: true },                                                   // Echo: repeats its own movements after a delay
+  239: { move: "walk" },                                                 // Slow Motion: normal walk cycle, just slowed (keeps keyword's low speed)
+  243: { move: "twirl" },                                                // Acrobat: flipping/aerial energy
+  245: { echo: true },                                                   // Shadow Dancer: dances with a delayed shadow copy
+  248: { dimWalk: true },                                                // Portal Walker: opens real portals and steps through them
+  249: { move: "float", glitchAura: true },                              // Reality Bender: floats, glitch effect spreads to nearby stickmen
   270: { headFill: "#fff" },                                             // Chess
   287: { invert: true, move: "float" },                                  // Gravityless
 
@@ -1291,6 +1333,42 @@ function drawHead(ctx, f, cx, cy, r, t) {
       ctx.closePath();
       break;
     }
+    case "origami": // angular folded-paper kite
+      ctx.moveTo(cx, cy - r * 1.2);
+      ctx.lineTo(cx + r * 0.9, cy - r * 0.1);
+      ctx.lineTo(cx, cy + r * 1.1);
+      ctx.lineTo(cx - r * 0.9, cy - r * 0.1);
+      ctx.closePath();
+      break;
+    case "dinoskull": // dome cranium + jagged jaw teeth
+      ctx.moveTo(cx - r * 0.9, cy - r * 0.3);
+      ctx.quadraticCurveTo(cx - r * 1.0, cy - r * 1.1, cx, cy - r * 1.15);
+      ctx.quadraticCurveTo(cx + r * 1.0, cy - r * 1.1, cx + r * 0.9, cy - r * 0.3);
+      ctx.lineTo(cx + r * 1.1, cy + r * 0.15);
+      ctx.lineTo(cx + r * 0.75, cy + r * 0.15);
+      ctx.lineTo(cx + r * 0.6, cy + r * 0.55);
+      ctx.lineTo(cx + r * 0.3, cy + r * 0.15);
+      ctx.lineTo(cx, cy + r * 0.5);
+      ctx.lineTo(cx - r * 0.3, cy + r * 0.15);
+      ctx.lineTo(cx - r * 0.6, cy + r * 0.55);
+      ctx.lineTo(cx - r * 0.75, cy + r * 0.15);
+      ctx.lineTo(cx - r * 1.1, cy + r * 0.15);
+      ctx.closePath();
+      break;
+    case "radsign": { // radiation trefoil: center disk + 3 pie-wedge blades
+      const rr = r * 0.32;
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      for (let k = 0; k < 3; k++) {
+        const ang = -Math.PI / 2 + k * (Math.PI * 2 / 3);
+        const a0 = ang - 0.42, a1 = ang + 0.42;
+        ctx.moveTo(cx + Math.cos(a0) * rr, cy + Math.sin(a0) * rr);
+        ctx.arc(cx, cy, rr, a0, a1);
+        ctx.lineTo(cx + Math.cos(a1) * r, cy + Math.sin(a1) * r);
+        ctx.arc(cx, cy, r, a1, a0, true);
+        ctx.closePath();
+      }
+      break;
+    }
     default: ctx.arc(cx, cy, r, 0, Math.PI * 2);
   }
   ctx.fillStyle = f.head === "pumpkin" ? "#ff8f00"
@@ -1960,6 +2038,17 @@ function drawHead(ctx, f, cx, cy, r, t) {
     }
     ctx.stroke();
     ctx.fillRect(cx - r * 0.55, cy + r * 1.05, r * 1.1, r * 0.14);
+  } else if (f.head === "origami") {
+    // center fold crease
+    ctx.strokeStyle = "rgba(0,0,0,0.35)";
+    ctx.lineWidth = Math.max(0.8, r * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 1.2); ctx.lineTo(cx, cy + r * 1.1);
+    ctx.stroke();
+  } else if (f.head === "dinoskull") {
+    // dark eye socket
+    ctx.fillStyle = "#212121";
+    ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.22, 0, Math.PI * 2); ctx.fill();
   }
   // neck bolts + arcing electricity (Franken)
   if (f.boltEars) {
@@ -2308,12 +2397,14 @@ function drawHat(ctx, f, cx, topY, r) {
       ctx.closePath(); ctx.fill(); ctx.stroke();
       break;
     }
-    case "wizard":
+    case "wizard": {
+      const hs = f.hatScale || 1;
       ctx.beginPath();
-      ctx.moveTo(cx - r * 1.05, topY); ctx.lineTo(cx + r * 1.05, topY); ctx.lineTo(cx + r * 0.1, topY - r * 1.8);
+      ctx.moveTo(cx - r * 1.05, topY); ctx.lineTo(cx + r * 1.05, topY); ctx.lineTo(cx + r * 0.1, topY - r * 1.8 * hs);
       ctx.closePath();
       ctx.fillStyle = "#5e35b1"; ctx.fill(); ctx.stroke();
       break;
+    }
     case "santa":
       ctx.beginPath();
       ctx.moveTo(cx - r * 0.8, topY); ctx.lineTo(cx + r * 0.8, topY); ctx.lineTo(cx + r * 0.9, topY - r * 1.3);
@@ -2710,15 +2801,75 @@ function drawAccessory(ctx, f, hx, hy, s, t) {
       ctx.closePath(); ctx.fill(); ctx.stroke();
       break;
     case "guitar": {
-      ctx.fillStyle = "#8d6e63";
-      ctx.beginPath(); ctx.ellipse(hx + 1 * s, hy + 2 * s, 4.5 * s, 3.4 * s, 0.35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = "#fff";
-      ctx.beginPath(); ctx.arc(hx + 1.5 * s, hy + 1.5 * s, 1.2 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(0.32);
+      // waisted electric-guitar body silhouette (double-bout shape)
+      ctx.fillStyle = "#c62828"; ctx.strokeStyle = "#3e1f14";
+      ctx.lineWidth = Math.max(0.9, f.lineW * s * 0.45);
       ctx.beginPath();
-      ctx.moveTo(hx + 4 * s, hy); ctx.lineTo(hx + 12 * s, hy - 5 * s);
+      ctx.moveTo(-1 * s, -4.5 * s);
+      ctx.quadraticCurveTo(4 * s, -4.5 * s, 4.2 * s, -0.8 * s);
+      ctx.quadraticCurveTo(4.4 * s, 1.4 * s, 2 * s, 2 * s);
+      ctx.quadraticCurveTo(3.4 * s, 3.6 * s, 1.5 * s, 5.2 * s);
+      ctx.quadraticCurveTo(-1 * s, 6.4 * s, -3 * s, 4.6 * s);
+      ctx.quadraticCurveTo(-4.6 * s, 3 * s, -3.4 * s, 1 * s);
+      ctx.quadraticCurveTo(-4.8 * s, -0.4 * s, -3.6 * s, -2.6 * s);
+      ctx.quadraticCurveTo(-3 * s, -4.5 * s, -1 * s, -4.5 * s);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      // pickups + bridge
+      ctx.fillStyle = "#212121";
+      ctx.fillRect(-1.4 * s, -0.6 * s, 2.8 * s, 0.9 * s);
+      ctx.fillRect(-0.7 * s, 1.1 * s, 2.1 * s, 0.8 * s);
+      // neck
+      ctx.strokeStyle = "#3e1f14";
+      ctx.lineWidth = Math.max(1.3, f.lineW * s * 0.7);
+      ctx.beginPath(); ctx.moveTo(-1 * s, -4 * s); ctx.lineTo(-7.5 * s, -11.5 * s); ctx.stroke();
+      // headstock + tuning pegs
+      ctx.fillStyle = "#4e2b1f";
+      ctx.fillRect(-9.4 * s, -13.4 * s, 3.2 * s, 2.6 * s);
+      ctx.fillStyle = "#bdbdbd";
+      for (const py of [-13.1, -12.2, -11.3]) {
+        ctx.beginPath(); ctx.arc(-10 * s, py * s, 0.35 * s, 0, Math.PI * 2); ctx.fill();
+      }
+      // strings
+      ctx.strokeStyle = "#eeeeee";
+      ctx.lineWidth = Math.max(0.35, s * 0.14);
+      ctx.beginPath();
+      ctx.moveTo(-1.3 * s, -4 * s); ctx.lineTo(-7.3 * s, -11.2 * s);
+      ctx.moveTo(-0.7 * s, -3.7 * s); ctx.lineTo(-6.8 * s, -10.9 * s);
       ctx.stroke();
-      ctx.fillStyle = f.color;
-      ctx.fillRect(hx + 11.4 * s, hy - 6.6 * s, 2.2 * s, 2.2 * s);
+      ctx.restore();
+      break;
+    }
+    case "basket": { // wicker basket with colorful eggs inside
+      const bx = hx + 2 * s, by = hy + 3 * s;
+      ctx.fillStyle = "#d7a458"; ctx.strokeStyle = "#8d6e40";
+      ctx.lineWidth = Math.max(0.9, f.lineW * s * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(bx - 3.2 * s, by - 1.5 * s);
+      ctx.lineTo(bx - 2.6 * s, by + 2 * s);
+      ctx.lineTo(bx + 2.6 * s, by + 2 * s);
+      ctx.lineTo(bx + 3.2 * s, by - 1.5 * s);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      // handle
+      ctx.beginPath();
+      ctx.moveTo(bx - 2.6 * s, by - 1.5 * s);
+      ctx.quadraticCurveTo(bx, by - 5.5 * s, bx + 2.6 * s, by - 1.5 * s);
+      ctx.stroke();
+      // weave lines
+      ctx.beginPath();
+      ctx.moveTo(bx - 2.9 * s, by); ctx.lineTo(bx + 2.9 * s, by);
+      ctx.stroke();
+      // colorful eggs peeking over the rim
+      const eggHues = [0, 200, 130];
+      for (let i = 0; i < 3; i++) {
+        const ex = bx - 1.8 * s + i * 1.8 * s;
+        ctx.fillStyle = `hsl(${eggHues[i]}, 70%, 65%)`;
+        ctx.beginPath(); ctx.ellipse(ex, by - 2 * s, 1 * s, 1.35 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
       break;
     }
     case "umbrella": { // open canopy overhead, curved handle in hand
@@ -2886,7 +3037,8 @@ function drawAccessory(ctx, f, hx, hy, s, t) {
       ctx.beginPath(); ctx.ellipse(hx + 7.5 * s, hy + 1.5 * s, 3.6 * s, 1.6 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       break;
     case "flask":
-      ctx.fillStyle = "#76ff03";
+    case "flaskRed":
+      ctx.fillStyle = f.acc === "flaskRed" ? "#e53935" : "#76ff03";
       ctx.beginPath();
       ctx.moveTo(hx - 1 * s, hy - 4 * s); ctx.lineTo(hx - 1 * s, hy - 1 * s);
       ctx.lineTo(hx - 4 * s, hy + 5 * s); ctx.lineTo(hx + 4 * s, hy + 5 * s);
@@ -2950,6 +3102,45 @@ function drawAccessory(ctx, f, hx, hy, s, t) {
       ctx.moveTo(hx + 2 * s, hy + 1 * s); ctx.lineTo(hx - 2 * s, hy - 3 * s);
       ctx.stroke();
       break;
+    case "statue": { // a tiny posed stickman atop a small pedestal
+      const px = hx + 2 * s, py = hy + 3 * s;
+      ctx.fillStyle = "#bdbdbd";
+      ctx.fillRect(px - 2.2 * s, py, 4.4 * s, 1.6 * s);
+      ctx.strokeRect(px - 2.2 * s, py, 4.4 * s, 1.6 * s);
+      ctx.strokeStyle = "#9e9e9e";
+      ctx.lineWidth = Math.max(1, f.lineW * s * 0.45);
+      ctx.fillStyle = "#9e9e9e";
+      const bx = px, by = py;
+      ctx.beginPath(); ctx.arc(bx, by - 5.4 * s, 1 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(bx, by - 4.4 * s); ctx.lineTo(bx, by - 1.6 * s);
+      ctx.moveTo(bx, by - 3.6 * s); ctx.lineTo(bx - 2 * s, by - 5 * s);
+      ctx.moveTo(bx, by - 3.6 * s); ctx.lineTo(bx + 1.6 * s, by - 2.4 * s);
+      ctx.moveTo(bx, by - 1.6 * s); ctx.lineTo(bx - 1.6 * s, by);
+      ctx.moveTo(bx, by - 1.6 * s); ctx.lineTo(bx + 1.8 * s, by - 0.4 * s);
+      ctx.stroke();
+      break;
+    }
+    case "violin": {
+      ctx.save();
+      ctx.translate(hx, hy);
+      ctx.rotate(-0.5);
+      ctx.fillStyle = "#8d5524"; ctx.strokeStyle = "#5d3a1a";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 1.6 * s, 3 * s, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -3 * s); ctx.lineTo(0, -6.5 * s);
+      ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -6.8 * s, 0.6 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = "#3e2723";
+      ctx.lineWidth = Math.max(1, f.lineW * s * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(hx - 3 * s, hy - 4 * s); ctx.lineTo(hx + 3 * s, hy + 2 * s);
+      ctx.stroke();
+      break;
+    }
     case "clockAcc": {
       ctx.fillStyle = "#ffd700";
       ctx.beginPath(); ctx.arc(hx + 2 * s, hy + 2 * s, 4 * s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -3323,6 +3514,23 @@ function drawChestIcon(ctx, f, cxp, cyp, s, t) {
       starPath(ctx, cxp + 1.2 * s, cyp - 1 * s, 1.6 * s);
       ctx.fill();
       ctx.strokeStyle = "#b8860b"; ctx.stroke();
+      ctx.strokeStyle = f.color;
+      break;
+    }
+    case "warning": { // yellow hazard triangle with a "!" pinned on the chest
+      ctx.save();
+      ctx.fillStyle = "#ffd600"; ctx.strokeStyle = "#212121";
+      ctx.lineWidth = Math.max(0.8, f.lineW * s * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(cxp + 1.2 * s, cyp - 2.4 * s);
+      ctx.lineTo(cxp + 3.2 * s, cyp + 1.6 * s);
+      ctx.lineTo(cxp - 0.8 * s, cyp + 1.6 * s);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#212121";
+      ctx.fillRect(cxp + 1.05 * s, cyp - 1.5 * s, 0.3 * s, 1.6 * s);
+      ctx.beginPath(); ctx.arc(cxp + 1.2 * s, cyp + 0.7 * s, 0.25 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
       ctx.strokeStyle = f.color;
       break;
     }
@@ -3980,6 +4188,74 @@ function drawToasterBody(ctx, hipY, topY, s, t) {
   ctx.restore();
 }
 
+// Paper (#178): a flat sheet of paper with a pencil stickman doodle drawn
+// on it; arms and legs poke out normally.
+function drawPaperBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 4 * s;
+  ctx.save();
+  ctx.fillStyle = "#faf6ea"; ctx.strokeStyle = "#bdb49a";
+  ctx.lineWidth = Math.max(1, 1 * s);
+  ctx.lineJoin = "round";
+  const curl = 1.1 * s;
+  ctx.beginPath();
+  ctx.moveTo(-w, top);
+  ctx.lineTo(w, top);
+  ctx.lineTo(w, bottom - curl);
+  ctx.lineTo(w - curl, bottom);
+  ctx.lineTo(-w, bottom);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#e4dcc4";
+  ctx.beginPath();
+  ctx.moveTo(w, bottom - curl); ctx.lineTo(w - curl, bottom); ctx.lineTo(w, bottom); ctx.closePath();
+  ctx.fill();
+  // pencil stickman doodle
+  ctx.strokeStyle = "#616161";
+  ctx.lineWidth = Math.max(0.8, 0.6 * s);
+  const dcx = 0, dcy = top + h * 0.42, dr = h * 0.14;
+  ctx.beginPath(); ctx.arc(dcx, dcy - dr, dr * 0.8, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(dcx, dcy - dr * 0.2); ctx.lineTo(dcx, dcy + dr * 1.6);
+  ctx.moveTo(dcx - dr, dcy + dr * 0.3); ctx.lineTo(dcx + dr, dcy + dr * 0.3);
+  ctx.moveTo(dcx, dcy + dr * 1.6); ctx.lineTo(dcx - dr * 0.8, dcy + dr * 2.6);
+  ctx.moveTo(dcx, dcy + dr * 1.6); ctx.lineTo(dcx + dr * 0.8, dcy + dr * 2.6);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Tree Guardian (#213): a bark-trunk body with leafy branch tufts; f.armor
+// draws real plate armor over it generically (see the armor block below).
+function drawTreeGuardianBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = 3.6 * s;
+  ctx.save();
+  ctx.fillStyle = "#6d4c26"; ctx.strokeStyle = "#3e2b16";
+  ctx.lineWidth = Math.max(1.3, 1.4 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(-w, bottom); ctx.lineTo(-w * 0.85, top);
+  ctx.lineTo(w * 0.85, top); ctx.lineTo(w, bottom);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#4e3319";
+  ctx.lineWidth = Math.max(0.8, 0.6 * s);
+  ctx.beginPath();
+  for (const fx of [-0.4, 0.1, 0.5]) {
+    ctx.moveTo(fx * w, top + h * 0.1);
+    ctx.quadraticCurveTo(fx * w * 1.2, top + h * 0.5, fx * w * 0.8, bottom - h * 0.05);
+  }
+  ctx.stroke();
+  ctx.save();
+  ctx.shadowColor = "#8bc34a"; ctx.shadowBlur = 4 * s;
+  ctx.fillStyle = "#558b2f";
+  for (const [lx, ly, lr] of [[-w * 1.1, top + h * 0.05, 1.4 * s], [w * 1.0, top - h * 0.02, 1.2 * s], [0, top - h * 0.18, 1.5 * s]]) {
+    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+}
+
 // Fridge (#378): a tall white fridge body; arms and legs poke out normally.
 function drawFridgeBody(ctx, hipY, topY, s, t) {
   const bottom = hipY + 0.5 * s, top = topY - 1 * s;
@@ -3993,6 +4269,22 @@ function drawFridgeBody(ctx, hipY, topY, s, t) {
   ctx.fillStyle = "#cfd8dc";
   ctx.fillRect(w * 0.55, top + h * 0.06, w * 0.2, h * 0.2);
   ctx.fillRect(w * 0.55, top + h * 0.42, w * 0.2, h * 0.4);
+  ctx.restore();
+}
+
+// Lucky Block: a black-and-white "?" block; arms and legs poke out normally.
+function drawLuckyBlockBody(ctx, hipY, topY, s, t) {
+  const bottom = hipY + 0.5 * s, top = topY - 1 * s;
+  const h = bottom - top, w = h * 0.5; // roughly square (total width w*2 ~= h)
+  ctx.save();
+  ctx.fillStyle = "#111111"; ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = Math.max(1.6, 1.8 * s);
+  ctx.lineJoin = "round";
+  ctx.beginPath(); ctx.rect(-w, top, w * 2, h); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `bold ${Math.max(6, Math.round(h * 0.75))}px sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("?", 0, top + h * 0.54);
   ctx.restore();
 }
 
@@ -4239,11 +4531,12 @@ function drawStickman(ctx, inst, t) {
   let color = f.color;
   if (f.hueCycle) color = `hsl(${(t * 80 + f.id * 47) % 360}, 85%, 45%)`;
   let jitterRot = 0;
-  if (f.glitch && Math.random() < 0.06) { jitterRot = (Math.random() - 0.5) * 0.4; color = "#e91e63"; }
+  if ((f.glitch || (inst.forceGlitchUntil && inst.forceGlitchUntil > t)) && Math.random() < 0.06) { jitterRot = (Math.random() - 0.5) * 0.4; color = "#e91e63"; }
   if (f.shiver && ((t + f.id * 0.7) % 4.5) < 0.55) jitterRot += Math.sin(t * 55) * 0.03; // cold shudder
 
   const headR = 5.5 * f.headScale * s;
-  const legH = 14.5 * f.legLen * s;
+  const stretchMult = f.stretchy ? 1 + Math.abs(Math.sin(ph)) * 0.18 : 1; // rubbery legs stretch and snap back each stride
+  const legH = 14.5 * f.legLen * stretchMult * s;
   const bodyL = 12 * f.bodyLen * s;
   const armL = 10.5 * f.armLen * s;
   const l1 = legH * 0.55, l2 = legH * 0.55;
@@ -4351,6 +4644,8 @@ function drawStickman(ctx, inst, t) {
   if (f.branchArms) armsMode = "branches";
   if (f.cactus) armsMode = "cactus";
   if (f.holdMachine) armsMode = "machine";
+  if (f.acc === "drum") armsMode = "drum"; // actively bangs the drum in time with its steps
+  if (f.acc === "violin") armsMode = "wave"; // gentle back-and-forth bowing motion
   const spinC = Math.cos(ph * 2.4);
 
   ctx.save();
@@ -4431,6 +4726,7 @@ function drawStickman(ctx, inst, t) {
   }
 
   // ---- legs ----
+  if (f.legColor) ctx.strokeStyle = f.legColor;
   const legPts = [];
   if (legsMode === "walk") {
     for (let i = 0; i < 2; i++) {
@@ -4527,6 +4823,13 @@ function drawStickman(ctx, inst, t) {
       const hx = shoX + (i ? -1 : 1) * armL * 0.55;
       const hy = shoY + (up ? -armL * 0.55 : armL * 0.55);
       armPts.push(ik(shoX, shoY, hx, hy, a1, a2, (i ? -1 : 1) * (up ? -1 : 1)));
+    }
+  } else if (armsMode === "drum") { // alternating overhead-to-downstroke bang, timed to the walk
+    for (let i = 0; i < 2; i++) {
+      const beat = Math.sin(ph * 2 + i * Math.PI);
+      const hx = shoX + (i ? -1 : 1) * armL * 0.35;
+      const hy = shoY + armL * 0.55 - Math.max(0, beat) * armL * 0.35;
+      armPts.push(ik(shoX, shoY, hx, hy, a1, a2, i ? -1 : 1));
     }
   } else if (armsMode === "raised") {
     for (let i = 0; i < 2; i++) {
@@ -4987,6 +5290,8 @@ function drawStickman(ctx, inst, t) {
     ctx.strokeStyle = color;
   }
 
+  if (f.legColor) ctx.strokeStyle = f.torsoColor || color; // restore for torso/arms after the leg-only tint
+
   // ---- body / spine ----
   if (f.snowman) {
     ctx.fillStyle = "#fff";
@@ -5016,12 +5321,18 @@ function drawStickman(ctx, inst, t) {
     drawComputerBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.vehicleBody === "trunk") {
     drawTrunkBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "paper") {
+    drawPaperBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "treeguardian") {
+    drawTreeGuardianBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.vehicleBody === "toaster") {
     drawToasterBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.vehicleBody === "fridge") {
     drawFridgeBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.vehicleBody === "oven") {
     drawOvenBody(ctx, hipY, headCY - headR, s, t);
+  } else if (f.vehicleBody === "luckyblock") {
+    drawLuckyBlockBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.vehicleBody === "vacuum") {
     drawVacuumBody(ctx, hipY, headCY - headR, s, t);
   } else if (f.centaurBody) {
@@ -6001,6 +6312,13 @@ function drawStickman(ctx, inst, t) {
         ctx.fillStyle = "#37474f";
         ctx.beginPath(); ctx.arc(ox, oy, 0.85 * s, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
+      } else if (f.orbitKind === "star") { // tiny twinkling stars drifting around the head
+        ctx.save();
+        ctx.fillStyle = "#fff59d";
+        ctx.globalAlpha *= 0.6 + Math.sin(t * 3 + i * 2) * 0.4;
+        starPath(ctx, ox, oy, 1.3 * s);
+        ctx.fill();
+        ctx.restore();
       } else if (f.orbitKind === "miniobj") { // tiny printed copies of random shapes
         const kind = i % 3;
         ctx.fillStyle = `hsl(${(i * 70 + f.id * 5) % 360}, 55%, 60%)`;
@@ -6175,6 +6493,21 @@ function drawStickman(ctx, inst, t) {
     ctx.font = `700 ${2.6 * s}px sans-serif`;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("COMING SOON", shoX * 0.5, midY2);
+    ctx.restore();
+  }
+
+  if (f.jointMarks) { // small black joint dots: neck, shoulder, hip (Doll) — drawn last so nothing covers them
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#000000";
+    const jr = Math.max(0.9, 0.9 * s);
+    for (const [jx, jy] of [
+      [headCX, headCY + headR * 0.85],
+      [shoX, shoY],
+      [0, hipY]
+    ]) {
+      ctx.beginPath(); ctx.arc(jx, jy, jr, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.restore();
   }
 

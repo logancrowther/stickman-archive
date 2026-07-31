@@ -10,11 +10,21 @@
 <canvas id="world"></canvas>
 <div id="rainbow-overlay"></div>
 <div id="golden-overlay"></div>
+<div id="stampede-overlay"></div>
 
 <!-- HUD -->
 <div id="hud">
   <div id="hud-left">
-    <h1 id="title">Stickman Archive</h1>
+    <div id="title-row">
+      <h1 id="title">Stickman Archive</h1>
+      <button id="achievements-btn" class="icon-btn" title="Achievements" aria-label="Achievements">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 3h6l-1.5 7.5h-3L9 3Z"/>
+          <circle cx="12" cy="15" r="6"/>
+          <path d="M12 12.2 13 15h2.2l-1.8 1.3.7 2.1-1.9-1.3-1.9 1.3.7-2.1L9 15h2.2Z"/>
+        </svg>
+      </button>
+    </div>
     <div id="money" title="Total money">$0</div>
   </div>
   <div id="hud-right">
@@ -80,11 +90,28 @@
   <span id="luck-timer-time">3:00</span>
 </div>
 
-<!-- Extra Lucky Clover countdown -->
+<!-- Extra Lucky Charm countdown -->
 <div id="clover-timer" class="hidden">
-  <span id="clover-timer-label">Extra Lucky Clover! 3x luck</span>
+  <span id="clover-timer-label">Extra Lucky Charm! 3x luck</span>
   <div id="clover-timer-bar"><div id="clover-timer-fill"></div></div>
   <span id="clover-timer-time">3:00</span>
+</div>
+
+<!-- Stampede Event countdown -->
+<div id="stampede-timer" class="hidden">
+  <span id="stampede-timer-label">Stampede Event! Everyone speeds up</span>
+  <div id="stampede-timer-bar"><div id="stampede-timer-fill"></div></div>
+  <span id="stampede-timer-time">1:00</span>
+</div>
+
+<!-- Achievements -->
+<div id="achievements-backdrop"></div>
+<div id="achievements">
+  <div id="ach-header">
+    <button id="ach-back" class="icon-btn" title="Close" aria-label="Close">&#10005;</button>
+    <h2>Achievements</h2>
+  </div>
+  <div id="ach-list"></div>
 </div>
 
 <!-- Stickdex -->
@@ -191,7 +218,7 @@
         </svg>
       </div>
       <div class="shop-item-info">
-        <div class="shop-item-name">Extra Lucky Clover</div>
+        <div class="shop-item-name">Extra Lucky Charm</div>
         <div class="shop-item-desc">One-use. 3x luck for 3 minutes — rare stickmen become extremely likely to spawn.</div>
         <div class="shop-item-owned">Owned: <span id="extraclover-owned-count">0</span> / 99</div>
       </div>
@@ -226,7 +253,7 @@
     </svg>
     <span id="luckycharm-inv-count">0</span>
   </button>
-  <button id="extraclover-inv-btn" class="inv-btn hidden" title="Use an Extra Lucky Clover" aria-label="Use extra lucky clover">
+  <button id="extraclover-inv-btn" class="inv-btn hidden" title="Use an Extra Lucky Charm" aria-label="Use extra lucky charm">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="9" cy="7.5" r="4.3"/>
       <circle cx="15" cy="7.5" r="4.3"/>
