@@ -147,7 +147,7 @@ const state = {
 // reloading the page can't grant free extra spawn rolls (and thus faster
 // rare-hunting) beyond what would have naturally trickled in over that time.
 const SPAWN_REGEN_PER_SEC = 6; // refilling an empty screen from scratch takes a few seconds
-const LUCKY_BLOCK_SPAWN_CHANCE = 0.0015; // per natural refill tick, when none is already on screen
+const LUCKY_BLOCK_SPAWN_CHANCE = 0.0000105; // per natural refill tick, when none is already on screen — matches #110's actual spawn odds (r/100)
 
 // Placed tripods (transient — not saved, they only last about a minute anyway)
 const tripods = [];
