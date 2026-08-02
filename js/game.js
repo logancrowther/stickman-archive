@@ -1893,7 +1893,7 @@ function startPlacing(kind) {
   pendingPlace = null;
   placePreviewX = vfX || W / 2;
   placePreviewY = vfY || H / 2;
-  document.body.classList.add("place-mode");
+  document.body.classList.add("place-mode", "place-aiming");
   info.invBtn().classList.add("active");
   els.placeHint.classList.remove("hidden");
   els.placeHint.textContent = info.aimHint;
@@ -1903,6 +1903,7 @@ function startPlacing(kind) {
 function placePending(x, y) {
   pendingPlace = { x, y };
   placeMode = "pending";
+  document.body.classList.remove("place-aiming"); // show the real cursor again to click confirm/cancel
   els.placeHint.textContent = PLACE_KINDS[placeKind].pendingHint;
   positionPlaceConfirm(x, y);
   els.placeConfirm.classList.remove("hidden");
@@ -1948,7 +1949,7 @@ function exitPlaceMode() {
   placeMode = null;
   placeKind = null;
   pendingPlace = null;
-  document.body.classList.remove("place-mode");
+  document.body.classList.remove("place-mode", "place-aiming");
   els.placeHint.classList.add("hidden");
   els.placeConfirm.classList.add("hidden");
   updateTripodInvBadge();

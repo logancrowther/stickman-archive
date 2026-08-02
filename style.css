@@ -644,7 +644,7 @@ body.camera-mode #wipe-btn { display: none; }
   padding: 0 4px;
 }
 body.camera-mode #inventory-bar, body.place-mode #wipe-btn, body.camera-mode #wipe-btn { display: none; }
-body.place-mode #world { cursor: none; }
+body.place-aiming #world { cursor: none; }
 
 #place-hint {
   position: fixed; bottom: 14px; left: 50%;
