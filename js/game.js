@@ -34,10 +34,14 @@ const els = {
   buyTimefreeze: document.getElementById("buy-timefreeze"),
   buyLuckyCharm: document.getElementById("buy-luckycharm"),
   buyExtraClover: document.getElementById("buy-extraclover"),
+  buyTotem: document.getElementById("buy-totem"),
+  buyEnergyDrink: document.getElementById("buy-energydrink"),
   tripodOwnedCount: document.getElementById("tripod-owned-count"),
   timefreezeOwnedCount: document.getElementById("timefreeze-owned-count"),
   luckyCharmOwnedCount: document.getElementById("luckycharm-owned-count"),
   extraCloverOwnedCount: document.getElementById("extraclover-owned-count"),
+  totemOwnedCount: document.getElementById("totem-owned-count"),
+  energyDrinkOwnedCount: document.getElementById("energydrink-owned-count"),
   tripodInvBtn: document.getElementById("tripod-inv-btn"),
   tripodInvCount: document.getElementById("tripod-inv-count"),
   timefreezeInvBtn: document.getElementById("timefreeze-inv-btn"),
@@ -46,10 +50,14 @@ const els = {
   luckyCharmInvCount: document.getElementById("luckycharm-inv-count"),
   extraCloverInvBtn: document.getElementById("extraclover-inv-btn"),
   extraCloverInvCount: document.getElementById("extraclover-inv-count"),
-  tripodHint: document.getElementById("tripod-hint"),
-  tripodConfirm: document.getElementById("tripod-confirm"),
-  tripodConfirmYes: document.getElementById("tripod-confirm-yes"),
-  tripodConfirmNo: document.getElementById("tripod-confirm-no"),
+  totemInvBtn: document.getElementById("totem-inv-btn"),
+  totemInvCount: document.getElementById("totem-inv-count"),
+  energyDrinkInvBtn: document.getElementById("energydrink-inv-btn"),
+  energyDrinkInvCount: document.getElementById("energydrink-inv-count"),
+  placeHint: document.getElementById("place-hint"),
+  placeConfirm: document.getElementById("place-confirm"),
+  placeConfirmYes: document.getElementById("place-confirm-yes"),
+  placeConfirmNo: document.getElementById("place-confirm-no"),
   rainbowTimer: document.getElementById("rainbow-timer"),
   rainbowTimerFill: document.getElementById("rainbow-timer-fill"),
   rainbowTimerTime: document.getElementById("rainbow-timer-time"),
@@ -65,6 +73,12 @@ const els = {
   stampedeTimer: document.getElementById("stampede-timer"),
   stampedeTimerFill: document.getElementById("stampede-timer-fill"),
   stampedeTimerTime: document.getElementById("stampede-timer-time"),
+  totemTimer: document.getElementById("totem-timer"),
+  totemTimerFill: document.getElementById("totem-timer-fill"),
+  totemTimerTime: document.getElementById("totem-timer-time"),
+  energyDrinkTimer: document.getElementById("energydrink-timer"),
+  energyDrinkTimerFill: document.getElementById("energydrink-timer-fill"),
+  energyDrinkTimerTime: document.getElementById("energydrink-timer-time"),
   achievementsBtn: document.getElementById("achievements-btn"),
   achievements: document.getElementById("achievements"),
   achievementsBackdrop: document.getElementById("achievements-backdrop"),
@@ -99,23 +113,35 @@ const EXTRA_CLOVER_DURATION_MS = 3 * 60 * 1000;
 const EXTRA_CLOVER_RARE_MULT = 3;     // "3x luck"
 
 // Rainbow Event
-const RAINBOW_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
-const RAINBOW_EVENT_CHANCE = 0.01;    // 1% chance on each roll
+const RAINBOW_CHECK_INTERVAL_MIN = 1; // roll once per this many minutes of play
+const RAINBOW_EVENT_CHANCE = 0.0025;  // 0.25% chance on each roll
 const RAINBOW_DURATION_MS = 3 * 60 * 1000;
 const RAINBOW_RARE_CUTOFF = 1;        // % rarity — types rarer than this are boosted
 const RAINBOW_RARE_MULT = 5;
 
 // Golden Event
-const GOLDEN_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
-const GOLDEN_EVENT_CHANCE = 0.01;    // 1% chance on each roll
+const GOLDEN_CHECK_INTERVAL_MIN = 1; // roll once per this many minutes of play
+const GOLDEN_EVENT_CHANCE = 0.0025;  // 0.25% chance on each roll
 const GOLDEN_DURATION_MS = 3 * 60 * 1000;
 const GOLDEN_MONEY_MULT = 2;         // photos taken during the event pay double
 
 // Stampede Event
-const STAMPEDE_CHECK_INTERVAL_MIN = 7; // roll once per this many minutes of play
-const STAMPEDE_EVENT_CHANCE = 0.02;    // 2% chance on each roll
+const STAMPEDE_CHECK_INTERVAL_MIN = 1; // roll once per this many minutes of play
+const STAMPEDE_EVENT_CHANCE = 0.005;   // 0.5% chance on each roll
 const STAMPEDE_DURATION_MS = 60 * 1000;
 const STAMPEDE_SPEED_MULT = 3;         // every stickman moves 3x as fast
+
+// Totem: placed prop that boosts Rainbow/Golden/Stampede odds while active
+const TOTEM_COST = 30000;
+const TOTEM_MAX = 99;
+const TOTEM_DURATION_MS = 10 * 60 * 1000;
+const TOTEM_EVENT_MULT = 3;
+
+// Energy Drink: instant-use, speeds up every stickman on screen for a minute
+const ENERGY_DRINK_COST = 20000;
+const ENERGY_DRINK_MAX = 99;
+const ENERGY_DRINK_DURATION_MS = 60 * 1000;
+const ENERGY_DRINK_SPEED_MULT = 2;
 
 // ------------------------------------------------------------------
 // State
@@ -134,6 +160,8 @@ const state = {
   timeFreezeCount: 0,    // unused Time Freezes in inventory
   luckyCharmCount: 0,    // unused Lucky Charms in inventory
   extraCloverCount: 0,   // unused Extra Lucky Clovers in inventory
+  totemCount: 0,         // unplaced Totems in inventory
+  energyDrinkCount: 0,   // unused Energy Drinks in inventory
   spawnCredits: null,      // available spawn "rolls"; regenerates over real time, not on reload
   lastCreditUpdate: 0,    // timestamp spawnCredits was last topped up
   achFlags: {             // one-shot flags achievements check against
@@ -152,6 +180,11 @@ const LUCKY_BLOCK_SPAWN_CHANCE = 0.0000105; // per natural refill tick, when non
 // Placed tripods (transient — not saved, they only last about a minute anyway)
 const tripods = [];
 const tripodFlashes = [];
+
+// Placed Totem/Lucky Charm/Extra Lucky Charm props (transient — not saved).
+// Unlike tripods these are pure visual anchors for a global buff timer —
+// no per-frame proximity checks.
+const placedProps = [];
 
 // Debug spawn queue: typeIds queued here take the place of the next
 // natural refill spawns (see updateWorld) instead of a random roll. Transient,
@@ -173,19 +206,25 @@ let luckUntil = 0;
 // Extra Lucky Clover: transient — not saved, it always finishes long before any reload matters
 let cloverUntil = 0;
 
+// Totem: transient — not saved. Boosts Rainbow/Golden/Stampede odds while active.
+let totemUntil = 0;
+
+// Energy Drink: transient — not saved, it always finishes long before any reload matters
+let energyDrinkUntil = 0;
+
 // Rainbow Event: transient — not saved. rainbowUntil is a performance.now() timestamp
-// (0 = inactive). rainbowCheckBlock tracks which 7-minute block of state.playMinutes
-// (persisted) was last rolled, so reloading can't grant extra rolls.
+// (0 = inactive). rainbowCheckBlock tracks which check-interval block of
+// state.playMinutes (persisted) was last rolled, so reloading can't grant extra rolls.
 let rainbowUntil = 0;
 let rainbowCheckBlock = 0;
 
 // Golden Event: transient — not saved. Rolls independently of the Rainbow
-// Event on its own 7-minute blocks, same pattern as above.
+// Event on its own check-interval blocks, same pattern as above.
 let goldenUntil = 0;
 let goldenCheckBlock = 0;
 
 // Stampede Event: transient — not saved. Rolls independently of Rainbow/
-// Golden on its own 7-minute blocks, same pattern as above.
+// Golden on its own check-interval blocks, same pattern as above.
 let stampedeUntil = 0;
 let stampedeCheckBlock = 0;
 
@@ -671,7 +710,7 @@ function updateRainbowEvent(now) {
   const block = Math.floor(state.playMinutes / RAINBOW_CHECK_INTERVAL_MIN);
   if (block > rainbowCheckBlock) {
     rainbowCheckBlock = block;
-    if (!rainbowUntil && Math.random() < RAINBOW_EVENT_CHANCE) startRainbowEvent(now);
+    if (!rainbowUntil && Math.random() < RAINBOW_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startRainbowEvent(now);
   }
 
   if (rainbowUntil) {
@@ -709,7 +748,7 @@ function updateGoldenEvent(now) {
   const block = Math.floor(state.playMinutes / GOLDEN_CHECK_INTERVAL_MIN);
   if (block > goldenCheckBlock) {
     goldenCheckBlock = block;
-    if (!goldenUntil && Math.random() < GOLDEN_EVENT_CHANCE) startGoldenEvent(now);
+    if (!goldenUntil && Math.random() < GOLDEN_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startGoldenEvent(now);
   }
 
   if (goldenUntil) {
@@ -746,7 +785,7 @@ function updateStampedeEvent(now) {
   const block = Math.floor(state.playMinutes / STAMPEDE_CHECK_INTERVAL_MIN);
   if (block > stampedeCheckBlock) {
     stampedeCheckBlock = block;
-    if (!stampedeUntil && Math.random() < STAMPEDE_EVENT_CHANCE) startStampedeEvent(now);
+    if (!stampedeUntil && Math.random() < STAMPEDE_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startStampedeEvent(now);
   }
 
   if (stampedeUntil) {
@@ -1427,7 +1466,7 @@ function openDex() {
   if (cameraMode) toggleCamera(false);
   closeShop();
   closeAchievements();
-  cancelTripodMode();
+  cancelPlaceMode();
   buildDex();
   els.stickdex.classList.remove("hidden");
 }
@@ -1483,7 +1522,7 @@ function buildDex() {
 function openAchievements() {
   if (cameraMode) toggleCamera(false);
   closeDex(); closeShop();
-  cancelTripodMode();
+  cancelPlaceMode();
   buildAchievements();
   els.achievements.classList.add("open");
   els.achievementsBackdrop.classList.add("open");
@@ -1539,7 +1578,7 @@ function openShop() {
   if (cameraMode) toggleCamera(false);
   closeDex();
   closeAchievements();
-  cancelTripodMode();
+  cancelPlaceMode();
   buildShop();
   els.shop.classList.remove("hidden");
 }
@@ -1585,10 +1624,20 @@ function buildShop() {
   els.buyExtraClover.textContent = formatMoney(EXTRA_CLOVER_COST);
   els.buyExtraClover.disabled = state.money < EXTRA_CLOVER_COST || state.extraCloverCount >= EXTRA_CLOVER_MAX;
 
+  els.totemOwnedCount.textContent = state.totemCount;
+  els.buyTotem.textContent = formatMoney(TOTEM_COST);
+  els.buyTotem.disabled = state.money < TOTEM_COST || state.totemCount >= TOTEM_MAX;
+
+  els.energyDrinkOwnedCount.textContent = state.energyDrinkCount;
+  els.buyEnergyDrink.textContent = formatMoney(ENERGY_DRINK_COST);
+  els.buyEnergyDrink.disabled = state.money < ENERGY_DRINK_COST || state.energyDrinkCount >= ENERGY_DRINK_MAX;
+
   updateTripodInvBadge();
   updateTimefreezeInvBadge();
   updateLuckyCharmInvBadge();
   updateExtraCloverInvBadge();
+  updateTotemInvBadge();
+  updateEnergyDrinkInvBadge();
 }
 
 els.buyFasterCam.addEventListener("click", () => {
@@ -1646,6 +1695,24 @@ els.buyExtraClover.addEventListener("click", () => {
   showToast(`Extra Lucky Charm purchased <small>(${state.extraCloverCount}/${EXTRA_CLOVER_MAX})</small>`);
 });
 
+els.buyTotem.addEventListener("click", () => {
+  if (state.money < TOTEM_COST || state.totemCount >= TOTEM_MAX) return;
+  state.money -= TOTEM_COST;
+  state.totemCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Totem purchased <small>(${state.totemCount}/${TOTEM_MAX})</small>`);
+});
+
+els.buyEnergyDrink.addEventListener("click", () => {
+  if (state.money < ENERGY_DRINK_COST || state.energyDrinkCount >= ENERGY_DRINK_MAX) return;
+  state.money -= ENERGY_DRINK_COST;
+  state.energyDrinkCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Energy Drink purchased <small>(${state.energyDrinkCount}/${ENERGY_DRINK_MAX})</small>`);
+});
+
 // ------------------------------------------------------------------
 // Time Freeze: one-use, slows every stickman on screen to a crawl for 5s.
 // ------------------------------------------------------------------
@@ -1664,20 +1731,12 @@ function useTimeFreeze() {
 }
 
 // ------------------------------------------------------------------
-// Lucky Charm: one-use, doubles the spawn weight of rare stickmen for 3m.
+// Lucky Charm: place one down to double the spawn weight of rare
+// stickmen for 3m (see startPlacing/confirmPlace).
 // ------------------------------------------------------------------
 function updateLuckyCharmInvBadge() {
   els.luckyCharmInvCount.textContent = state.luckyCharmCount;
-  els.luckyCharmInvBtn.classList.toggle("hidden", state.luckyCharmCount <= 0);
-}
-
-function useLuckyCharm() {
-  if (state.luckyCharmCount <= 0) { showToast("No Lucky Charms left — buy more in the Shop!"); return; }
-  state.luckyCharmCount--;
-  saveDirty = true;
-  luckUntil = performance.now() + LUCKY_CHARM_DURATION_MS;
-  updateLuckyCharmInvBadge();
-  showToast(`<span class="t-bounty">LUCKY CHARM!</span> 2x luck for 3 minutes…`);
+  els.luckyCharmInvBtn.classList.toggle("hidden", state.luckyCharmCount <= 0 && !(placeMode && placeKind === "luck"));
 }
 
 function updateLuckTimer(now) {
@@ -1695,20 +1754,12 @@ function updateLuckTimer(now) {
 }
 
 // ------------------------------------------------------------------
-// Extra Lucky Clover: one-use, triples the spawn weight of rare stickmen for 3m.
+// Extra Lucky Charm: place one down to triple the spawn weight of rare
+// stickmen for 3m (see startPlacing/confirmPlace).
 // ------------------------------------------------------------------
 function updateExtraCloverInvBadge() {
   els.extraCloverInvCount.textContent = state.extraCloverCount;
-  els.extraCloverInvBtn.classList.toggle("hidden", state.extraCloverCount <= 0);
-}
-
-function useExtraClover() {
-  if (state.extraCloverCount <= 0) { showToast("No Extra Lucky Charms left — buy more in the Shop!"); return; }
-  state.extraCloverCount--;
-  saveDirty = true;
-  cloverUntil = performance.now() + EXTRA_CLOVER_DURATION_MS;
-  updateExtraCloverInvBadge();
-  showToast(`<span class="t-bounty">EXTRA LUCKY CHARM!</span> 3x luck for 3 minutes…`);
+  els.extraCloverInvBtn.classList.toggle("hidden", state.extraCloverCount <= 0 && !(placeMode && placeKind === "clover"));
 }
 
 function updateCloverTimer(now) {
@@ -1726,71 +1777,184 @@ function updateCloverTimer(now) {
 }
 
 // ------------------------------------------------------------------
-// Tripods: buy up to 99, place one down and it auto-photographs any
-// stickman that wanders into range for about a minute, then it's gone.
+// Totem: place one down to boost Rainbow/Golden/Stampede odds 3x for 10m.
 // ------------------------------------------------------------------
-let tripodMode = null; // null | "aiming" | "pending"
-let tripodPreviewX = 0, tripodPreviewY = 0;
-let pendingTripod = null; // { x, y } once a spot has been tapped/clicked
+function updateTotemInvBadge() {
+  els.totemInvCount.textContent = state.totemCount;
+  els.totemInvBtn.classList.toggle("hidden", state.totemCount <= 0 && !(placeMode && placeKind === "totem"));
+}
+
+function updateTotemTimer(now) {
+  if (!totemUntil) return;
+  const remain = totemUntil - now;
+  if (remain <= 0) {
+    totemUntil = 0;
+    els.totemTimer.classList.add("hidden");
+  } else {
+    els.totemTimer.classList.remove("hidden");
+    els.totemTimerFill.style.width = (Math.max(0, Math.min(1, remain / TOTEM_DURATION_MS)) * 100) + "%";
+    const secs = Math.ceil(remain / 1000);
+    els.totemTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  }
+}
+
+// ------------------------------------------------------------------
+// Energy Drink: one-use, speeds up every stickman on screen for a minute.
+// ------------------------------------------------------------------
+function updateEnergyDrinkInvBadge() {
+  els.energyDrinkInvCount.textContent = state.energyDrinkCount;
+  els.energyDrinkInvBtn.classList.toggle("hidden", state.energyDrinkCount <= 0);
+}
+
+function useEnergyDrink() {
+  if (state.energyDrinkCount <= 0) { showToast("No Energy Drinks left — buy more in the Shop!"); return; }
+  state.energyDrinkCount--;
+  saveDirty = true;
+  energyDrinkUntil = performance.now() + ENERGY_DRINK_DURATION_MS;
+  updateEnergyDrinkInvBadge();
+  showToast(`<span class="t-bounty">ENERGY DRINK!</span> Everyone speeds up for a minute…`);
+}
+
+function updateEnergyDrinkTimer(now) {
+  if (!energyDrinkUntil) return;
+  const remain = energyDrinkUntil - now;
+  if (remain <= 0) {
+    energyDrinkUntil = 0;
+    els.energyDrinkTimer.classList.add("hidden");
+  } else {
+    els.energyDrinkTimer.classList.remove("hidden");
+    els.energyDrinkTimerFill.style.width = (Math.max(0, Math.min(1, remain / ENERGY_DRINK_DURATION_MS)) * 100) + "%";
+    const secs = Math.ceil(remain / 1000);
+    els.energyDrinkTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  }
+}
+
+// ------------------------------------------------------------------
+// Placeable items: Tripods (buy up to 99, place one down and it
+// auto-photographs anything that wanders into range for about a minute),
+// Totem (boosts event odds while placed), Lucky Charm / Extra Lucky
+// Charm (place one to start their luck buff). All four share the same
+// aim/place/confirm UI flow; only what happens on confirm differs.
+// ------------------------------------------------------------------
+let placeMode = null; // null | "aiming" | "pending"
+let placeKind = null; // "tripod" | "totem" | "luck" | "clover"
+let placePreviewX = 0, placePreviewY = 0;
+let pendingPlace = null; // { x, y } once a spot has been tapped/clicked
+
+const PLACE_KINDS = {
+  tripod: {
+    countOf: () => state.tripodCount,
+    emptyMsg: "No tripods left — buy more in the Shop!",
+    aimHint: "Tap / click to set the tripod down · ESC to cancel",
+    pendingHint: "Confirm the tripod's spot",
+    invBtn: () => els.tripodInvBtn
+  },
+  totem: {
+    countOf: () => state.totemCount,
+    emptyMsg: "No totems left — buy more in the Shop!",
+    aimHint: "Tap / click to set the totem down · ESC to cancel",
+    pendingHint: "Confirm the totem's spot",
+    invBtn: () => els.totemInvBtn
+  },
+  luck: {
+    countOf: () => state.luckyCharmCount,
+    emptyMsg: "No Lucky Charms left — buy more in the Shop!",
+    aimHint: "Tap / click to set the charm down · ESC to cancel",
+    pendingHint: "Confirm the charm's spot",
+    invBtn: () => els.luckyCharmInvBtn
+  },
+  clover: {
+    countOf: () => state.extraCloverCount,
+    emptyMsg: "No Extra Lucky Charms left — buy more in the Shop!",
+    aimHint: "Tap / click to set the charm down · ESC to cancel",
+    pendingHint: "Confirm the charm's spot",
+    invBtn: () => els.extraCloverInvBtn
+  }
+};
 
 function updateTripodInvBadge() {
   els.tripodInvCount.textContent = state.tripodCount;
-  els.tripodInvBtn.classList.toggle("hidden", state.tripodCount <= 0 && !tripodMode);
+  els.tripodInvBtn.classList.toggle("hidden", state.tripodCount <= 0 && !(placeMode && placeKind === "tripod"));
 }
 
-function positionTripodConfirm(x, y) {
-  els.tripodConfirm.style.left = x + "px";
-  els.tripodConfirm.style.top = (y - TRIPOD_RANGE - 14) + "px";
+function positionPlaceConfirm(x, y) {
+  const offsetY = placeKind === "tripod" ? TRIPOD_RANGE : 30;
+  els.placeConfirm.style.left = x + "px";
+  els.placeConfirm.style.top = (y - offsetY - 14) + "px";
 }
 
-function startTripodAiming() {
-  if (state.tripodCount <= 0) { showToast("No tripods left — buy more in the Shop!"); return; }
+function startPlacing(kind) {
+  const info = PLACE_KINDS[kind];
+  if (info.countOf() <= 0) { showToast(info.emptyMsg); return; }
   if (cameraMode) toggleCamera(false);
-  closeDex(); closeShop();
-  tripodMode = "aiming";
-  pendingTripod = null;
-  tripodPreviewX = vfX || W / 2;
-  tripodPreviewY = vfY || H / 2;
-  document.body.classList.add("tripod-mode");
-  els.tripodInvBtn.classList.add("active");
-  els.tripodHint.classList.remove("hidden");
-  els.tripodHint.textContent = "Tap / click to set the tripod down · ESC to cancel";
-  els.tripodConfirm.classList.add("hidden");
+  closeDex(); closeShop(); closeAchievements();
+  placeMode = "aiming";
+  placeKind = kind;
+  pendingPlace = null;
+  placePreviewX = vfX || W / 2;
+  placePreviewY = vfY || H / 2;
+  document.body.classList.add("place-mode");
+  info.invBtn().classList.add("active");
+  els.placeHint.classList.remove("hidden");
+  els.placeHint.textContent = info.aimHint;
+  els.placeConfirm.classList.add("hidden");
 }
 
-function placePendingTripod(x, y) {
-  pendingTripod = { x, y };
-  tripodMode = "pending";
-  els.tripodHint.textContent = "Confirm the tripod's spot";
-  positionTripodConfirm(x, y);
-  els.tripodConfirm.classList.remove("hidden");
+function placePending(x, y) {
+  pendingPlace = { x, y };
+  placeMode = "pending";
+  els.placeHint.textContent = PLACE_KINDS[placeKind].pendingHint;
+  positionPlaceConfirm(x, y);
+  els.placeConfirm.classList.remove("hidden");
 }
 
-function confirmTripod() {
-  if (!pendingTripod) return;
-  state.tripodCount--;
-  saveDirty = true;
+function confirmPlace() {
+  if (!pendingPlace) return;
   const now = performance.now();
-  tripods.push({
-    x: pendingTripod.x, y: pendingTripod.y, r: TRIPOD_RANGE,
-    placedAt: now, expiresAt: now + TRIPOD_DURATION_MS, lastShotAt: -Infinity
-  });
-  exitTripodMode();
+  const { x, y } = pendingPlace;
+  if (placeKind === "tripod") {
+    state.tripodCount--;
+    tripods.push({ x, y, r: TRIPOD_RANGE, placedAt: now, expiresAt: now + TRIPOD_DURATION_MS, lastShotAt: -Infinity });
+  } else if (placeKind === "totem") {
+    state.totemCount--;
+    totemUntil = now + TOTEM_DURATION_MS;
+    placedProps.push({ kind: "totem", x, y, placedAt: now, expiresAt: now + TOTEM_DURATION_MS });
+    updateTotemInvBadge();
+    showToast(`<span class="t-bounty">TOTEM PLACED!</span> 3x event odds for 10 minutes…`);
+  } else if (placeKind === "luck") {
+    state.luckyCharmCount--;
+    luckUntil = now + LUCKY_CHARM_DURATION_MS;
+    placedProps.push({ kind: "luck", x, y, placedAt: now, expiresAt: now + LUCKY_CHARM_DURATION_MS });
+    updateLuckyCharmInvBadge();
+    showToast(`<span class="t-bounty">LUCKY CHARM!</span> 2x luck for 3 minutes…`);
+  } else if (placeKind === "clover") {
+    state.extraCloverCount--;
+    cloverUntil = now + EXTRA_CLOVER_DURATION_MS;
+    placedProps.push({ kind: "clover", x, y, placedAt: now, expiresAt: now + EXTRA_CLOVER_DURATION_MS });
+    updateExtraCloverInvBadge();
+    showToast(`<span class="t-bounty">EXTRA LUCKY CHARM!</span> 3x luck for 3 minutes…`);
+  }
+  saveDirty = true;
+  exitPlaceMode();
 }
 
-function cancelTripodMode() {
-  if (!tripodMode) return;
-  exitTripodMode();
+function cancelPlaceMode() {
+  if (!placeMode) return;
+  exitPlaceMode();
 }
 
-function exitTripodMode() {
-  tripodMode = null;
-  pendingTripod = null;
-  document.body.classList.remove("tripod-mode");
-  els.tripodInvBtn.classList.remove("active");
-  els.tripodHint.classList.add("hidden");
-  els.tripodConfirm.classList.add("hidden");
+function exitPlaceMode() {
+  if (placeKind) PLACE_KINDS[placeKind].invBtn().classList.remove("active");
+  placeMode = null;
+  placeKind = null;
+  pendingPlace = null;
+  document.body.classList.remove("place-mode");
+  els.placeHint.classList.add("hidden");
+  els.placeConfirm.classList.add("hidden");
   updateTripodInvBadge();
+  updateTotemInvBadge();
+  updateLuckyCharmInvBadge();
+  updateExtraCloverInvBadge();
 }
 
 function updateTripods(dt) {
@@ -1812,6 +1976,13 @@ function updateTripods(dt) {
   for (let i = tripodFlashes.length - 1; i >= 0; i--) {
     tripodFlashes[i].t += dt;
     if (tripodFlashes[i].t > 0.45) tripodFlashes.splice(i, 1);
+  }
+}
+
+function updatePlacedProps() {
+  const now = performance.now();
+  for (let i = placedProps.length - 1; i >= 0; i--) {
+    if (now >= placedProps[i].expiresAt) placedProps.splice(i, 1);
   }
 }
 
@@ -1898,7 +2069,45 @@ function drawTripodRange(ctx, x, y, r) {
   ctx.restore();
 }
 
-function drawTripods(t) {
+function drawTotemIcon(ctx, x, y, opts) {
+  opts = opts || {};
+  ctx.save();
+  ctx.globalAlpha *= opts.alpha === undefined ? 1 : opts.alpha;
+  ctx.fillStyle = "#9e9e9e"; ctx.strokeStyle = "#424242"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.rect(x - 10, y - 8, 20, 10); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle = "#757575"; ctx.lineCap = "round"; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.arc(x, y - 26, 3.4, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y - 22.6); ctx.lineTo(x, y - 12);
+  ctx.moveTo(x, y - 20); ctx.lineTo(x - 7, y - 28);
+  ctx.moveTo(x, y - 20); ctx.lineTo(x + 7, y - 28);
+  ctx.moveTo(x, y - 12); ctx.lineTo(x - 5, y - 8);
+  ctx.moveTo(x, y - 12); ctx.lineTo(x + 5, y - 8);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawCharmIcon(ctx, x, y, opts, color) {
+  opts = opts || {};
+  ctx.save();
+  ctx.globalAlpha *= opts.alpha === undefined ? 1 : opts.alpha;
+  ctx.fillStyle = color || "#2e7d32"; ctx.strokeStyle = "#1b5e20"; ctx.lineWidth = 1.4;
+  const r = 5, cy = y - 14;
+  for (const [dx, dy] of [[-r * 0.85, -r * 0.85], [r * 0.85, -r * 0.85], [-r * 0.85, r * 0.85], [r * 0.85, r * 0.85]]) {
+    ctx.beginPath(); ctx.arc(x + dx, cy + dy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.moveTo(x, cy + r * 0.85); ctx.lineTo(x, y); ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlaceKindIcon(kind, x, y, opts) {
+  if (kind === "tripod") drawTripodIcon(ctx, x, y, opts);
+  else if (kind === "totem") drawTotemIcon(ctx, x, y, opts);
+  else if (kind === "luck") drawCharmIcon(ctx, x, y, opts, "#43a047");
+  else if (kind === "clover") drawCharmIcon(ctx, x, y, opts, "#00c853");
+}
+
+function drawPlacedItems(t) {
   for (const tp of tripods) drawTripodIcon(ctx, tp.x, tp.y);
   for (const fl of tripodFlashes) {
     const a = 1 - fl.t / 0.45;
@@ -1909,19 +2118,24 @@ function drawTripods(t) {
     ctx.beginPath(); ctx.arc(fl.x, fl.y, TRIPOD_RANGE * (0.3 + fl.t), 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
-  if (tripodMode === "aiming") {
-    drawTripodRange(ctx, tripodPreviewX, tripodPreviewY, TRIPOD_RANGE);
-    drawTripodIcon(ctx, tripodPreviewX, tripodPreviewY, { alpha: 0.5 });
-  } else if (tripodMode === "pending" && pendingTripod) {
-    drawTripodRange(ctx, pendingTripod.x, pendingTripod.y, TRIPOD_RANGE);
-    drawTripodIcon(ctx, pendingTripod.x, pendingTripod.y, { alpha: 0.5 });
+  for (const p of placedProps) {
+    if (p.kind === "totem") drawTotemIcon(ctx, p.x, p.y);
+    else if (p.kind === "luck") drawCharmIcon(ctx, p.x, p.y, null, "#43a047");
+    else if (p.kind === "clover") drawCharmIcon(ctx, p.x, p.y, null, "#00c853");
+  }
+  if (placeMode === "aiming") {
+    if (placeKind === "tripod") drawTripodRange(ctx, placePreviewX, placePreviewY, TRIPOD_RANGE);
+    drawPlaceKindIcon(placeKind, placePreviewX, placePreviewY, { alpha: 0.5 });
+  } else if (placeMode === "pending" && pendingPlace) {
+    if (placeKind === "tripod") drawTripodRange(ctx, pendingPlace.x, pendingPlace.y, TRIPOD_RANGE);
+    drawPlaceKindIcon(placeKind, pendingPlace.x, pendingPlace.y, { alpha: 0.5 });
   }
 }
 
 // ------------------------------------------------------------------
 // Input
 // ------------------------------------------------------------------
-els.cameraBtn.addEventListener("click", () => { closeShop(); cancelTripodMode(); toggleCamera(); });
+els.cameraBtn.addEventListener("click", () => { closeShop(); cancelPlaceMode(); toggleCamera(); });
 els.folderBtn.addEventListener("click", openDex);
 els.dexBack.addEventListener("click", closeDex);
 els.shopBtn.addEventListener("click", openShop);
@@ -1929,15 +2143,20 @@ els.shopBack.addEventListener("click", closeShop);
 els.achievementsBtn.addEventListener("click", openAchievements);
 els.achBack.addEventListener("click", closeAchievements);
 els.achievementsBackdrop.addEventListener("click", closeAchievements);
-els.tripodInvBtn.addEventListener("click", () => {
-  if (tripodMode) cancelTripodMode();
-  else startTripodAiming();
-});
-els.tripodConfirmYes.addEventListener("click", confirmTripod);
-els.tripodConfirmNo.addEventListener("click", cancelTripodMode);
+function makePlaceToggle(kind) {
+  return () => {
+    if (placeMode && placeKind === kind) cancelPlaceMode();
+    else startPlacing(kind);
+  };
+}
+els.tripodInvBtn.addEventListener("click", makePlaceToggle("tripod"));
+els.totemInvBtn.addEventListener("click", makePlaceToggle("totem"));
+els.luckyCharmInvBtn.addEventListener("click", makePlaceToggle("luck"));
+els.extraCloverInvBtn.addEventListener("click", makePlaceToggle("clover"));
+els.placeConfirmYes.addEventListener("click", confirmPlace);
+els.placeConfirmNo.addEventListener("click", cancelPlaceMode);
 els.timefreezeInvBtn.addEventListener("click", useTimeFreeze);
-els.luckyCharmInvBtn.addEventListener("click", useLuckyCharm);
-els.extraCloverInvBtn.addEventListener("click", useExtraClover);
+els.energyDrinkInvBtn.addEventListener("click", useEnergyDrink);
 
 document.getElementById("wipe-btn").addEventListener("click", () => {
   if (confirm("Wipe ALL progress?\n\nThis permanently deletes your money and your entire Stickdex. This cannot be undone.")) {
@@ -1964,7 +2183,7 @@ els.dexCode.addEventListener("input", () => {
 window.addEventListener("keydown", e => {
   if (e.target && e.target.tagName === "INPUT") return; // typing in a text box
   if (e.key === "Escape") {
-    if (tripodMode) cancelTripodMode();
+    if (placeMode) cancelPlaceMode();
     else if (!els.stickdex.classList.contains("hidden")) closeDex();
     else if (!els.shop.classList.contains("hidden")) closeShop();
     else if (els.achievements.classList.contains("open")) closeAchievements();
@@ -1979,21 +2198,21 @@ window.__debug = {
     money: state.money, fasterCamera: state.fasterCamera,
     tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
     luckyCharmCount: state.luckyCharmCount,
-    tripodMode, tripods: tripods.length, timeFreezeUntil, luckUntil, now: performance.now()
+    placeMode, placeKind, tripods: tripods.length, placedProps: placedProps.length, timeFreezeUntil, luckUntil, totemUntil, energyDrinkUntil, now: performance.now()
   })
 }; // headless inspection hook
 
 window.addEventListener("mousemove", e => {
   if (cameraMode) setViewfinder(e.clientX, e.clientY);
-  else if (tripodMode === "aiming") { tripodPreviewX = e.clientX; tripodPreviewY = e.clientY; }
+  else if (placeMode === "aiming") { placePreviewX = e.clientX; placePreviewY = e.clientY; }
 });
 canvas.addEventListener("click", e => {
   if (cameraMode) { setViewfinder(e.clientX, e.clientY); takePhoto(); }
-  else if (tripodMode === "aiming") { placePendingTripod(e.clientX, e.clientY); }
+  else if (placeMode === "aiming") { placePending(e.clientX, e.clientY); }
 });
 canvas.addEventListener("touchstart", e => {
   if (cameraMode) { e.preventDefault(); const t = e.touches[0]; setViewfinder(t.clientX, t.clientY); }
-  else if (tripodMode === "aiming") { e.preventDefault(); const t = e.touches[0]; placePendingTripod(t.clientX, t.clientY); }
+  else if (placeMode === "aiming") { e.preventDefault(); const t = e.touches[0]; placePending(t.clientX, t.clientY); }
 }, { passive: false });
 canvas.addEventListener("touchmove", e => {
   if (cameraMode) { e.preventDefault(); const t = e.touches[0]; setViewfinder(t.clientX, t.clientY); }
@@ -2017,14 +2236,26 @@ function frame(now) {
   updateStampedeEvent(now);
   updateLuckTimer(now);
   updateCloverTimer(now);
+  updateTotemTimer(now);
+  updateEnergyDrinkTimer(now);
   checkAchievements(dt);
 
   const frozen = now < timeFreezeUntil;
   const stampeding = now < stampedeUntil;
-  const worldDt = frozen ? dt * TIME_FREEZE_SCALE : stampeding ? dt * STAMPEDE_SPEED_MULT : dt;
+  const energized = now < energyDrinkUntil;
+  let worldDt = dt;
+  if (frozen) {
+    worldDt = dt * TIME_FREEZE_SCALE;
+  } else {
+    let speedMult = 1;
+    if (stampeding) speedMult *= STAMPEDE_SPEED_MULT;
+    if (energized) speedMult *= ENERGY_DRINK_SPEED_MULT;
+    worldDt = dt * speedMult;
+  }
   updateWorld(worldDt, t);
   updatePortals(dt);
   updateTripods(dt);
+  updatePlacedProps();
 
   ctx.fillStyle = "#fff";
   ctx.fillRect(0, 0, W, H);
@@ -2035,7 +2266,7 @@ function frame(now) {
   stickmen.sort((a, b) => a.y - b.y);
   for (const s of stickmen) drawStickman(ctx, s, t);
 
-  drawTripods(t);
+  drawPlacedItems(t);
 
   if (frozen) {
     ctx.fillStyle = "#42a5f522";
@@ -2056,6 +2287,8 @@ updateTripodInvBadge();
 updateTimefreezeInvBadge();
 updateLuckyCharmInvBadge();
 updateExtraCloverInvBadge();
+updateTotemInvBadge();
+updateEnergyDrinkInvBadge();
 if (state.bountyId) renderBounty(); else pickBounty();
 
 // initial population spread across the screen — gated by the same spawn

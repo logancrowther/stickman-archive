@@ -207,6 +207,54 @@ body.camera-mode #stampede-timer { bottom: 254px; }
 }
 #stampede-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
 
+#totem-timer {
+  position: fixed; bottom: 264px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #b0a8a0;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #totem-timer { bottom: 304px; }
+#totem-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#totem-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #616161, #9e9e9e, #d7ccc8);
+}
+#totem-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
+#energydrink-timer {
+  position: fixed; bottom: 314px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #ff5252;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #energydrink-timer { bottom: 354px; }
+#energydrink-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#energydrink-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #b71c1c, #e53935, #ff5252);
+}
+#energydrink-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
 .hidden { display: none !important; }
 
 /* ---------- HUD ---------- */
@@ -595,10 +643,10 @@ body.camera-mode #wipe-btn { display: none; }
   display: flex; align-items: center; justify-content: center;
   padding: 0 4px;
 }
-body.camera-mode #inventory-bar, body.tripod-mode #wipe-btn, body.camera-mode #wipe-btn { display: none; }
-body.tripod-mode #world { cursor: none; }
+body.camera-mode #inventory-bar, body.place-mode #wipe-btn, body.camera-mode #wipe-btn { display: none; }
+body.place-mode #world { cursor: none; }
 
-#tripod-hint {
+#place-hint {
   position: fixed; bottom: 14px; left: 50%;
   transform: translateX(-50%);
   font-size: 13px; font-weight: 600;
@@ -608,14 +656,14 @@ body.tripod-mode #world { cursor: none; }
   white-space: nowrap;
 }
 
-#tripod-confirm {
+#place-confirm {
   position: fixed;
   display: flex; gap: 8px;
   z-index: 21;
   transform: translate(-50%, -100%);
   pointer-events: none;
 }
-#tripod-confirm button {
+#place-confirm button {
   width: 40px; height: 40px;
   border-radius: 999px;
   border: 2px solid #000;
@@ -624,9 +672,9 @@ body.tripod-mode #world { cursor: none; }
   pointer-events: auto;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
 }
-#tripod-confirm-yes { background: #17a832; color: #fff; }
-#tripod-confirm-no { background: #c62828; color: #fff; }
-#tripod-confirm button:active { transform: scale(0.9); }
+#place-confirm-yes { background: #17a832; color: #fff; }
+#place-confirm-no { background: #c62828; color: #fff; }
+#place-confirm button:active { transform: scale(0.9); }
 
 @media (max-width: 500px) {
   #dex-grid { grid-template-columns: repeat(2, 1fr); gap: 9px; padding: 9px; }

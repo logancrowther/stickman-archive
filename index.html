@@ -104,6 +104,20 @@
   <span id="stampede-timer-time">1:00</span>
 </div>
 
+<!-- Totem countdown -->
+<div id="totem-timer" class="hidden">
+  <span id="totem-timer-label">Totem! 3x event odds</span>
+  <div id="totem-timer-bar"><div id="totem-timer-fill"></div></div>
+  <span id="totem-timer-time">10:00</span>
+</div>
+
+<!-- Energy Drink countdown -->
+<div id="energydrink-timer" class="hidden">
+  <span id="energydrink-timer-label">Energy Drink! Everyone speeds up</span>
+  <div id="energydrink-timer-bar"><div id="energydrink-timer-fill"></div></div>
+  <span id="energydrink-timer-time">1:00</span>
+</div>
+
 <!-- Achievements -->
 <div id="achievements-backdrop"></div>
 <div id="achievements">
@@ -202,7 +216,7 @@
       </div>
       <div class="shop-item-info">
         <div class="shop-item-name">Lucky Charm</div>
-        <div class="shop-item-desc">One-use. 2x luck for 3 minutes — rare stickmen become much more likely to spawn.</div>
+        <div class="shop-item-desc">Place it down. 2x luck for 3 minutes — rare stickmen become much more likely to spawn.</div>
         <div class="shop-item-owned">Owned: <span id="luckycharm-owned-count">0</span> / 99</div>
       </div>
       <button id="buy-luckycharm" class="shop-buy-btn">$7,000</button>
@@ -219,10 +233,39 @@
       </div>
       <div class="shop-item-info">
         <div class="shop-item-name">Extra Lucky Charm</div>
-        <div class="shop-item-desc">One-use. 3x luck for 3 minutes — rare stickmen become extremely likely to spawn.</div>
+        <div class="shop-item-desc">Place it down. 3x luck for 3 minutes — rare stickmen become extremely likely to spawn.</div>
         <div class="shop-item-owned">Owned: <span id="extraclover-owned-count">0</span> / 99</div>
       </div>
       <button id="buy-extraclover" class="shop-buy-btn">$15,000</button>
+    </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="6" y="18" width="12" height="4" rx="0.5"/>
+          <circle cx="12" cy="7" r="2.4"/>
+          <path d="M12 9.5v6M12 11l-4-3M12 11l4-3M12 15.5l-2.5 2.5M12 15.5l2.5 2.5"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Totem</div>
+        <div class="shop-item-desc">Place it down. 3x chance of a Rainbow, Golden, or Stampede event for 10 minutes.</div>
+        <div class="shop-item-owned">Owned: <span id="totem-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-totem" class="shop-buy-btn">$30,000</button>
+    </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3h8v3l-1.5 1.5v11a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-11L8 6Z"/>
+          <path d="M13 9l-3 5h2.2l-1 4 3.8-6h-2.2Z" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Energy Drink</div>
+        <div class="shop-item-desc">One-use. Every stickman on screen speeds up for a minute.</div>
+        <div class="shop-item-owned">Owned: <span id="energydrink-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-energydrink" class="shop-buy-btn">$20,000</button>
     </div>
   </div>
 </div>
@@ -243,7 +286,7 @@
     </svg>
     <span id="timefreeze-inv-count">0</span>
   </button>
-  <button id="luckycharm-inv-btn" class="inv-btn hidden" title="Use a Lucky Charm" aria-label="Use lucky charm">
+  <button id="luckycharm-inv-btn" class="inv-btn hidden" title="Place a Lucky Charm" aria-label="Place lucky charm">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="9" cy="8.5" r="3.3"/>
       <circle cx="15" cy="8.5" r="3.3"/>
@@ -253,7 +296,7 @@
     </svg>
     <span id="luckycharm-inv-count">0</span>
   </button>
-  <button id="extraclover-inv-btn" class="inv-btn hidden" title="Use an Extra Lucky Charm" aria-label="Use extra lucky charm">
+  <button id="extraclover-inv-btn" class="inv-btn hidden" title="Place an Extra Lucky Charm" aria-label="Place extra lucky charm">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="9" cy="7.5" r="4.3"/>
       <circle cx="15" cy="7.5" r="4.3"/>
@@ -263,13 +306,28 @@
     </svg>
     <span id="extraclover-inv-count">0</span>
   </button>
+  <button id="totem-inv-btn" class="inv-btn hidden" title="Place a Totem" aria-label="Place totem">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="6" y="18" width="12" height="4" rx="0.5"/>
+      <circle cx="12" cy="7" r="2.4"/>
+      <path d="M12 9.5v6M12 11l-4-3M12 11l4-3M12 15.5l-2.5 2.5M12 15.5l2.5 2.5"/>
+    </svg>
+    <span id="totem-inv-count">0</span>
+  </button>
+  <button id="energydrink-inv-btn" class="inv-btn hidden" title="Use an Energy Drink" aria-label="Use energy drink">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3h8v3l-1.5 1.5v11a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-11L8 6Z"/>
+      <path d="M13 9l-3 5h2.2l-1 4 3.8-6h-2.2Z" fill="currentColor" stroke="none"/>
+    </svg>
+    <span id="energydrink-inv-count">0</span>
+  </button>
 </div>
 
-<!-- Tripod placement hint + confirm buttons -->
-<div id="tripod-hint" class="hidden">Tap / click to set the tripod down &middot; ESC to cancel</div>
-<div id="tripod-confirm" class="hidden">
-  <button id="tripod-confirm-yes" title="Confirm placement" aria-label="Confirm">&#10003;</button>
-  <button id="tripod-confirm-no" title="Cancel" aria-label="Cancel">&#10005;</button>
+<!-- Shared placement hint + confirm buttons (Tripod, Totem, Lucky Charm, Extra Lucky Charm) -->
+<div id="place-hint" class="hidden">Tap / click to set it down &middot; ESC to cancel</div>
+<div id="place-confirm" class="hidden">
+  <button id="place-confirm-yes" title="Confirm placement" aria-label="Confirm">&#10003;</button>
+  <button id="place-confirm-no" title="Cancel" aria-label="Cancel">&#10005;</button>
 </div>
 
 <script src="js/data.js"></script>
