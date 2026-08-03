@@ -36,12 +36,16 @@ const els = {
   buyExtraClover: document.getElementById("buy-extraclover"),
   buyTotem: document.getElementById("buy-totem"),
   buyEnergyDrink: document.getElementById("buy-energydrink"),
+  buyOvertime: document.getElementById("buy-overtime"),
+  buyEquipmentBox: document.getElementById("buy-equipmentbox"),
   tripodOwnedCount: document.getElementById("tripod-owned-count"),
   timefreezeOwnedCount: document.getElementById("timefreeze-owned-count"),
   luckyCharmOwnedCount: document.getElementById("luckycharm-owned-count"),
   extraCloverOwnedCount: document.getElementById("extraclover-owned-count"),
   totemOwnedCount: document.getElementById("totem-owned-count"),
   energyDrinkOwnedCount: document.getElementById("energydrink-owned-count"),
+  overtimeOwnedCount: document.getElementById("overtime-owned-count"),
+  equipmentBoxOwnedCount: document.getElementById("equipmentbox-owned-count"),
   tripodInvBtn: document.getElementById("tripod-inv-btn"),
   tripodInvCount: document.getElementById("tripod-inv-count"),
   timefreezeInvBtn: document.getElementById("timefreeze-inv-btn"),
@@ -54,6 +58,16 @@ const els = {
   totemInvCount: document.getElementById("totem-inv-count"),
   energyDrinkInvBtn: document.getElementById("energydrink-inv-btn"),
   energyDrinkInvCount: document.getElementById("energydrink-inv-count"),
+  overtimeInvBtn: document.getElementById("overtime-inv-btn"),
+  overtimeInvCount: document.getElementById("overtime-inv-count"),
+  equipmentBoxInvBtn: document.getElementById("equipmentbox-inv-btn"),
+  equipmentBoxInvCount: document.getElementById("equipmentbox-inv-count"),
+  extraExtraCloverInvBtn: document.getElementById("extraextraclover-inv-btn"),
+  extraExtraCloverInvCount: document.getElementById("extraextraclover-inv-count"),
+  energyOverloadInvBtn: document.getElementById("energyoverload-inv-btn"),
+  energyOverloadInvCount: document.getElementById("energyoverload-inv-count"),
+  reliableTripodInvBtn: document.getElementById("reliabletripod-inv-btn"),
+  reliableTripodInvCount: document.getElementById("reliabletripod-inv-count"),
   placeHint: document.getElementById("place-hint"),
   placeConfirm: document.getElementById("place-confirm"),
   placeConfirmYes: document.getElementById("place-confirm-yes"),
@@ -79,6 +93,12 @@ const els = {
   energyDrinkTimer: document.getElementById("energydrink-timer"),
   energyDrinkTimerFill: document.getElementById("energydrink-timer-fill"),
   energyDrinkTimerTime: document.getElementById("energydrink-timer-time"),
+  extraExtraCloverTimer: document.getElementById("extraextraclover-timer"),
+  extraExtraCloverTimerFill: document.getElementById("extraextraclover-timer-fill"),
+  extraExtraCloverTimerTime: document.getElementById("extraextraclover-timer-time"),
+  energyOverloadTimer: document.getElementById("energyoverload-timer"),
+  energyOverloadTimerFill: document.getElementById("energyoverload-timer-fill"),
+  energyOverloadTimerTime: document.getElementById("energyoverload-timer-time"),
   achievementsBtn: document.getElementById("achievements-btn"),
   achievements: document.getElementById("achievements"),
   achievementsBackdrop: document.getElementById("achievements-backdrop"),
@@ -143,6 +163,41 @@ const ENERGY_DRINK_MAX = 99;
 const ENERGY_DRINK_DURATION_MS = 60 * 1000;
 const ENERGY_DRINK_SPEED_MULT = 2;
 
+// Overtime: instant-use, only usable while a Rainbow/Golden/Stampede event
+// is active — adds extra time to that event (once per event instance).
+const OVERTIME_COST = 100000;
+const OVERTIME_MAX = 99;
+const OVERTIME_RAINBOW_GOLDEN_BONUS_MS = 3 * 60 * 1000;
+const OVERTIME_STAMPEDE_BONUS_MS = 60 * 1000;
+
+// Equipment Box: instant-use, opens into a random item worth no more than
+// its own price (so never Overtime) — including 3 items only obtainable
+// this way: Extra Extra Lucky Charm, Energy Overload, Reliable Tripod.
+const EQUIPMENT_BOX_COST = 50000;
+const EQUIPMENT_BOX_MAX = 99;
+const EQUIPMENT_BOX_POOL = [
+  "tripod", "timefreeze", "luck", "clover", "totem", "energydrink",
+  "extraextraclover", "energyoverload", "reliabletripod"
+];
+
+// Extra Extra Lucky Charm: box-exclusive, placeable, 4x luck for 3 minutes
+const EXTRA_EXTRA_CLOVER_MAX = 99;
+const EXTRA_EXTRA_CLOVER_DURATION_MS = 3 * 60 * 1000;
+const EXTRA_EXTRA_CLOVER_RARE_MULT = 4;
+
+// Energy Overload: box-exclusive, instant-use, speeds up every stickman on
+// screen for 2 minutes — faster than Energy Drink, still slower than Stampede.
+const ENERGY_OVERLOAD_MAX = 99;
+const ENERGY_OVERLOAD_DURATION_MS = 2 * 60 * 1000;
+const ENERGY_OVERLOAD_SPEED_MULT = 2.5;
+
+// Reliable Tripod: box-exclusive, placeable, shoots faster, watches a
+// slightly bigger area, and lasts 5 minutes instead of 1.
+const RELIABLE_TRIPOD_MAX = 99;
+const RELIABLE_TRIPOD_RANGE = TRIPOD_RANGE + 20;
+const RELIABLE_TRIPOD_DURATION_MS = 5 * 60 * 1000;
+const RELIABLE_TRIPOD_SHOT_COOLDOWN_MS = 1500;
+
 // ------------------------------------------------------------------
 // State
 // ------------------------------------------------------------------
@@ -162,6 +217,11 @@ const state = {
   extraCloverCount: 0,   // unused Extra Lucky Clovers in inventory
   totemCount: 0,         // unplaced Totems in inventory
   energyDrinkCount: 0,   // unused Energy Drinks in inventory
+  overtimeCount: 0,      // unused Overtimes in inventory
+  equipmentBoxCount: 0,  // unopened Equipment Boxes in inventory
+  extraExtraCloverCount: 0, // unplaced Extra Extra Lucky Charms in inventory (box-exclusive)
+  energyOverloadCount: 0,   // unused Energy Overloads in inventory (box-exclusive)
+  reliableTripodCount: 0,   // unplaced Reliable Tripods in inventory (box-exclusive)
   spawnCredits: null,      // available spawn "rolls"; regenerates over real time, not on reload
   lastCreditUpdate: 0,    // timestamp spawnCredits was last topped up
   achFlags: {             // one-shot flags achievements check against
@@ -212,21 +272,35 @@ let totemUntil = 0;
 // Energy Drink: transient — not saved, it always finishes long before any reload matters
 let energyDrinkUntil = 0;
 
+// Extra Extra Lucky Charm: transient — not saved, it always finishes long before any reload matters
+let extraExtraCloverUntil = 0;
+
+// Energy Overload: transient — not saved, it always finishes long before any reload matters
+let energyOverloadUntil = 0;
+
 // Rainbow Event: transient — not saved. rainbowUntil is a performance.now() timestamp
 // (0 = inactive). rainbowCheckBlock tracks which check-interval block of
 // state.playMinutes (persisted) was last rolled, so reloading can't grant extra rolls.
 let rainbowUntil = 0;
 let rainbowCheckBlock = 0;
+let rainbowOvertimeUsed = false;
 
 // Golden Event: transient — not saved. Rolls independently of the Rainbow
 // Event on its own check-interval blocks, same pattern as above.
 let goldenUntil = 0;
 let goldenCheckBlock = 0;
+let goldenOvertimeUsed = false;
 
 // Stampede Event: transient — not saved. Rolls independently of Rainbow/
 // Golden on its own check-interval blocks, same pattern as above.
 let stampedeUntil = 0;
 let stampedeCheckBlock = 0;
+let stampedeOvertimeUsed = false;
+
+// Only one of Rainbow/Golden/Stampede may be active at a time.
+function anyEventActive() {
+  return !!rainbowUntil || !!goldenUntil || !!stampedeUntil;
+}
 
 function loadState() {
   try {
@@ -266,6 +340,7 @@ function rebuildWeights() {
   let luckMult = 1;
   if (luckUntil > now) luckMult *= LUCKY_CHARM_RARE_MULT;
   if (cloverUntil > now) luckMult *= EXTRA_CLOVER_RARE_MULT;
+  if (extraExtraCloverUntil > now) luckMult *= EXTRA_EXTRA_CLOVER_RARE_MULT;
   if (cumWeights && weightsBountyId === state.bountyId && weightsRainbowActive === rainbowActive && weightsLuckMult === luckMult) return;
   weightsBountyId = state.bountyId;
   weightsRainbowActive = rainbowActive;
@@ -694,6 +769,7 @@ function updateKingFlash(dt) {
 // ------------------------------------------------------------------
 function startRainbowEvent(now) {
   rainbowUntil = now + RAINBOW_DURATION_MS;
+  rainbowOvertimeUsed = false;
   document.body.classList.add("rainbow-event");
   els.rainbowTimer.classList.remove("hidden");
   state.achFlags.sawRainbow = true; // achievement: "Magical"
@@ -710,7 +786,7 @@ function updateRainbowEvent(now) {
   const block = Math.floor(state.playMinutes / RAINBOW_CHECK_INTERVAL_MIN);
   if (block > rainbowCheckBlock) {
     rainbowCheckBlock = block;
-    if (!rainbowUntil && Math.random() < RAINBOW_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startRainbowEvent(now);
+    if (!anyEventActive() && Math.random() < RAINBOW_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startRainbowEvent(now);
   }
 
   if (rainbowUntil) {
@@ -732,6 +808,7 @@ function updateRainbowEvent(now) {
 // ------------------------------------------------------------------
 function startGoldenEvent(now) {
   goldenUntil = now + GOLDEN_DURATION_MS;
+  goldenOvertimeUsed = false;
   document.body.classList.add("golden-event");
   els.goldenTimer.classList.remove("hidden");
   state.achFlags.sawGolden = true; // achievement: "Shiny"
@@ -748,7 +825,7 @@ function updateGoldenEvent(now) {
   const block = Math.floor(state.playMinutes / GOLDEN_CHECK_INTERVAL_MIN);
   if (block > goldenCheckBlock) {
     goldenCheckBlock = block;
-    if (!goldenUntil && Math.random() < GOLDEN_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startGoldenEvent(now);
+    if (!anyEventActive() && Math.random() < GOLDEN_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startGoldenEvent(now);
   }
 
   if (goldenUntil) {
@@ -771,6 +848,7 @@ function updateGoldenEvent(now) {
 // ------------------------------------------------------------------
 function startStampedeEvent(now) {
   stampedeUntil = now + STAMPEDE_DURATION_MS;
+  stampedeOvertimeUsed = false;
   document.body.classList.add("stampede-event");
   els.stampedeTimer.classList.remove("hidden");
 }
@@ -785,7 +863,7 @@ function updateStampedeEvent(now) {
   const block = Math.floor(state.playMinutes / STAMPEDE_CHECK_INTERVAL_MIN);
   if (block > stampedeCheckBlock) {
     stampedeCheckBlock = block;
-    if (!stampedeUntil && Math.random() < STAMPEDE_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startStampedeEvent(now);
+    if (!anyEventActive() && Math.random() < STAMPEDE_EVENT_CHANCE * (totemUntil > now ? TOTEM_EVENT_MULT : 1)) startStampedeEvent(now);
   }
 
   if (stampedeUntil) {
@@ -848,9 +926,9 @@ const ACHIEVEMENTS = [
   { key: "wealthy", name: "Wealthy", desc: "Obtain $250,000 or more at once.",
     progress: () => state.money, target: 250000,
     reward: { type: "money", amount: 50000 } },
-  { key: "circle_500", name: "???", desc: "???", secret: true,
-    revealName: "Circle Overlord", revealDesc: "Capture Circle 500 times.",
-    progress: () => (state.dex[1] ? state.dex[1].c : 0), target: 500,
+  { key: "iron_fists", name: "Iron Fists", desc: "???", secret: true,
+    revealDesc: "Capture Boxer 15 times.",
+    progress: () => (state.dex[91] ? state.dex[91].c : 0), target: 15,
     reward: { type: "spawn", ids: [320] } },
   { key: "circle_1000", name: "???", desc: "???", secret: true,
     revealName: "Circle Emperor", revealDesc: "Capture Circle 1000 times.",
@@ -1632,12 +1710,25 @@ function buildShop() {
   els.buyEnergyDrink.textContent = formatMoney(ENERGY_DRINK_COST);
   els.buyEnergyDrink.disabled = state.money < ENERGY_DRINK_COST || state.energyDrinkCount >= ENERGY_DRINK_MAX;
 
+  els.overtimeOwnedCount.textContent = state.overtimeCount;
+  els.buyOvertime.textContent = formatMoney(OVERTIME_COST);
+  els.buyOvertime.disabled = state.money < OVERTIME_COST || state.overtimeCount >= OVERTIME_MAX;
+
+  els.equipmentBoxOwnedCount.textContent = state.equipmentBoxCount;
+  els.buyEquipmentBox.textContent = formatMoney(EQUIPMENT_BOX_COST);
+  els.buyEquipmentBox.disabled = state.money < EQUIPMENT_BOX_COST || state.equipmentBoxCount >= EQUIPMENT_BOX_MAX;
+
   updateTripodInvBadge();
   updateTimefreezeInvBadge();
   updateLuckyCharmInvBadge();
   updateExtraCloverInvBadge();
   updateTotemInvBadge();
   updateEnergyDrinkInvBadge();
+  updateOvertimeInvBadge();
+  updateEquipmentBoxInvBadge();
+  updateExtraExtraCloverInvBadge();
+  updateEnergyOverloadInvBadge();
+  updateReliableTripodInvBadge();
 }
 
 els.buyFasterCam.addEventListener("click", () => {
@@ -1711,6 +1802,24 @@ els.buyEnergyDrink.addEventListener("click", () => {
   saveDirty = true;
   buildShop();
   showToast(`Energy Drink purchased <small>(${state.energyDrinkCount}/${ENERGY_DRINK_MAX})</small>`);
+});
+
+els.buyOvertime.addEventListener("click", () => {
+  if (state.money < OVERTIME_COST || state.overtimeCount >= OVERTIME_MAX) return;
+  state.money -= OVERTIME_COST;
+  state.overtimeCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Overtime purchased <small>(${state.overtimeCount}/${OVERTIME_MAX})</small>`);
+});
+
+els.buyEquipmentBox.addEventListener("click", () => {
+  if (state.money < EQUIPMENT_BOX_COST || state.equipmentBoxCount >= EQUIPMENT_BOX_MAX) return;
+  state.money -= EQUIPMENT_BOX_COST;
+  state.equipmentBoxCount++;
+  saveDirty = true;
+  buildShop();
+  showToast(`Equipment Box purchased <small>(${state.equipmentBoxCount}/${EQUIPMENT_BOX_MAX})</small>`);
 });
 
 // ------------------------------------------------------------------
@@ -1811,6 +1920,8 @@ function useEnergyDrink() {
   state.energyDrinkCount--;
   saveDirty = true;
   energyDrinkUntil = performance.now() + ENERGY_DRINK_DURATION_MS;
+  energyOverloadUntil = 0; // Energy Drink and Energy Overload don't stack — the newer one replaces the other
+  els.energyOverloadTimer.classList.add("hidden");
   updateEnergyDrinkInvBadge();
   showToast(`<span class="t-bounty">ENERGY DRINK!</span> Everyone speeds up for a minute…`);
 }
@@ -1827,6 +1938,134 @@ function updateEnergyDrinkTimer(now) {
     const secs = Math.ceil(remain / 1000);
     els.energyDrinkTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
   }
+}
+
+// ------------------------------------------------------------------
+// Extra Extra Lucky Charm: box-exclusive, placeable, 4x luck for 3 minutes.
+// ------------------------------------------------------------------
+function updateExtraExtraCloverInvBadge() {
+  els.extraExtraCloverInvCount.textContent = state.extraExtraCloverCount;
+  els.extraExtraCloverInvBtn.classList.toggle("hidden", state.extraExtraCloverCount <= 0 && !(placeMode && placeKind === "extraextraclover"));
+}
+
+function updateExtraExtraCloverTimer(now) {
+  if (!extraExtraCloverUntil) return;
+  const remain = extraExtraCloverUntil - now;
+  if (remain <= 0) {
+    extraExtraCloverUntil = 0;
+    els.extraExtraCloverTimer.classList.add("hidden");
+  } else {
+    els.extraExtraCloverTimer.classList.remove("hidden");
+    els.extraExtraCloverTimerFill.style.width = (Math.max(0, Math.min(1, remain / EXTRA_EXTRA_CLOVER_DURATION_MS)) * 100) + "%";
+    const secs = Math.ceil(remain / 1000);
+    els.extraExtraCloverTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  }
+}
+
+// ------------------------------------------------------------------
+// Energy Overload: box-exclusive, one-use, speeds up every stickman on
+// screen for 2 minutes — faster than Energy Drink, slower than Stampede.
+// ------------------------------------------------------------------
+function updateEnergyOverloadInvBadge() {
+  els.energyOverloadInvCount.textContent = state.energyOverloadCount;
+  els.energyOverloadInvBtn.classList.toggle("hidden", state.energyOverloadCount <= 0);
+}
+
+function useEnergyOverload() {
+  if (state.energyOverloadCount <= 0) { showToast("No Energy Overloads left!"); return; }
+  state.energyOverloadCount--;
+  saveDirty = true;
+  energyOverloadUntil = performance.now() + ENERGY_OVERLOAD_DURATION_MS;
+  energyDrinkUntil = 0; // Energy Drink and Energy Overload don't stack — the newer one replaces the other
+  els.energyDrinkTimer.classList.add("hidden");
+  updateEnergyOverloadInvBadge();
+  showToast(`<span class="t-bounty">ENERGY OVERLOAD!</span> Everyone speeds up for 2 minutes…`);
+}
+
+function updateEnergyOverloadTimer(now) {
+  if (!energyOverloadUntil) return;
+  const remain = energyOverloadUntil - now;
+  if (remain <= 0) {
+    energyOverloadUntil = 0;
+    els.energyOverloadTimer.classList.add("hidden");
+  } else {
+    els.energyOverloadTimer.classList.remove("hidden");
+    els.energyOverloadTimerFill.style.width = (Math.max(0, Math.min(1, remain / ENERGY_OVERLOAD_DURATION_MS)) * 100) + "%";
+    const secs = Math.ceil(remain / 1000);
+    els.energyOverloadTimerTime.textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  }
+}
+
+// ------------------------------------------------------------------
+// Reliable Tripod: box-exclusive placeable Tripod variant (see PLACE_KINDS/
+// confirmPlace) — faster shots, bigger range, lasts 5 minutes.
+// ------------------------------------------------------------------
+function updateReliableTripodInvBadge() {
+  els.reliableTripodInvCount.textContent = state.reliableTripodCount;
+  els.reliableTripodInvBtn.classList.toggle("hidden", state.reliableTripodCount <= 0 && !(placeMode && placeKind === "reliabletripod"));
+}
+
+// ------------------------------------------------------------------
+// Equipment Box: one-use, opens into a random item worth no more than its
+// own price (so it can never grant Overtime) — including 3 items only
+// obtainable this way.
+// ------------------------------------------------------------------
+function updateEquipmentBoxInvBadge() {
+  els.equipmentBoxInvCount.textContent = state.equipmentBoxCount;
+  els.equipmentBoxInvBtn.classList.toggle("hidden", state.equipmentBoxCount <= 0);
+}
+
+const EQUIPMENT_BOX_GRANTS = {
+  tripod: () => { state.tripodCount++; return "Tripod"; },
+  timefreeze: () => { state.timeFreezeCount++; return "Time Freeze"; },
+  luck: () => { state.luckyCharmCount++; return "Lucky Charm"; },
+  clover: () => { state.extraCloverCount++; return "Extra Lucky Charm"; },
+  totem: () => { state.totemCount++; return "Totem"; },
+  energydrink: () => { state.energyDrinkCount++; return "Energy Drink"; },
+  extraextraclover: () => { state.extraExtraCloverCount++; return "Extra Extra Lucky Charm"; },
+  energyoverload: () => { state.energyOverloadCount++; return "Energy Overload"; },
+  reliabletripod: () => { state.reliableTripodCount++; return "Reliable Tripod"; }
+};
+
+function useEquipmentBox() {
+  if (state.equipmentBoxCount <= 0) { showToast("No Equipment Boxes left — buy more in the Shop!"); return; }
+  state.equipmentBoxCount--;
+  saveDirty = true;
+  const pick = EQUIPMENT_BOX_POOL[(Math.random() * EQUIPMENT_BOX_POOL.length) | 0];
+  const name = EQUIPMENT_BOX_GRANTS[pick]();
+  updateEquipmentBoxInvBadge();
+  buildShop(); // refreshes every owned count/badge, including whichever item was just granted
+  showToast(`<span class="t-new">Equipment Box opened!</span><br>You got: <strong>${name}</strong>`);
+}
+
+// ------------------------------------------------------------------
+// Overtime: one-use, only usable while a Rainbow/Golden/Stampede event is
+// active. Adds extra time to whichever active event(s) haven't already
+// had Overtime used on them this instance.
+// ------------------------------------------------------------------
+function updateOvertimeInvBadge() {
+  els.overtimeInvCount.textContent = state.overtimeCount;
+  els.overtimeInvBtn.classList.toggle("hidden", state.overtimeCount <= 0);
+}
+
+function useOvertime() {
+  if (state.overtimeCount <= 0) { showToast("No Overtimes left — buy more in the Shop!"); return; }
+  const now = performance.now();
+  const rainbowEligible = rainbowUntil > now && !rainbowOvertimeUsed;
+  const goldenEligible = goldenUntil > now && !goldenOvertimeUsed;
+  const stampedeEligible = stampedeUntil > now && !stampedeOvertimeUsed;
+  if (!rainbowEligible && !goldenEligible && !stampedeEligible) {
+    showToast(anyEventActive() ? "Overtime already used for this event!" : "No event is active right now!");
+    return;
+  }
+  state.overtimeCount--;
+  saveDirty = true;
+  const labels = [];
+  if (rainbowEligible) { rainbowUntil += OVERTIME_RAINBOW_GOLDEN_BONUS_MS; rainbowOvertimeUsed = true; labels.push("Rainbow"); }
+  if (goldenEligible) { goldenUntil += OVERTIME_RAINBOW_GOLDEN_BONUS_MS; goldenOvertimeUsed = true; labels.push("Golden"); }
+  if (stampedeEligible) { stampedeUntil += OVERTIME_STAMPEDE_BONUS_MS; stampedeOvertimeUsed = true; labels.push("Stampede"); }
+  updateOvertimeInvBadge();
+  showToast(`<span class="t-bounty">OVERTIME!</span> +time added to the ${labels.join(" & ")} event…`);
 }
 
 // ------------------------------------------------------------------
@@ -1869,6 +2108,20 @@ const PLACE_KINDS = {
     aimHint: "Tap / click to set the charm down · ESC to cancel",
     pendingHint: "Confirm the charm's spot",
     invBtn: () => els.extraCloverInvBtn
+  },
+  extraextraclover: {
+    countOf: () => state.extraExtraCloverCount,
+    emptyMsg: "No Extra Extra Lucky Charms left!",
+    aimHint: "Tap / click to set the charm down · ESC to cancel",
+    pendingHint: "Confirm the charm's spot",
+    invBtn: () => els.extraExtraCloverInvBtn
+  },
+  reliabletripod: {
+    countOf: () => state.reliableTripodCount,
+    emptyMsg: "No Reliable Tripods left!",
+    aimHint: "Tap / click to set the tripod down · ESC to cancel",
+    pendingHint: "Confirm the tripod's spot",
+    invBtn: () => els.reliableTripodInvBtn
   }
 };
 
@@ -1878,7 +2131,7 @@ function updateTripodInvBadge() {
 }
 
 function positionPlaceConfirm(x, y) {
-  const offsetY = placeKind === "tripod" ? TRIPOD_RANGE : 30;
+  const offsetY = placeKind === "tripod" ? TRIPOD_RANGE : placeKind === "reliabletripod" ? RELIABLE_TRIPOD_RANGE : 30;
   els.placeConfirm.style.left = x + "px";
   els.placeConfirm.style.top = (y - offsetY - 14) + "px";
 }
@@ -1915,7 +2168,18 @@ function confirmPlace() {
   const { x, y } = pendingPlace;
   if (placeKind === "tripod") {
     state.tripodCount--;
-    tripods.push({ x, y, r: TRIPOD_RANGE, placedAt: now, expiresAt: now + TRIPOD_DURATION_MS, lastShotAt: -Infinity });
+    tripods.push({ kind: "tripod", x, y, r: TRIPOD_RANGE, cooldownMs: TRIPOD_SHOT_COOLDOWN_MS, placedAt: now, expiresAt: now + TRIPOD_DURATION_MS, lastShotAt: -Infinity });
+  } else if (placeKind === "reliabletripod") {
+    state.reliableTripodCount--;
+    tripods.push({ kind: "reliabletripod", x, y, r: RELIABLE_TRIPOD_RANGE, cooldownMs: RELIABLE_TRIPOD_SHOT_COOLDOWN_MS, placedAt: now, expiresAt: now + RELIABLE_TRIPOD_DURATION_MS, lastShotAt: -Infinity });
+    updateReliableTripodInvBadge();
+    showToast(`<span class="t-bounty">RELIABLE TRIPOD PLACED!</span> Faster shots, bigger range, 5 minutes…`);
+  } else if (placeKind === "extraextraclover") {
+    state.extraExtraCloverCount--;
+    extraExtraCloverUntil = now + EXTRA_EXTRA_CLOVER_DURATION_MS;
+    placedProps.push({ kind: "extraextraclover", x, y, placedAt: now, expiresAt: now + EXTRA_EXTRA_CLOVER_DURATION_MS });
+    updateExtraExtraCloverInvBadge();
+    showToast(`<span class="t-bounty">EXTRA EXTRA LUCKY CHARM!</span> 4x luck for 3 minutes…`);
   } else if (placeKind === "totem") {
     state.totemCount--;
     totemUntil = now + TOTEM_DURATION_MS;
@@ -1956,6 +2220,8 @@ function exitPlaceMode() {
   updateTotemInvBadge();
   updateLuckyCharmInvBadge();
   updateExtraCloverInvBadge();
+  updateExtraExtraCloverInvBadge();
+  updateReliableTripodInvBadge();
 }
 
 function updateTripods(dt) {
@@ -1963,7 +2229,7 @@ function updateTripods(dt) {
   for (let i = tripods.length - 1; i >= 0; i--) {
     const tp = tripods[i];
     if (now >= tp.expiresAt) { tripods.splice(i, 1); continue; }
-    if (now - tp.lastShotAt < TRIPOD_SHOT_COOLDOWN_MS) continue;
+    if (now - tp.lastShotAt < (tp.cooldownMs || TRIPOD_SHOT_COOLDOWN_MS)) continue;
     let best = null;
     for (const s of stickmen) {
       if (s.shot) continue;
@@ -1989,6 +2255,7 @@ function updatePlacedProps() {
 
 function tripodCapture(tp, focus) {
   tp.lastShotAt = performance.now();
+  const label = tp.kind === "reliabletripod" ? "reliable tripod" : "tripod";
   const photoURL = snapshotRegion(tp.x - tp.r, tp.y - tp.r, tp.r * 2, tp.r * 2, focus);
   state.shots++;
 
@@ -2027,12 +2294,12 @@ function tripodCapture(tp, focus) {
 
   if (isLuckyBlockFocus) {
     showToast(
-      `<span class="t-bounty">LUCKY BLOCK!</span> <small>(tripod)</small><br>` +
+      `<span class="t-bounty">LUCKY BLOCK!</span> <small>(${label})</small><br>` +
       `It opens and a wild ${replacement.type.name} appears!`
     );
   } else {
     showToast(
-      `<span class="t-money">+${formatMoney(gained)}</span> <small>(tripod)</small><br>` +
+      `<span class="t-money">+${formatMoney(gained)}</span> <small>(${label})</small><br>` +
       (bountyHit ? `<span class="t-bounty">BOUNTY x20!</span> ` : "") +
       `${valueType.name} <small>(${formatRarity(valueType.r)})</small>` +
       (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
@@ -2088,12 +2355,13 @@ function drawTotemIcon(ctx, x, y, opts) {
   ctx.restore();
 }
 
-function drawCharmIcon(ctx, x, y, opts, color) {
+function drawCharmIcon(ctx, x, y, opts, color, sizeMult) {
   opts = opts || {};
+  sizeMult = sizeMult || 1;
   ctx.save();
   ctx.globalAlpha *= opts.alpha === undefined ? 1 : opts.alpha;
   ctx.fillStyle = color || "#2e7d32"; ctx.strokeStyle = "#1b5e20"; ctx.lineWidth = 1.4;
-  const r = 5, cy = y - 14;
+  const r = 5 * sizeMult, cy = y - 14;
   for (const [dx, dy] of [[-r * 0.85, -r * 0.85], [r * 0.85, -r * 0.85], [-r * 0.85, r * 0.85], [r * 0.85, r * 0.85]]) {
     ctx.beginPath(); ctx.arc(x + dx, cy + dy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
   }
@@ -2101,15 +2369,39 @@ function drawCharmIcon(ctx, x, y, opts, color) {
   ctx.restore();
 }
 
+function drawReliableTripodIcon(ctx, x, y, opts) {
+  opts = opts || {};
+  ctx.save();
+  ctx.globalAlpha *= opts.alpha === undefined ? 1 : opts.alpha;
+  ctx.strokeStyle = "#1565c0"; ctx.lineWidth = 3; ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x, y - 22); ctx.lineTo(x, y - 8);
+  ctx.moveTo(x, y - 8); ctx.lineTo(x - 13, y + 15);
+  ctx.moveTo(x, y - 8); ctx.lineTo(x + 13, y + 15);
+  ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 17);
+  ctx.stroke();
+  ctx.fillStyle = "#1565c0"; ctx.strokeStyle = "#0d47a1"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.rect(x - 9, y - 31, 18, 11); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 9px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("R", x, y - 25.5);
+  ctx.restore();
+}
+
 function drawPlaceKindIcon(kind, x, y, opts) {
   if (kind === "tripod") drawTripodIcon(ctx, x, y, opts);
+  else if (kind === "reliabletripod") drawReliableTripodIcon(ctx, x, y, opts);
   else if (kind === "totem") drawTotemIcon(ctx, x, y, opts);
   else if (kind === "luck") drawCharmIcon(ctx, x, y, opts, "#43a047");
   else if (kind === "clover") drawCharmIcon(ctx, x, y, opts, "#00c853");
+  else if (kind === "extraextraclover") drawCharmIcon(ctx, x, y, opts, "#00e676", 1.35);
 }
 
 function drawPlacedItems(t) {
-  for (const tp of tripods) drawTripodIcon(ctx, tp.x, tp.y);
+  for (const tp of tripods) {
+    if (tp.kind === "reliabletripod") drawReliableTripodIcon(ctx, tp.x, tp.y);
+    else drawTripodIcon(ctx, tp.x, tp.y);
+  }
   for (const fl of tripodFlashes) {
     const a = 1 - fl.t / 0.45;
     ctx.save();
@@ -2123,12 +2415,15 @@ function drawPlacedItems(t) {
     if (p.kind === "totem") drawTotemIcon(ctx, p.x, p.y);
     else if (p.kind === "luck") drawCharmIcon(ctx, p.x, p.y, null, "#43a047");
     else if (p.kind === "clover") drawCharmIcon(ctx, p.x, p.y, null, "#00c853");
+    else if (p.kind === "extraextraclover") drawCharmIcon(ctx, p.x, p.y, null, "#00e676", 1.35);
   }
   if (placeMode === "aiming") {
     if (placeKind === "tripod") drawTripodRange(ctx, placePreviewX, placePreviewY, TRIPOD_RANGE);
+    else if (placeKind === "reliabletripod") drawTripodRange(ctx, placePreviewX, placePreviewY, RELIABLE_TRIPOD_RANGE);
     drawPlaceKindIcon(placeKind, placePreviewX, placePreviewY, { alpha: 0.5 });
   } else if (placeMode === "pending" && pendingPlace) {
     if (placeKind === "tripod") drawTripodRange(ctx, pendingPlace.x, pendingPlace.y, TRIPOD_RANGE);
+    else if (placeKind === "reliabletripod") drawTripodRange(ctx, pendingPlace.x, pendingPlace.y, RELIABLE_TRIPOD_RANGE);
     drawPlaceKindIcon(placeKind, pendingPlace.x, pendingPlace.y, { alpha: 0.5 });
   }
 }
@@ -2154,10 +2449,15 @@ els.tripodInvBtn.addEventListener("click", makePlaceToggle("tripod"));
 els.totemInvBtn.addEventListener("click", makePlaceToggle("totem"));
 els.luckyCharmInvBtn.addEventListener("click", makePlaceToggle("luck"));
 els.extraCloverInvBtn.addEventListener("click", makePlaceToggle("clover"));
+els.extraExtraCloverInvBtn.addEventListener("click", makePlaceToggle("extraextraclover"));
+els.reliableTripodInvBtn.addEventListener("click", makePlaceToggle("reliabletripod"));
 els.placeConfirmYes.addEventListener("click", confirmPlace);
 els.placeConfirmNo.addEventListener("click", cancelPlaceMode);
 els.timefreezeInvBtn.addEventListener("click", useTimeFreeze);
 els.energyDrinkInvBtn.addEventListener("click", useEnergyDrink);
+els.overtimeInvBtn.addEventListener("click", useOvertime);
+els.equipmentBoxInvBtn.addEventListener("click", useEquipmentBox);
+els.energyOverloadInvBtn.addEventListener("click", useEnergyOverload);
 
 document.getElementById("wipe-btn").addEventListener("click", () => {
   if (confirm("Wipe ALL progress?\n\nThis permanently deletes your money and your entire Stickdex. This cannot be undone.")) {
@@ -2195,11 +2495,15 @@ window.addEventListener("keydown", e => {
 
 window.__debug = {
   stickmen, portals, state, buildShop, spawn, spawnQueue, particles,
+  startRainbowEvent, startGoldenEvent, startStampedeEvent, useOvertime, anyEventActive,
   peek: () => ({
     money: state.money, fasterCamera: state.fasterCamera,
     tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
     luckyCharmCount: state.luckyCharmCount,
-    placeMode, placeKind, tripods: tripods.length, placedProps: placedProps.length, timeFreezeUntil, luckUntil, totemUntil, energyDrinkUntil, now: performance.now()
+    placeMode, placeKind, tripods: tripods.length, placedProps: placedProps.length, timeFreezeUntil, luckUntil, totemUntil, energyDrinkUntil,
+    energyOverloadUntil, extraExtraCloverUntil,
+    rainbowUntil, goldenUntil, stampedeUntil, rainbowOvertimeUsed, goldenOvertimeUsed, stampedeOvertimeUsed,
+    now: performance.now()
   })
 }; // headless inspection hook
 
@@ -2239,11 +2543,14 @@ function frame(now) {
   updateCloverTimer(now);
   updateTotemTimer(now);
   updateEnergyDrinkTimer(now);
+  updateExtraExtraCloverTimer(now);
+  updateEnergyOverloadTimer(now);
   checkAchievements(dt);
 
   const frozen = now < timeFreezeUntil;
   const stampeding = now < stampedeUntil;
   const energized = now < energyDrinkUntil;
+  const overloaded = now < energyOverloadUntil;
   let worldDt = dt;
   if (frozen) {
     worldDt = dt * TIME_FREEZE_SCALE;
@@ -2251,6 +2558,7 @@ function frame(now) {
     let speedMult = 1;
     if (stampeding) speedMult *= STAMPEDE_SPEED_MULT;
     if (energized) speedMult *= ENERGY_DRINK_SPEED_MULT;
+    if (overloaded) speedMult *= ENERGY_OVERLOAD_SPEED_MULT;
     worldDt = dt * speedMult;
   }
   updateWorld(worldDt, t);
@@ -2290,6 +2598,11 @@ updateLuckyCharmInvBadge();
 updateExtraCloverInvBadge();
 updateTotemInvBadge();
 updateEnergyDrinkInvBadge();
+updateOvertimeInvBadge();
+updateEquipmentBoxInvBadge();
+updateExtraExtraCloverInvBadge();
+updateEnergyOverloadInvBadge();
+updateReliableTripodInvBadge();
 if (state.bountyId) renderBounty(); else pickBounty();
 
 // initial population spread across the screen — gated by the same spawn

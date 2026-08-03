@@ -118,6 +118,20 @@
   <span id="energydrink-timer-time">1:00</span>
 </div>
 
+<!-- Extra Extra Lucky Charm countdown -->
+<div id="extraextraclover-timer" class="hidden">
+  <span id="extraextraclover-timer-label">Extra Extra Lucky Charm! 4x luck</span>
+  <div id="extraextraclover-timer-bar"><div id="extraextraclover-timer-fill"></div></div>
+  <span id="extraextraclover-timer-time">3:00</span>
+</div>
+
+<!-- Energy Overload countdown -->
+<div id="energyoverload-timer" class="hidden">
+  <span id="energyoverload-timer-label">Energy Overload! Everyone speeds up</span>
+  <div id="energyoverload-timer-bar"><div id="energyoverload-timer-fill"></div></div>
+  <span id="energyoverload-timer-time">2:00</span>
+</div>
+
 <!-- Achievements -->
 <div id="achievements-backdrop"></div>
 <div id="achievements">
@@ -148,6 +162,8 @@
     <div id="shop-money">$0</div>
   </div>
   <div id="shop-list">
+   <div class="shop-column">
+    <h3 class="shop-section-title">Upgrades</h3>
     <div class="shop-item">
       <div class="shop-item-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -176,6 +192,9 @@
       </div>
       <button id="buy-multicapture" class="shop-buy-btn">$25,000</button>
     </div>
+   </div>
+   <div class="shop-column">
+    <h3 class="shop-section-title">Items</h3>
     <div class="shop-item">
       <div class="shop-item-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -256,8 +275,9 @@
     <div class="shop-item">
       <div class="shop-item-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 3h8v3l-1.5 1.5v11a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-11L8 6Z"/>
-          <path d="M13 9l-3 5h2.2l-1 4 3.8-6h-2.2Z" fill="currentColor" stroke="none"/>
+          <rect x="7" y="3" width="10" height="18" rx="2"/>
+          <ellipse cx="12" cy="3" rx="5" ry="1.3"/>
+          <path d="M13 8.5l-3 5h2.2l-1 4 3.8-6h-2.2Z" fill="currentColor" stroke="none"/>
         </svg>
       </div>
       <div class="shop-item-info">
@@ -267,6 +287,38 @@
       </div>
       <button id="buy-energydrink" class="shop-buy-btn">$20,000</button>
     </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="13" r="8"/>
+          <path d="M12 13V9"/>
+          <path d="M9 2h6"/>
+          <path d="M18.5 5.5l1.5-1.5"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Overtime</div>
+        <div class="shop-item-desc">One-use. Only usable during a Rainbow, Golden, or Stampede event — adds 3 more minutes (1 for Stampede) to it. Once per event.</div>
+        <div class="shop-item-owned">Owned: <span id="overtime-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-overtime" class="shop-buy-btn">$100,000</button>
+    </div>
+    <div class="shop-item">
+      <div class="shop-item-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-5 9 5-9 5-9-5Z"/>
+          <path d="M3 9v8l9 5 9-5V9"/>
+          <path d="M12 14v8"/>
+        </svg>
+      </div>
+      <div class="shop-item-info">
+        <div class="shop-item-name">Equipment Box</div>
+        <div class="shop-item-desc">One-use. A sealed box of unknown equipment — open it to find out what's inside.</div>
+        <div class="shop-item-owned">Owned: <span id="equipmentbox-owned-count">0</span> / 99</div>
+      </div>
+      <button id="buy-equipmentbox" class="shop-buy-btn">$50,000</button>
+    </div>
+   </div>
   </div>
 </div>
 
@@ -316,10 +368,54 @@
   </button>
   <button id="energydrink-inv-btn" class="inv-btn hidden" title="Use an Energy Drink" aria-label="Use energy drink">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="7" y="3" width="10" height="18" rx="2"/>
+      <ellipse cx="12" cy="3" rx="5" ry="1.3"/>
+      <path d="M13 8.5l-3 5h2.2l-1 4 3.8-6h-2.2Z" fill="currentColor" stroke="none"/>
+    </svg>
+    <span id="energydrink-inv-count">0</span>
+  </button>
+  <button id="overtime-inv-btn" class="inv-btn hidden" title="Use Overtime" aria-label="Use overtime">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="13" r="8"/>
+      <path d="M12 13V9"/>
+      <path d="M9 2h6"/>
+      <path d="M18.5 5.5l1.5-1.5"/>
+    </svg>
+    <span id="overtime-inv-count">0</span>
+  </button>
+  <button id="equipmentbox-inv-btn" class="inv-btn hidden" title="Open an Equipment Box" aria-label="Open equipment box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 9l9-5 9 5-9 5-9-5Z"/>
+      <path d="M3 9v8l9 5 9-5V9"/>
+      <path d="M12 14v8"/>
+    </svg>
+    <span id="equipmentbox-inv-count">0</span>
+  </button>
+  <button id="extraextraclover-inv-btn" class="inv-btn hidden" title="Place an Extra Extra Lucky Charm" aria-label="Place extra extra lucky charm">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="8.5" cy="7" r="5.2"/>
+      <circle cx="15.5" cy="7" r="5.2"/>
+      <circle cx="8.5" cy="15" r="5.2"/>
+      <circle cx="15.5" cy="15" r="5.2"/>
+      <path d="M12 15.5v7.5"/>
+    </svg>
+    <span id="extraextraclover-inv-count">0</span>
+  </button>
+  <button id="energyoverload-inv-btn" class="inv-btn hidden" title="Use an Energy Overload" aria-label="Use energy overload">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M8 3h8v3l-1.5 1.5v11a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-11L8 6Z"/>
       <path d="M13 9l-3 5h2.2l-1 4 3.8-6h-2.2Z" fill="currentColor" stroke="none"/>
     </svg>
-    <span id="energydrink-inv-count">0</span>
+    <span id="energyoverload-inv-count">0</span>
+  </button>
+  <button id="reliabletripod-inv-btn" class="inv-btn hidden" title="Place a Reliable Tripod" aria-label="Place reliable tripod">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 1.5h8v6H8Z" fill="none" stroke="#2196f3"/>
+      <path d="M12 7.5v6M12 13.5l-7 9M12 13.5l7 9M6 22.5h2M16 22.5h2" fill="none" stroke="#2196f3"/>
+      <circle cx="18" cy="5" r="4.2" fill="#2196f3" stroke="none"/>
+      <text x="18" y="7.3" font-size="6.5" fill="#fff" text-anchor="middle" font-family="sans-serif" font-weight="bold">R</text>
+    </svg>
+    <span id="reliabletripod-inv-count">0</span>
   </button>
 </div>
 

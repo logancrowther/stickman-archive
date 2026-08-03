@@ -255,6 +255,54 @@ body.camera-mode #energydrink-timer { bottom: 354px; }
 }
 #energydrink-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
 
+#extraextraclover-timer {
+  position: fixed; bottom: 364px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #69f0ae;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #extraextraclover-timer { bottom: 404px; }
+#extraextraclover-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#extraextraclover-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #004d26, #00c853, #69f0ae);
+}
+#extraextraclover-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
+#energyoverload-timer {
+  position: fixed; bottom: 414px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(0, 0, 0, 0.75); color: #ff4081;
+  padding: 7px 14px; border-radius: 16px;
+  font-size: 12px; font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+}
+body.camera-mode #energyoverload-timer { bottom: 454px; }
+#energyoverload-timer-bar {
+  width: 80px; height: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  overflow: hidden;
+}
+#energyoverload-timer-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, #880e4f, #c2185b, #ff4081);
+}
+#energyoverload-timer-time { min-width: 30px; text-align: right; font-variant-numeric: tabular-nums; }
+
 .hidden { display: none !important; }
 
 /* ---------- HUD ---------- */
@@ -578,14 +626,34 @@ body.camera-mode #wipe-btn { display: none; }
 #shop-money { margin-left: auto; font-size: clamp(15px, 3vw, 20px); font-weight: 700; }
 #shop-list {
   flex: 1;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  display: flex; flex-direction: row;
+  gap: 20px;
   padding: 16px;
-  display: flex; flex-direction: column;
-  gap: 14px;
-  max-width: 640px;
+  max-width: 1000px;
   margin: 0 auto;
   width: 100%;
+}
+.shop-column {
+  flex: 1;
+  min-width: 0;
+  display: flex; flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 4px;
+}
+.shop-column + .shop-column {
+  border-left: 2px solid #eee;
+  padding-left: 20px;
+}
+.shop-section-title {
+  font-size: 13px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: #777;
+  position: sticky; top: 0;
+  background: #fff;
+  padding-bottom: 2px;
 }
 .shop-item {
   display: flex; align-items: center; gap: 14px;
@@ -689,6 +757,9 @@ body.place-aiming #world { cursor: none; }
   .shop-item-icon { width: 34px; height: 34px; }
   .shop-item-icon svg { width: 28px; height: 28px; }
   .shop-buy-btn { padding: 8px 10px; font-size: 12.5px; }
+  #shop-list { flex-direction: column; overflow-y: auto; gap: 18px; }
+  .shop-column { overflow-y: visible; }
+  .shop-column + .shop-column { border-left: none; padding-left: 0; border-top: 2px solid #eee; padding-top: 14px; }
   #inventory-bar { gap: 8px; }
   .inv-btn { width: 44px; height: 44px; }
   .inv-btn svg { width: 24px; height: 24px; }
