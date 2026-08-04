@@ -2533,7 +2533,7 @@ if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
       rainbowUntil, goldenUntil, stampedeUntil, rainbowOvertimeUsed, goldenOvertimeUsed, stampedeOvertimeUsed,
       now: performance.now()
     })
-  }; // headless inspection hook — local dev/testing only, never shipped to the live site
+  };
 }
 
 window.addEventListener("mousemove", e => {

@@ -4,8 +4,8 @@
 // RARITY_SCALE); ids 151-999 fall on a single smooth, strictly-decreasing
 // curve between them (see TAIL_START_R / TAIL_END_R) so rarity is guaranteed
 // to only ever go down as id goes up — no id is ever easier to find than a
-// lower one. #1000 (The Archive Itself) is pinned to its original value and
-// is not affected by RARITY_SCALE.
+// lower one. Everything except Circle (#1) and The Archive Itself (#1000) is
+// then eased a bit more common by EASE_EXPONENT.
 //
 // The old ids-151+ formula repeated the same "50-block" shape over and over
 // with a magnitude that stopped shrinking after a few blocks, which produced
@@ -49,16 +49,28 @@ const TAIL_END_ID = 999;
 const TAIL_START_R = 0.000009 * RARITY_SCALE;      // just under scaled #150
 const TAIL_END_R = RARITY_1000_FIXED * 50;         // clearly above #1000, never equal to it
 
-function rarityOf(id) {
-  if (id === 1000) return RARITY_1000_FIXED;
-  // #1-3 are pinned to exact requested values (not run through RARITY_SCALE):
-  // Circle 70%, Square 2%, Triangle sits at the geometric midpoint between
-  // Square and the (scaled) #4 so the drop-off there is even, rather than
-  // the old near-tie between #3 and #4.
+// Applied to every type's chance except Circle (#1) and The Archive Itself
+// (#1000), both pinned exactly and never touched. Rarity values are tiny
+// fractions of a percent, so an exponent < 1 pulls them all a bit closer to
+// "common" — mildly near Circle, much more so in the deep tail — while a
+// power function preserves the strict decreasing order between ids.
+const EASE_EXPONENT = 0.94;
+
+function rawRarityOf(id) {
+  // #2-3 are pinned to exact requested values (not run through RARITY_SCALE):
+  // Square 2%, Triangle sits at the geometric midpoint between Square and
+  // the (scaled) #4 so the drop-off there is even, rather than the old
+  // near-tie between #3 and #4.
   if (id <= 3) return RARITY_1_150[id - 1];
   if (id <= 150) return RARITY_1_150[id - 1] * RARITY_SCALE;
   const t = (id - TAIL_START_ID) / (TAIL_END_ID - TAIL_START_ID);
   return TAIL_START_R * Math.pow(TAIL_END_R / TAIL_START_R, t);
+}
+
+function rarityOf(id) {
+  if (id === 1000) return RARITY_1000_FIXED;
+  if (id === 1) return RARITY_1_150[0]; // Circle, pinned exactly
+  return 100 * Math.pow(rawRarityOf(id) / 100, EASE_EXPONENT);
 }
 
 // Display a rarity percentage exactly like the master list (no scientific notation).
