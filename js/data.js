@@ -73,15 +73,21 @@ function rarityOf(id) {
   return 100 * Math.pow(rawRarityOf(id) / 100, EASE_EXPONENT);
 }
 
-// Display a rarity percentage exactly like the master list (no scientific notation).
+// Display a rarity percentage at 3 significant figures (leading zeros don't
+// count, trailing zeros past the 3rd significant digit are dropped), always
+// as a plain decimal — never scientific notation, no matter how tiny.
 function formatRarity(p) {
-  if (p >= 0.001) {
-    let s = p.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
-    return s + "%";
+  let exp = Math.floor(Math.log10(p));
+  let mantissa = p / Math.pow(10, exp);
+  // Guard against toPrecision rounding a mantissa like 9.996 up to "10.0".
+  if (parseFloat(mantissa.toPrecision(3)) >= 10) { mantissa /= 10; exp += 1; }
+  const digits = mantissa.toPrecision(3).replace(".", "").replace(/0+$/, "");
+  if (exp >= digits.length - 1) {
+    return digits + "0".repeat(exp - (digits.length - 1)) + "%";
+  } else if (exp >= 0) {
+    return digits.slice(0, exp + 1) + "." + digits.slice(exp + 1) + "%";
   }
-  const exp = Math.floor(Math.log10(p));
-  let mant = (p / Math.pow(10, exp)).toPrecision(3).replace(/\.?0+$/, "").replace(".", "");
-  return "0." + "0".repeat(-exp - 1) + mant + "%";
+  return "0." + "0".repeat(-exp - 1) + digits + "%";
 }
 
 // Money value of a photo of this type (grows with rarity; ids break ties).
