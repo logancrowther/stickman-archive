@@ -21,7 +21,6 @@ const els = {
   stickdex: document.getElementById("stickdex"),
   dexBack: document.getElementById("dex-back"),
   dexMoney: document.getElementById("dex-money"),
-  dexCode: document.getElementById("dex-code"),
   dexCount: document.getElementById("dex-count"),
   dexGrid: document.getElementById("dex-grid"),
   shopBtn: document.getElementById("shop-btn"),
@@ -107,6 +106,22 @@ const els = {
 };
 
 const SAVE_KEY = "stickmanArchiveSaveV1";
+
+// Save integrity: the save is signed with a checksum computed from a secret
+// baked into this file. This is a deterrent, not real security — the secret
+// ships to the browser, so someone who reads (or has an AI reproduce) this
+// exact function can still forge a valid signature. What it does stop is
+// hand-editing save values in DevTools without touching this logic, which is
+// the actual thing that happened. See loadState()/saveState() below.
+const SAVE_SIGNING_SECRET = "sa-integrity-v1";
+function computeSaveSignature(str) {
+  let h = 2166136261 >>> 0;
+  const s = SAVE_SIGNING_SECRET + str;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(36);
+}
+const TAMPER_MSG_KEY = "stickmanArchiveTamperMsg"; // sessionStorage, survives the one reload
+
 const FRAME_COOLDOWN_MS = 10 * 60 * 1000; // same type can't be the bounty within 10 minutes
 const BOUNTY_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -306,10 +321,23 @@ function loadState() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return;
-    const s = JSON.parse(raw);
+    const wrapper = JSON.parse(raw);
+    if (!wrapper || typeof wrapper.data !== "string") {
+      // Pre-signing save format — every save that exists before this feature
+      // shipped. No grace period: all of them get wiped on this update.
+      flagTamperedAndWipe("reset");
+      return;
+    }
+    if (computeSaveSignature(wrapper.data) !== wrapper.sig) {
+      flagTamperedAndWipe("tampered");
+      return;
+    }
+    const s = JSON.parse(wrapper.data);
     Object.assign(state, s);
     if (state.bountyId && !TYPES[state.bountyId - 1]) state.bountyId = null;
-  } catch (e) { /* corrupted save — start fresh */ }
+  } catch (e) {
+    flagTamperedAndWipe("tampered"); // corrupted/hand-broken save — same treatment as a signature mismatch
+  }
 }
 
 let saveDirty = false;
@@ -319,13 +347,28 @@ function saveState(force) {
   if (!force && !saveDirty) return;
   saveDirty = false;
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    const dataStr = JSON.stringify(state);
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ data: dataStr, sig: computeSaveSignature(dataStr) }));
   } catch (e) {
     // Quota exceeded — drop oldest thumbnails and retry once.
     const ids = Object.keys(state.dex);
     for (let i = 0; i < ids.length && i < 200; i++) delete state.dex[ids[i]].t;
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e2) {}
+    try {
+      const dataStr = JSON.stringify(state);
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ data: dataStr, sig: computeSaveSignature(dataStr) }));
+    } catch (e2) {}
   }
+}
+
+// Save was hand-edited (or otherwise corrupted) outside normal play, or
+// predates this integrity check entirely: refuse to let it be played at
+// all — wipe it and restart clean before any frame renders, rather than
+// showing a dismissable warning.
+function flagTamperedAndWipe(reason) {
+  wiping = true;
+  localStorage.removeItem(SAVE_KEY);
+  sessionStorage.setItem(TAMPER_MSG_KEY, reason);
+  location.reload();
 }
 
 // ------------------------------------------------------------------
@@ -717,8 +760,6 @@ function drawPortals(t) {
 let kingEvent = null; // { king, t } while the coronation is running
 const kingFlash = document.createElement("div");
 kingFlash.id = "king-flash";
-kingFlash.style.cssText =
-  "position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:150;";
 document.body.appendChild(kingFlash);
 
 function kneel(s) {
@@ -2467,20 +2508,6 @@ document.getElementById("wipe-btn").addEventListener("click", () => {
   }
 });
 
-els.dexCode.addEventListener("input", () => {
-  const v = els.dexCode.value.trim();
-  if (v === "3874") {
-    els.dexCode.value = "";
-    wiping = true;
-    localStorage.removeItem(SAVE_KEY);
-    location.reload();
-  } else if (v === "8395") {
-    els.dexCode.value = "";
-    spawnQueue.push(LUCKY_BLOCK_ID);
-    showToast(`Queued <strong>Lucky Block</strong>`);
-  }
-});
-
 window.addEventListener("keydown", e => {
   if (e.target && e.target.tagName === "INPUT") return; // typing in a text box
   if (e.key === "Escape") {
@@ -2493,19 +2520,21 @@ window.addEventListener("keydown", e => {
   if (e.key === "c" || e.key === "C") toggleCamera();
 });
 
-window.__debug = {
-  stickmen, portals, state, buildShop, spawn, spawnQueue, particles,
-  startRainbowEvent, startGoldenEvent, startStampedeEvent, useOvertime, anyEventActive,
-  peek: () => ({
-    money: state.money, fasterCamera: state.fasterCamera,
-    tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
-    luckyCharmCount: state.luckyCharmCount,
-    placeMode, placeKind, tripods: tripods.length, placedProps: placedProps.length, timeFreezeUntil, luckUntil, totemUntil, energyDrinkUntil,
-    energyOverloadUntil, extraExtraCloverUntil,
-    rainbowUntil, goldenUntil, stampedeUntil, rainbowOvertimeUsed, goldenOvertimeUsed, stampedeOvertimeUsed,
-    now: performance.now()
-  })
-}; // headless inspection hook
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+  window.__debug = {
+    stickmen, portals, state, buildShop, spawn, spawnQueue, particles,
+    startRainbowEvent, startGoldenEvent, startStampedeEvent, useOvertime, anyEventActive,
+    peek: () => ({
+      money: state.money, fasterCamera: state.fasterCamera,
+      tripodCount: state.tripodCount, timeFreezeCount: state.timeFreezeCount,
+      luckyCharmCount: state.luckyCharmCount,
+      placeMode, placeKind, tripods: tripods.length, placedProps: placedProps.length, timeFreezeUntil, luckUntil, totemUntil, energyDrinkUntil,
+      energyOverloadUntil, extraExtraCloverUntil,
+      rainbowUntil, goldenUntil, stampedeUntil, rainbowOvertimeUsed, goldenOvertimeUsed, stampedeOvertimeUsed,
+      now: performance.now()
+    })
+  }; // headless inspection hook — local dev/testing only, never shipped to the live site
+}
 
 window.addEventListener("mousemove", e => {
   if (cameraMode) setViewfinder(e.clientX, e.clientY);
@@ -2589,6 +2618,18 @@ function frame(now) {
 // Boot
 // ------------------------------------------------------------------
 loadState();
+// location.reload() (inside flagTamperedAndWipe) doesn't halt this synchronous
+// script — skip the check here if a reload was just triggered, since the
+// sessionStorage flag it just set needs to survive to the NEXT (fresh) load.
+if (!wiping) {
+  const tamperReason = sessionStorage.getItem(TAMPER_MSG_KEY);
+  if (tamperReason) {
+    sessionStorage.removeItem(TAMPER_MSG_KEY);
+    showToast(tamperReason === "tampered"
+      ? "Save reset — this file was modified outside normal play."
+      : "Progress reset — a security update required all saves to restart fresh.");
+  }
+}
 rainbowCheckBlock = Math.floor(state.playMinutes / RAINBOW_CHECK_INTERVAL_MIN); // don't retroactively roll past blocks
 goldenCheckBlock = Math.floor(state.playMinutes / GOLDEN_CHECK_INTERVAL_MIN);   // don't retroactively roll past blocks
 updateMoneyDisplay(false);
