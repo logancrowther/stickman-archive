@@ -1,3 +1,4 @@
+// Copyright (c) 2026 logancrowther. All rights reserved. See LICENSE.
 // Stickman Archive — game engine: world sim, camera, bounty frame, Stickdex, saving.
 
 "use strict";
@@ -120,6 +121,25 @@ function computeSaveSignature(str) {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(36);
 }
+
+// The stored save is also XOR-obscured before it's signed, so opening
+// DevTools > Application > Local Storage shows base64 noise instead of a
+// plain JSON object with readable field names like "money". Same caveat as
+// the signature above: the key ships in this file, so this stops casual
+// inspection/hand-editing, not someone willing to read this function.
+const SAVE_ENCRYPTION_KEY = "sa-obscure-v1";
+function xorWithKey(str, key) {
+  let out = "";
+  for (let i = 0; i < str.length; i++) out += String.fromCharCode(str.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+  return out;
+}
+function encryptSave(str) {
+  return btoa(xorWithKey(unescape(encodeURIComponent(str)), SAVE_ENCRYPTION_KEY));
+}
+function decryptSave(str) {
+  return decodeURIComponent(escape(xorWithKey(atob(str), SAVE_ENCRYPTION_KEY)));
+}
+
 const TAMPER_MSG_KEY = "stickmanArchiveTamperMsg"; // sessionStorage, survives the one reload
 
 const FRAME_COOLDOWN_MS = 10 * 60 * 1000; // same type can't be the bounty within 10 minutes
@@ -332,7 +352,7 @@ function loadState() {
       flagTamperedAndWipe("tampered");
       return;
     }
-    const s = JSON.parse(wrapper.data);
+    const s = JSON.parse(decryptSave(wrapper.data));
     Object.assign(state, s);
     if (state.bountyId && !TYPES[state.bountyId - 1]) state.bountyId = null;
   } catch (e) {
@@ -346,15 +366,34 @@ function saveState(force) {
   if (wiping) return;
   if (!force && !saveDirty) return;
   saveDirty = false;
+  // Refuse to blindly overwrite a save that was tampered with out-of-band
+  // (hand-edited in DevTools) since we last wrote it. Without this check,
+  // the beforeunload/visibility-hidden autosave below silently re-signs the
+  // current in-memory state over the tampered entry before a reload's
+  // loadState() ever gets to see it — quietly defeating the wipe entirely
+  // instead of triggering it.
+  const existing = localStorage.getItem(SAVE_KEY);
+  if (existing) {
+    try {
+      const wrapper = JSON.parse(existing);
+      if (!wrapper || typeof wrapper.data !== "string" || computeSaveSignature(wrapper.data) !== wrapper.sig) {
+        flagTamperedAndWipe("tampered");
+        return;
+      }
+    } catch (e) {
+      flagTamperedAndWipe("tampered");
+      return;
+    }
+  }
   try {
-    const dataStr = JSON.stringify(state);
+    const dataStr = encryptSave(JSON.stringify(state));
     localStorage.setItem(SAVE_KEY, JSON.stringify({ data: dataStr, sig: computeSaveSignature(dataStr) }));
   } catch (e) {
     // Quota exceeded — drop oldest thumbnails and retry once.
     const ids = Object.keys(state.dex);
     for (let i = 0; i < ids.length && i < 200; i++) delete state.dex[ids[i]].t;
     try {
-      const dataStr = JSON.stringify(state);
+      const dataStr = encryptSave(JSON.stringify(state));
       localStorage.setItem(SAVE_KEY, JSON.stringify({ data: dataStr, sig: computeSaveSignature(dataStr) }));
     } catch (e2) {}
   }

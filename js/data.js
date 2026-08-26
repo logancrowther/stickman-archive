@@ -1,3 +1,4 @@
+// Copyright (c) 2026 logancrowther. All rights reserved. See LICENSE.
 // Stickman Archive — all 1000 stickman types.
 // NAMES[i] = [name, description]. Rarity (in %) is computed by rarityOf(id):
 // ids 1-150 use the explicit hand-tuned values below (scaled down by

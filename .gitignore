@@ -13,3 +13,5 @@ desktop.ini
 # Scratch / build output
 scratchpad/
 *.log
+node_modules/
+dist/

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 logancrowther. All rights reserved. See LICENSE.
 // Stickman Archive — procedural appearance system.
 // Looks are derived from word-boundary keyword rules over each type's
 // name/description, then corrected per-id by the OVERRIDES table so every

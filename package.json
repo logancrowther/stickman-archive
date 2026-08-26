@@ -1,0 +1,12 @@
+{
+  "name": "stickman-archive-build",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Build-time tooling only — the game itself ships with no build step for local dev.",
+  "scripts": {
+    "build": "node build/obfuscate.js"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^4.1.1"
+  }
+}
