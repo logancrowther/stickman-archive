@@ -36,6 +36,9 @@ const els = {
   shopMoney: document.getElementById("shop-money"),
   buyFasterCam: document.getElementById("buy-fastercam"),
   buyMultiCapture: document.getElementById("buy-multicapture"),
+  buyPermLuck: document.getElementById("buy-permluck"),
+  buyPermCash: document.getElementById("buy-permcash"),
+  permCashDesc: document.getElementById("permcash-desc"),
   buyTripod: document.getElementById("buy-tripod"),
   buyTimefreeze: document.getElementById("buy-timefreeze"),
   buyLuckyCharm: document.getElementById("buy-luckycharm"),
@@ -154,6 +157,14 @@ const BOUNTY_TIMEOUT_MS = 10 * 60 * 1000;
 // Shop
 const FASTER_CAMERA_COST = 15000;
 const MULTI_CAPTURE_COST = 25000;
+const PERM_LUCK_COST = 75000;
+const PERM_LUCK_MULT = 1.5;    // permanent — same rarity cutoff as the luck charms (LUCKY_CHARM_RARE_CUTOFF)
+// Permanent Cash Boost is two tiers — tier 2 replaces tier 1 rather than stacking with it.
+const PERM_CASH_TIER1_COST = 25000;
+const PERM_CASH_TIER1_MULT = 1.25;
+const PERM_CASH_TIER2_COST = 50000;
+const PERM_CASH_TIER2_MULT = 1.5;
+const PERM_CASH_MULT_BY_LEVEL = [1, PERM_CASH_TIER1_MULT, PERM_CASH_TIER2_MULT]; // only applies to photo payouts, not the gift or achievement rewards
 const TRIPOD_COST = 3000;
 const TRIPOD_MAX = 99;
 const TRIPOD_RANGE = 100;             // px radius a placed tripod watches
@@ -252,6 +263,8 @@ const state = {
   bountySetAt: 0,
   fasterCamera: false, // owns the Faster Camera upgrade
   multiCapture: false, // owns the Multi Capture upgrade
+  permLuck: false,     // owns the permanent 1.5x Luck upgrade
+  permCashLevel: 0,    // 0 = none, 1 = permanent 1.25x Cash, 2 = permanent 1.5x Cash (replaces tier 1)
   tripodCount: 0,        // unplaced tripods in inventory
   timeFreezeCount: 0,    // unused Time Freezes in inventory
   luckyCharmCount: 0,    // unused Lucky Charms in inventory
@@ -431,6 +444,7 @@ function rebuildWeights() {
   if (luckUntil > now) luckMult *= LUCKY_CHARM_RARE_MULT;
   if (cloverUntil > now) luckMult *= EXTRA_CLOVER_RARE_MULT;
   if (extraExtraCloverUntil > now) luckMult *= EXTRA_EXTRA_CLOVER_RARE_MULT;
+  if (state.permLuck) luckMult *= PERM_LUCK_MULT;
   if (cumWeights && weightsBountyId === state.bountyId && weightsRainbowActive === rainbowActive && weightsLuckMult === luckMult) return;
   weightsBountyId = state.bountyId;
   weightsRainbowActive = rainbowActive;
@@ -1541,6 +1555,7 @@ function takePhoto() {
   // fly-to-folder animation (see playFrameAnimation).
   if (bountyHit) { rollBounty(); state.bountiesCollected++; }
   if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
+  if (state.permCashLevel) gained *= PERM_CASH_MULT_BY_LEVEL[state.permCashLevel];
   state.money += gained;
 
   let newType = false;
@@ -1837,6 +1852,36 @@ function buildShop() {
     els.buyMultiCapture.classList.remove("owned");
   }
 
+  if (state.permLuck) {
+    els.buyPermLuck.textContent = "Owned";
+    els.buyPermLuck.disabled = true;
+    els.buyPermLuck.classList.add("owned");
+  } else {
+    els.buyPermLuck.textContent = formatMoney(PERM_LUCK_COST);
+    els.buyPermLuck.disabled = state.money < PERM_LUCK_COST;
+    els.buyPermLuck.classList.remove("owned");
+  }
+
+  const PERM_CASH_DESCS = {
+    0: "Permanent 1.25x money from photos.",
+    1: "Owned: 1.25x money from photos. Upgrade to 1.5x for $50,000 — replaces the 1.25x, doesn't stack.",
+    2: "Owned: 1.5x money from photos."
+  };
+  els.permCashDesc.textContent = PERM_CASH_DESCS[state.permCashLevel];
+  if (state.permCashLevel >= 2) {
+    els.buyPermCash.textContent = "Owned";
+    els.buyPermCash.disabled = true;
+    els.buyPermCash.classList.add("owned");
+  } else if (state.permCashLevel === 1) {
+    els.buyPermCash.textContent = formatMoney(PERM_CASH_TIER2_COST);
+    els.buyPermCash.disabled = state.money < PERM_CASH_TIER2_COST;
+    els.buyPermCash.classList.remove("owned");
+  } else {
+    els.buyPermCash.textContent = formatMoney(PERM_CASH_TIER1_COST);
+    els.buyPermCash.disabled = state.money < PERM_CASH_TIER1_COST;
+    els.buyPermCash.classList.remove("owned");
+  }
+
   els.tripodOwnedCount.textContent = state.tripodCount;
   els.buyTripod.textContent = formatMoney(TRIPOD_COST);
   els.buyTripod.disabled = state.money < TRIPOD_COST || state.tripodCount >= TRIPOD_MAX;
@@ -1898,6 +1943,33 @@ els.buyMultiCapture.addEventListener("click", () => {
   saveDirty = true;
   buildShop();
   showToast(`<span class="t-new">Multi Capture purchased!</span>`);
+});
+
+els.buyPermLuck.addEventListener("click", () => {
+  if (state.permLuck || state.money < PERM_LUCK_COST) return;
+  state.money -= PERM_LUCK_COST;
+  state.permLuck = true;
+  saveDirty = true;
+  buildShop();
+  showToast(`<span class="t-new">Permanent Luck purchased!</span>`);
+});
+
+els.buyPermCash.addEventListener("click", () => {
+  if (state.permCashLevel === 0) {
+    if (state.money < PERM_CASH_TIER1_COST) return;
+    state.money -= PERM_CASH_TIER1_COST;
+    state.permCashLevel = 1;
+    showToast(`<span class="t-new">Permanent Cash Boost purchased! (1.25x)</span>`);
+  } else if (state.permCashLevel === 1) {
+    if (state.money < PERM_CASH_TIER2_COST) return;
+    state.money -= PERM_CASH_TIER2_COST;
+    state.permCashLevel = 2;
+    showToast(`<span class="t-new">Permanent Cash Boost upgraded! (1.5x)</span>`);
+  } else {
+    return;
+  }
+  saveDirty = true;
+  buildShop();
 });
 
 els.buyTripod.addEventListener("click", () => {
@@ -2416,6 +2488,7 @@ function tripodCapture(tp, focus) {
   const bountyHit = state.bountyId === valueType.id;
   let gained = isLuckyBlockFocus ? 0 : (bountyHit ? valueType.value * 20 : valueType.value);
   if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
+  if (state.permCashLevel) gained *= PERM_CASH_MULT_BY_LEVEL[state.permCashLevel];
   state.money += gained;
 
   focus.shot = true;
