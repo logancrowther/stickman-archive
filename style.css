@@ -548,6 +548,39 @@ body.camera-mode #wipe-btn { display: none; }
 .ach-claim-btn:active { transform: scale(0.95); }
 .ach-claimed-badge { margin-top: 8px; font-size: 12px; font-weight: 700; color: #17a832; }
 
+/* ---------- Free Gift (small centered window) ---------- */
+#gift-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 129;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+#gift-backdrop.open { opacity: 1; pointer-events: auto; }
+
+#gift-modal {
+  position: fixed; top: 50%; left: 50%;
+  width: 280px; max-width: 85vw;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  z-index: 130;
+  padding: 22px 18px 20px;
+  text-align: center;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+#gift-modal.open { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+#gift-close { position: absolute; top: 4px; right: 4px; width: 32px; height: 32px; }
+#gift-close svg { width: 18px; height: 18px; }
+#gift-text { font-size: 16px; font-weight: 800; margin: 10px 0 16px; }
+#gift-modal .ach-claim-btn { margin-top: 0; font-size: 14px; padding: 8px 18px; }
+#gift-modal .ach-claimed-badge { margin-top: 0; font-size: 14px; }
+
 #stickdex {
   position: fixed; inset: 0;
   background: #fff;

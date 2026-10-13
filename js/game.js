@@ -9,6 +9,12 @@ const canvas = document.getElementById("world");
 const ctx = canvas.getContext("2d");
 const els = {
   money: document.getElementById("money"),
+  giftBtn: document.getElementById("gift-btn"),
+  giftBackdrop: document.getElementById("gift-backdrop"),
+  giftModal: document.getElementById("gift-modal"),
+  giftClose: document.getElementById("gift-close"),
+  giftClaimBtn: document.getElementById("gift-claim-btn"),
+  giftClaimedBadge: document.getElementById("gift-claimed-badge"),
   cameraBtn: document.getElementById("camera-btn"),
   folderBtn: document.getElementById("folder-btn"),
   frame: document.getElementById("frame"),
@@ -160,7 +166,7 @@ const TIME_FREEZE_SCALE = 0.04; // how much the world slows to while frozen
 const LUCKY_CHARM_COST = 7000;
 const LUCKY_CHARM_MAX = 99;
 const LUCKY_CHARM_DURATION_MS = 3 * 60 * 1000;
-const LUCKY_CHARM_RARE_CUTOFF = 1;    // % rarity — types rarer than this are boosted
+const LUCKY_CHARM_RARE_CUTOFF = 0.01;    // % rarity — types rarer than this are boosted
 const LUCKY_CHARM_RARE_MULT = 2;      // "2x luck"
 const EXTRA_CLOVER_COST = 15000;
 const EXTRA_CLOVER_MAX = 99;
@@ -171,7 +177,7 @@ const EXTRA_CLOVER_RARE_MULT = 3;     // "3x luck"
 const RAINBOW_CHECK_INTERVAL_MIN = 1; // roll once per this many minutes of play
 const RAINBOW_EVENT_CHANCE = 0.0025;  // 0.25% chance on each roll
 const RAINBOW_DURATION_MS = 3 * 60 * 1000;
-const RAINBOW_RARE_CUTOFF = 1;        // % rarity — types rarer than this are boosted
+const RAINBOW_RARE_CUTOFF = 0.01;        // % rarity — types rarer than this are boosted
 const RAINBOW_RARE_MULT = 5;
 
 // Golden Event
@@ -263,7 +269,9 @@ const state = {
     boughtTripod: false, sawRainbow: false, sawGolden: false,
     caughtTripping: false
   },
-  achievements: {}        // key -> { seen: bool, claimed: bool }
+  achievements: {},       // key -> { seen: bool, claimed: bool }
+  bountiesCollected: 0,   // total bounty-frame captures, across camera and tripods
+  freeGiftClaimed: false  // one-time free gift (gift icon in the HUD)
 };
 
 // Spawns are rate-limited by a persisted, wall-clock-driven credit budget so
@@ -976,9 +984,24 @@ const ACHIEVEMENTS = [
   { key: "cube_chaos", name: "Cube Chaos", desc: "Collect 10 photos of Square.",
     progress: () => (state.dex[2] ? state.dex[2].c : 0), target: 10,
     reward: { type: "money", amount: 961 } },
+  { key: "bounty_beginning", name: "Bounty Beginning", desc: "Collect one bounty.",
+    progress: () => state.bountiesCollected, target: 1,
+    reward: { type: "money", amount: 5000 } },
+  { key: "bounty_hunter", name: "Bounty Hunter", desc: "Collect 10 bounties.",
+    progress: () => state.bountiesCollected, target: 10,
+    reward: { type: "money", amount: 10000 } },
   { key: "beginning", name: "The Beginning", desc: "Collect 50 entries in your Stickdex.",
     progress: () => Object.keys(state.dex).length, target: 50,
     reward: { type: "money", amount: 10000 } },
+  { key: "improvements", name: "Improvements", desc: "Obtain a #100 or higher character.",
+    progress: () => (maxDexId() >= 100 ? 1 : 0), target: 1,
+    reward: { type: "combo", rewards: [
+      { type: "money", amount: 15000 },
+      { type: "item", item: "luckyCharm", amount: 3 }
+    ] } },
+  { key: "empty_pockets", name: "Empty Pockets", desc: "Obtain $50,000 or more at once.",
+    progress: () => state.money, target: 50000,
+    reward: { type: "money", amount: 20000 } },
   { key: "oops", name: "Oops", desc: "Catch a stickman while it's falling over.",
     progress: () => (state.achFlags.caughtTripping ? 1 : 0), target: 1,
     reward: { type: "event", event: "stampede" } },
@@ -997,6 +1020,12 @@ const ACHIEVEMENTS = [
   { key: "collector1", name: "Collector 1", desc: "Collect 100 entries in your Stickdex.",
     progress: () => Object.keys(state.dex).length, target: 100,
     reward: { type: "money", amount: 30000 } },
+  { key: "collector2", name: "Collector 2", desc: "Collect 150 entries in your Stickdex.",
+    progress: () => Object.keys(state.dex).length, target: 150,
+    reward: { type: "combo", rewards: [
+      { type: "money", amount: 40000 },
+      { type: "item", item: "extraClover", amount: 1 }
+    ] } },
   { key: "best_stick", name: "Best Stick", desc: "Obtain the Moon Walker entry.",
     progress: () => (state.dex[113] ? 1 : 0), target: 1,
     reward: { type: "money", amount: 32000 } },
@@ -1037,7 +1066,7 @@ function achDisplay(a) {
 function rewardLabel(r) {
   if (r.type === "money") return formatMoney(r.amount);
   if (r.type === "item") {
-    const names = { tripod: "Tripod", extraClover: "Extra Lucky Charm" };
+    const names = { tripod: "Tripod", extraClover: "Extra Lucky Charm", luckyCharm: "Lucky Charm" };
     return `${r.amount}x ${names[r.item] || r.item}`;
   }
   if (r.type === "event") return r.event === "stampede" ? "Triggers a Stampede Event" : "Special event";
@@ -1049,7 +1078,26 @@ function rewardLabel(r) {
     }
     return Object.entries(counts).map(([name, n]) => `${n}x ${name}`).join(", ");
   }
+  if (r.type === "combo") return r.rewards.map(rewardLabel).join(" + ");
   return "Nothing — just pride";
+}
+
+function grantReward(r) {
+  if (r.type === "money") {
+    state.money += r.amount;
+    updateMoneyDisplay(true);
+  } else if (r.type === "item") {
+    if (r.item === "tripod") state.tripodCount += r.amount;
+    else if (r.item === "extraClover") state.extraCloverCount += r.amount;
+    else if (r.item === "luckyCharm") state.luckyCharmCount += r.amount;
+    buildShop();
+  } else if (r.type === "event") {
+    if (r.event === "stampede") startStampedeEvent(performance.now());
+  } else if (r.type === "spawn") {
+    for (const id of r.ids) spawnQueue.push(id);
+  } else if (r.type === "combo") {
+    for (const sub of r.rewards) grantReward(sub);
+  }
 }
 
 let achCheckAccum = 0;
@@ -1074,19 +1122,7 @@ function claimAchievement(key) {
   if (!a) return;
   const st = achState(key);
   if (a.progress() < a.target || st.claimed) return;
-  const r = a.reward;
-  if (r.type === "money") {
-    state.money += r.amount;
-    updateMoneyDisplay(true);
-  } else if (r.type === "item") {
-    if (r.item === "tripod") state.tripodCount += r.amount;
-    else if (r.item === "extraClover") state.extraCloverCount += r.amount;
-    buildShop();
-  } else if (r.type === "event") {
-    if (r.event === "stampede") startStampedeEvent(performance.now());
-  } else if (r.type === "spawn") {
-    for (const id of r.ids) spawnQueue.push(id);
-  }
+  grantReward(a.reward);
   st.claimed = true;
   saveDirty = true;
   const disp = achDisplay(a);
@@ -1503,7 +1539,7 @@ function takePhoto() {
   // second instance of this type still in frame) can't cash in x20 more than
   // once for the same bounty — only the visual refresh waits for the
   // fly-to-folder animation (see playFrameAnimation).
-  if (bountyHit) rollBounty();
+  if (bountyHit) { rollBounty(); state.bountiesCollected++; }
   if (goldenUntil > performance.now()) gained *= GOLDEN_MONEY_MULT;
   state.money += gained;
 
@@ -1624,6 +1660,7 @@ function openDex() {
   if (cameraMode) toggleCamera(false);
   closeShop();
   closeAchievements();
+  closeGift();
   cancelPlaceMode();
   buildDex();
   els.stickdex.classList.remove("hidden");
@@ -1679,7 +1716,7 @@ function buildDex() {
 // ------------------------------------------------------------------
 function openAchievements() {
   if (cameraMode) toggleCamera(false);
-  closeDex(); closeShop();
+  closeDex(); closeShop(); closeGift();
   cancelPlaceMode();
   buildAchievements();
   els.achievements.classList.add("open");
@@ -1688,6 +1725,39 @@ function openAchievements() {
 function closeAchievements() {
   els.achievements.classList.remove("open");
   els.achievementsBackdrop.classList.remove("open");
+}
+
+// ------------------------------------------------------------------
+// Free Gift — a one-time claimable reward from the gift icon in the HUD
+// ------------------------------------------------------------------
+const FREE_GIFT_REWARD = { type: "combo", rewards: [
+  { type: "money", amount: 20000 },
+  { type: "item", item: "extraClover", amount: 1 }
+] };
+
+function openGift() {
+  if (cameraMode) toggleCamera(false);
+  closeDex(); closeShop(); closeAchievements();
+  cancelPlaceMode();
+  renderGift();
+  els.giftModal.classList.add("open");
+  els.giftBackdrop.classList.add("open");
+}
+function closeGift() {
+  els.giftModal.classList.remove("open");
+  els.giftBackdrop.classList.remove("open");
+}
+function renderGift() {
+  els.giftClaimBtn.classList.toggle("hidden", state.freeGiftClaimed);
+  els.giftClaimedBadge.classList.toggle("hidden", !state.freeGiftClaimed);
+}
+function claimFreeGift() {
+  if (state.freeGiftClaimed) return;
+  grantReward(FREE_GIFT_REWARD);
+  state.freeGiftClaimed = true;
+  saveDirty = true;
+  renderGift();
+  showToast(`<span class="t-money">Reward claimed:</span> Free Gift`);
 }
 
 function buildAchievements() {
@@ -1736,6 +1806,7 @@ function openShop() {
   if (cameraMode) toggleCamera(false);
   closeDex();
   closeAchievements();
+  closeGift();
   cancelPlaceMode();
   buildShop();
   els.shop.classList.remove("hidden");
@@ -2220,7 +2291,7 @@ function startPlacing(kind) {
   const info = PLACE_KINDS[kind];
   if (info.countOf() <= 0) { showToast(info.emptyMsg); return; }
   if (cameraMode) toggleCamera(false);
-  closeDex(); closeShop(); closeAchievements();
+  closeDex(); closeShop(); closeAchievements(); closeGift();
   placeMode = "aiming";
   placeKind = kind;
   pendingPlace = null;
@@ -2386,6 +2457,7 @@ function tripodCapture(tp, focus) {
     );
   }
 
+  if (bountyHit) state.bountiesCollected++;
   if (bountyHit || Date.now() - state.bountySetAt > BOUNTY_TIMEOUT_MS) pickBounty();
 }
 
@@ -2511,7 +2583,7 @@ function drawPlacedItems(t) {
 // ------------------------------------------------------------------
 // Input
 // ------------------------------------------------------------------
-els.cameraBtn.addEventListener("click", () => { closeShop(); cancelPlaceMode(); toggleCamera(); });
+els.cameraBtn.addEventListener("click", () => { closeShop(); closeGift(); cancelPlaceMode(); toggleCamera(); });
 els.folderBtn.addEventListener("click", openDex);
 els.dexBack.addEventListener("click", closeDex);
 els.shopBtn.addEventListener("click", openShop);
@@ -2519,6 +2591,10 @@ els.shopBack.addEventListener("click", closeShop);
 els.achievementsBtn.addEventListener("click", openAchievements);
 els.achBack.addEventListener("click", closeAchievements);
 els.achievementsBackdrop.addEventListener("click", closeAchievements);
+els.giftBtn.addEventListener("click", openGift);
+els.giftClose.addEventListener("click", closeGift);
+els.giftBackdrop.addEventListener("click", closeGift);
+els.giftClaimBtn.addEventListener("click", claimFreeGift);
 function makePlaceToggle(kind) {
   return () => {
     if (placeMode && placeKind === kind) cancelPlaceMode();
@@ -2554,6 +2630,7 @@ window.addEventListener("keydown", e => {
     else if (!els.stickdex.classList.contains("hidden")) closeDex();
     else if (!els.shop.classList.contains("hidden")) closeShop();
     else if (els.achievements.classList.contains("open")) closeAchievements();
+    else if (els.giftModal.classList.contains("open")) closeGift();
     else if (cameraMode) toggleCamera(false);
   }
   if (e.key === "c" || e.key === "C") toggleCamera();
