@@ -320,12 +320,12 @@ const LUCKY_BLOCK_ID = -1;
 // Not part of TYPES, never added to state.dex, never picked as a bounty.
 const AURA_FARMER_ID = -2;
 const AURA_FARMER_VALUE = 67;
-const AURA_SHOOT_RANGE_PX = 110;    // how close to the hoop before it stops to shoot
+const AURA_EDGE_MARGIN_PX = 70;      // just enough of a walk-on to be visible before it shoots from there
 const AURA_BLACKOUT_SNAP_S = 0.35;  // fade to black
 const AURA_BLACKOUT_HOLD_S = 0.7;   // held fully black — the crowd vanishes, the court is set
 const AURA_BLACKOUT_FADE_S = 0.7;   // lights come back up on the empty court + the Aura Farmer
 const AURA_SHOT_WINDUP_S = 0.3;     // stands still, winds up
-const AURA_SHOT_ARC_S = 0.6;        // ball's flight time to the hoop
+const AURA_SHOT_ARC_S = 1.6;        // ball's flight time — it's a full-court shot, give it some air
 const AURA_SHOT_HANG_S = 0.3;       // confetti beat before it resumes walking
 
 // Time Freeze: transient — not saved, it always finishes long before any reload matters
@@ -668,7 +668,10 @@ function updateAuraEvent(dt) {
   }
 
   if (ev.phase === "approach") {
-    if (Math.abs(ev.farmer.x - ev.hoopX) <= AURA_SHOOT_RANGE_PX) {
+    // Just enough of a walk-on to be visible on screen, then it shoots from
+    // right there — a long, full-screen shot, not a walk-up to the hoop.
+    const onScreenDist = ev.dir === 1 ? ev.farmer.x : W - ev.farmer.x;
+    if (onScreenDist >= AURA_EDGE_MARGIN_PX) {
       ev.phase = "shooting";
       ev.shotT = 0;
       ev.shotStartX = ev.farmer.x;
@@ -698,11 +701,11 @@ function updateAuraEvent(dt) {
     }
     if (ev.shotT >= AURA_SHOT_WINDUP_S + AURA_SHOT_ARC_S + AURA_SHOT_HANG_S) {
       ev.farmer.baseSpeed = ev.farmer._savedSpeed;
-      ev.phase = "walkoff";
+      // The crowd reappears right away — the Aura Farmer just keeps walking
+      // among them like any other stickman from here on.
+      endAuraEvent();
     }
   }
-  // phase "walkoff": the normal movement loop carries it off-screen; the
-  // off-screen despawn check calls endAuraEvent() once it's gone.
 }
 
 function endAuraEvent() {
@@ -715,62 +718,12 @@ function endAuraEvent() {
 
 function drawAuraHoop() {
   if (!auraEvent) return;
-  const { hoopX, hoopY, dir } = auraEvent;
-  // The backboard+pole stand behind the rim, toward the far edge the farmer
-  // is heading to; the rim itself faces back toward the court (toward the
-  // approaching farmer), same arrangement as a real hoop stand.
-  const bw = 34, bh = 30;                 // backboard width/height
-  const poleX = hoopX + dir * (bw + 8);   // pole runs straight up behind the backboard
-  const boardNear = poleX - dir * bw;     // the backboard's near (court-facing) edge
-  const boardFar = poleX + dir * 2;       // its far edge, just past the pole
-
+  const { hoopX, hoopY } = auraEvent;
+  // Just a plain black ring — no backboard, no pole, no net.
   ctx.save();
-  ctx.strokeStyle = "#000"; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.lineCap = "round";
-
-  // pole, ground to backboard
-  ctx.beginPath();
-  ctx.moveTo(poleX, hoopY - bh * 0.3);
-  ctx.lineTo(poleX, H - 15);
-  ctx.stroke();
-
-  // backboard (a flat rectangle facing the court)
-  ctx.fillStyle = "#fff";
-  ctx.beginPath();
-  ctx.rect(Math.min(boardNear, boardFar), hoopY - bh, Math.abs(boardFar - boardNear), bh);
-  ctx.fill(); ctx.stroke();
-  // inner target square, centered low on the backboard, just above the rim
-  ctx.lineWidth = 1.3;
-  const sqW = bw * 0.42, sqH = bh * 0.38;
-  const sqCx = (boardNear + boardFar) / 2 + dir * bw * 0.08;
-  ctx.strokeRect(sqCx - sqW / 2, hoopY - bh * 0.42, sqW, sqH);
-  ctx.lineWidth = 2.2;
-
-  // short bracket from the backboard face to the rim
-  ctx.beginPath();
-  ctx.moveTo(boardNear, hoopY);
-  ctx.lineTo(hoopX + dir * 9, hoopY);
-  ctx.stroke();
-
-  // rim
-  ctx.fillStyle = "#e64a19";
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 2.5;
   ctx.beginPath();
   ctx.ellipse(hoopX, hoopY, 15, 4.5, 0, 0, Math.PI * 2);
-  ctx.fill(); ctx.stroke();
-
-  // net — a simple hanging diamond mesh
-  ctx.lineWidth = 1.3;
-  ctx.beginPath();
-  const netTop = hoopY + 2, netBottom = hoopY + 18;
-  for (let i = 0; i <= 6; i++) {
-    const topX = hoopX - 13 + i * (26 / 6);
-    const botX = hoopX - 7 + i * (14 / 6);
-    ctx.moveTo(topX, netTop);
-    ctx.lineTo(botX, netBottom);
-  }
-  for (let i = 0; i <= 1; i++) {
-    const y1 = netTop + (netBottom - netTop) * (0.3 + i * 0.35);
-    ctx.moveTo(hoopX - 11, y1); ctx.lineTo(hoopX + 11, y1);
-  }
   ctx.stroke();
   ctx.restore();
 }
@@ -782,7 +735,7 @@ function drawAuraBallShot() {
   const sx = ev.shotStartX, sy = ev.shotStartY;
   const ex = ev.hoopX, ey = ev.hoopY;
   const x = sx + (ex - sx) * p;
-  const peak = Math.min(sy, ey) - 70;
+  const peak = Math.min(sy, ey) - Math.max(80, Math.abs(ex - sx) * 0.22); // a long shot arcs higher
   const y = (1 - p) * (1 - p) * sy + 2 * (1 - p) * p * peak + p * p * ey;
   ctx.save();
   ctx.fillStyle = "#f57c00"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
