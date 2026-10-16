@@ -284,7 +284,9 @@ const state = {
   },
   achievements: {},       // key -> { seen: bool, claimed: bool }
   bountiesCollected: 0,   // total bounty-frame captures, across camera and tripods
-  freeGiftClaimed: false  // one-time free gift (gift icon in the HUD)
+  auraGiftClaimed: false, // one-time free gift (gift icon in the HUD) — spawns the Aura Farmer
+  auraFarmerCaught: false,// photographed the Aura Farmer during its one appearance
+  auraFarmerThumb: null   // its Stickdex thumbnail, once captured
 };
 
 // Spawns are rate-limited by a persisted, wall-clock-driven credit budget so
@@ -312,6 +314,19 @@ const spawnQueue = [];
 // instead of a normal type" — recognized by spawn() and the natural refill
 // roll in updateWorld.
 const LUCKY_BLOCK_ID = -1;
+
+// Sentinel typeId for the Aura Farmer — a one-time, unnumbered special
+// entry delivered by the free gift (see claimAuraGift/spawnAuraFarmer).
+// Not part of TYPES, never added to state.dex, never picked as a bounty.
+const AURA_FARMER_ID = -2;
+const AURA_FARMER_VALUE = 67;
+const AURA_SHOOT_RANGE_PX = 110;    // how close to the hoop before it stops to shoot
+const AURA_BLACKOUT_SNAP_S = 0.35;  // fade to black
+const AURA_BLACKOUT_HOLD_S = 0.7;   // held fully black — the crowd vanishes, the court is set
+const AURA_BLACKOUT_FADE_S = 0.7;   // lights come back up on the empty court + the Aura Farmer
+const AURA_SHOT_WINDUP_S = 0.3;     // stands still, winds up
+const AURA_SHOT_ARC_S = 0.6;        // ball's flight time to the hoop
+const AURA_SHOT_HANG_S = 0.3;       // confetti beat before it resumes walking
 
 // Time Freeze: transient — not saved, it always finishes long before any reload matters
 let timeFreezeUntil = 0;
@@ -506,6 +521,7 @@ let escortAlive = 0;
 function spawn(typeId, onScreen) {
   let id = typeId || sampleTypeId();
   if (id === LUCKY_BLOCK_ID) return spawnLuckyBlock(onScreen);
+  if (id === AURA_FARMER_ID) return spawnAuraFarmer();
   const type = TYPES[id - 1];
   const f = getFeatures(id);
   const dir = Math.random() < 0.5 ? 1 : -1;
@@ -585,6 +601,216 @@ function spawnLuckyBlock(onScreen) {
   };
   stickmen.push(inst);
   return inst;
+}
+
+// ------------------------------------------------------------------
+// Aura Farmer — the Free Gift's one-time special event. Spawning it hides
+// every other stickman (physically removed from `stickmen`, not just drawn
+// over) so it's alone on screen with a basketball hoop on the far side;
+// it walks over, shoots, scores, and keeps walking off — at which point
+// everyone hidden reappears exactly as they were.
+// ------------------------------------------------------------------
+let auraEvent = null;            // { farmer, t, dir, hoopX, hoopY, phase, ... } while running
+let auraHiddenStickmen = [];      // everyone temporarily pulled out of `stickmen`
+
+function spawnAuraFarmer() {
+  if (auraEvent) return null; // already running — the gift can only ever queue one
+  auraHiddenStickmen = stickmen.splice(0, stickmen.length);
+  const f = Object.assign({}, getFeatures(1), {
+    auraFlame: true, ball: "basketball", color: "#111111", headFill: "#ffffff", lineW: 2.2
+  });
+  const dir = Math.random() < 0.5 ? 1 : -1;
+  const laneTop = 120, laneBottom = H - 15;
+  const farmer = {
+    instId: nextInstId++,
+    type: { id: AURA_FARMER_ID, name: "Aura Farmer", r: 0, value: AURA_FARMER_VALUE,
+            desc: "Appeared once, from the free gift. Grinding pure aura — there's only one shot at this." },
+    f,
+    x: dir === 1 ? -50 : W + 50,
+    y: laneTop + (laneBottom - laneTop) * 0.5,
+    dir, size: 1.15,
+    move: "walk",
+    phase: Math.random() * Math.PI * 2,
+    baseSpeed: 55,
+    shot: false,
+    tpTimer: 0, tpAlpha: 1,
+    emitTimer: Math.random() * 0.2,
+    isAuraFarmer: true
+  };
+  stickmen.push(farmer);
+  auraEvent = {
+    farmer, t: 0, dir,
+    hoopX: dir === 1 ? W - 80 : 80,
+    hoopY: Math.max(150, H * 0.38),
+    phase: "blackout",
+    shotT: 0, shotStartX: 0, shotStartY: 0,
+    scored: false
+  };
+  return farmer;
+}
+
+function updateAuraEvent(dt) {
+  if (!auraEvent) return;
+  const ev = auraEvent;
+  ev.t += dt;
+
+  const snap = AURA_BLACKOUT_SNAP_S, hold = AURA_BLACKOUT_HOLD_S, fade = AURA_BLACKOUT_FADE_S;
+  let a = 0;
+  if (ev.t < snap) a = ev.t / snap;
+  else if (ev.t < snap + hold) a = 1;
+  else if (ev.t < snap + hold + fade) a = 1 - (ev.t - snap - hold) / fade;
+  kingFlash.style.opacity = String(Math.max(0, a));
+
+  if (ev.phase === "blackout") {
+    ev.farmer.x = ev.dir === 1 ? -50 : W + 50; // hold at the entry edge until the lights come up
+    if (ev.t >= snap + hold + fade) ev.phase = "approach";
+    return;
+  }
+
+  if (ev.phase === "approach") {
+    if (Math.abs(ev.farmer.x - ev.hoopX) <= AURA_SHOOT_RANGE_PX) {
+      ev.phase = "shooting";
+      ev.shotT = 0;
+      ev.shotStartX = ev.farmer.x;
+      ev.shotStartY = ev.farmer.y - instHeight(ev.farmer) * 0.65;
+      ev.farmer._savedSpeed = ev.farmer.baseSpeed;
+      ev.farmer.baseSpeed = 0;
+      ev.farmer.f.ball = null; // the held-ball bounce animation stops; the thrown-ball overlay takes over
+    }
+    return;
+  }
+
+  if (ev.phase === "shooting") {
+    ev.shotT += dt;
+    if (ev.shotT < AURA_SHOT_WINDUP_S) return; // brief wind-up, standing still
+    const p = Math.min(1, (ev.shotT - AURA_SHOT_WINDUP_S) / AURA_SHOT_ARC_S);
+    if (p >= 1 && !ev.scored) {
+      ev.scored = true;
+      for (let i = 0; i < 16; i++) {
+        particles.push({
+          x: ev.hoopX, y: ev.hoopY, kind: "confetti",
+          life: 0.7 + Math.random() * 0.3,
+          vx: (Math.random() - 0.5) * 36, vy: -22 - Math.random() * 14,
+          r: 2, hue: Math.random() * 360
+        });
+      }
+      showToast(`<span class="t-new">SWISH!</span> The Aura Farmer scores.`);
+    }
+    if (ev.shotT >= AURA_SHOT_WINDUP_S + AURA_SHOT_ARC_S + AURA_SHOT_HANG_S) {
+      ev.farmer.baseSpeed = ev.farmer._savedSpeed;
+      ev.phase = "walkoff";
+    }
+  }
+  // phase "walkoff": the normal movement loop carries it off-screen; the
+  // off-screen despawn check calls endAuraEvent() once it's gone.
+}
+
+function endAuraEvent() {
+  if (!auraEvent) return;
+  for (const s of auraHiddenStickmen) stickmen.push(s);
+  auraHiddenStickmen = [];
+  auraEvent = null;
+  kingFlash.style.opacity = "0";
+}
+
+function drawAuraHoop() {
+  if (!auraEvent) return;
+  const { hoopX, hoopY, dir } = auraEvent;
+  // The backboard+pole stand behind the rim, toward the far edge the farmer
+  // is heading to; the rim itself faces back toward the court (toward the
+  // approaching farmer), same arrangement as a real hoop stand.
+  const bw = 34, bh = 30;                 // backboard width/height
+  const poleX = hoopX + dir * (bw + 8);   // pole runs straight up behind the backboard
+  const boardNear = poleX - dir * bw;     // the backboard's near (court-facing) edge
+  const boardFar = poleX + dir * 2;       // its far edge, just past the pole
+
+  ctx.save();
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.lineCap = "round";
+
+  // pole, ground to backboard
+  ctx.beginPath();
+  ctx.moveTo(poleX, hoopY - bh * 0.3);
+  ctx.lineTo(poleX, H - 15);
+  ctx.stroke();
+
+  // backboard (a flat rectangle facing the court)
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.rect(Math.min(boardNear, boardFar), hoopY - bh, Math.abs(boardFar - boardNear), bh);
+  ctx.fill(); ctx.stroke();
+  // inner target square, centered low on the backboard, just above the rim
+  ctx.lineWidth = 1.3;
+  const sqW = bw * 0.42, sqH = bh * 0.38;
+  const sqCx = (boardNear + boardFar) / 2 + dir * bw * 0.08;
+  ctx.strokeRect(sqCx - sqW / 2, hoopY - bh * 0.42, sqW, sqH);
+  ctx.lineWidth = 2.2;
+
+  // short bracket from the backboard face to the rim
+  ctx.beginPath();
+  ctx.moveTo(boardNear, hoopY);
+  ctx.lineTo(hoopX + dir * 9, hoopY);
+  ctx.stroke();
+
+  // rim
+  ctx.fillStyle = "#e64a19";
+  ctx.beginPath();
+  ctx.ellipse(hoopX, hoopY, 15, 4.5, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  // net — a simple hanging diamond mesh
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  const netTop = hoopY + 2, netBottom = hoopY + 18;
+  for (let i = 0; i <= 6; i++) {
+    const topX = hoopX - 13 + i * (26 / 6);
+    const botX = hoopX - 7 + i * (14 / 6);
+    ctx.moveTo(topX, netTop);
+    ctx.lineTo(botX, netBottom);
+  }
+  for (let i = 0; i <= 1; i++) {
+    const y1 = netTop + (netBottom - netTop) * (0.3 + i * 0.35);
+    ctx.moveTo(hoopX - 11, y1); ctx.lineTo(hoopX + 11, y1);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawAuraBallShot() {
+  const ev = auraEvent;
+  if (!ev || ev.phase !== "shooting" || ev.shotT < AURA_SHOT_WINDUP_S) return;
+  const p = Math.min(1, (ev.shotT - AURA_SHOT_WINDUP_S) / AURA_SHOT_ARC_S);
+  const sx = ev.shotStartX, sy = ev.shotStartY;
+  const ex = ev.hoopX, ey = ev.hoopY;
+  const x = sx + (ex - sx) * p;
+  const peak = Math.min(sy, ey) - 70;
+  const y = (1 - p) * (1 - p) * sy + 2 * (1 - p) * p * peak + p * p * ey;
+  ctx.save();
+  ctx.fillStyle = "#f57c00"; ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x - 5, y); ctx.lineTo(x + 5, y);
+  ctx.moveTo(x, y - 5); ctx.lineTo(x, y + 5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Standalone portrait renderer for the Stickdex card, mirroring drawPortrait()
+// but bypassing TYPES/getFeatures(typeId) since the Aura Farmer isn't a real id.
+function drawAuraFarmerPortrait(w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const pctx = c.getContext("2d");
+  pctx.fillStyle = "#fff"; pctx.fillRect(0, 0, w, h);
+  const f = Object.assign({}, getFeatures(1), {
+    auraFlame: true, ball: "basketball", color: "#111111", headFill: "#ffffff", lineW: 2.2
+  });
+  const inst = {
+    x: w / 2, y: h * 0.92, dir: 1, phase: 0.7,
+    f, size: (h / 52) * 0.6, move: "walk",
+    shot: false, portrait: true, _noMorph: true
+  };
+  drawStickman(pctx, inst, 1.234);
+  return c;
 }
 
 function instHeight(inst) {
@@ -1148,12 +1374,14 @@ let nextTripAt = 25 + Math.random() * 45; // runtime seconds until the next poss
 
 function updateWorld(dt, t) {
   updateKingFlash(dt);
+  updateAuraEvent(dt);
   const max = maxOnScreen();
   // escorts don't count toward the cap, and aren't replaced when they leave.
-  // (population is frozen during the coronation — nobody new wanders in.)
+  // (population is frozen during the coronation, and during the Aura Farmer's
+  // one-time event — nobody new wanders in while either is running.)
   state.spawnCredits = Math.min(max, state.spawnCredits + dt * SPAWN_REGEN_PER_SEC);
   state.lastCreditUpdate = Date.now(); // keep in sync with wall clock for the next reload's elapsed-time check
-  if (!kingEvent && stickmen.length - escortAlive < max && state.spawnCredits >= 1) {
+  if (!kingEvent && !auraEvent && stickmen.length - escortAlive < max && state.spawnCredits >= 1) {
     state.spawnCredits--;
     let queuedId = spawnQueue.length ? spawnQueue.shift() : null;
     if (queuedId === null && !stickmen.some(s => s.type.id === LUCKY_BLOCK_ID) && Math.random() < LUCKY_BLOCK_SPAWN_CHANCE) {
@@ -1172,7 +1400,7 @@ function updateWorld(dt, t) {
   }
 
   // ---- very rarely, a plain Circle trips over another stickman or the ground ----
-  if (!kingEvent && t >= nextTripAt) {
+  if (!kingEvent && !auraEvent && t >= nextTripAt) {
     const candidates = stickmen.filter(s =>
       s.type.id === 1 && !s.tripping && s.move === "walk" &&
       s.x > 40 && s.x < W - 40);
@@ -1336,6 +1564,7 @@ function updateWorld(dt, t) {
         s.x = s.dir === 1 ? -50 : W + 50;
       } else {
         if (s.isKing) endKingEvent();  // the king has left — the world resumes
+        if (s.isAuraFarmer) endAuraEvent(); // caught or not, it's gone — the crowd reappears
         if (s.noRefill) escortAlive--; // escort slot vanishes with the knight
         if (s.dwPortal) s.dwPortal.closing = true;   // don't strand open rifts
         if (s.dwPortal2) s.dwPortal2.closing = true;
@@ -1491,6 +1720,29 @@ function makeThumb(dataURL, cb) {
   img.src = dataURL;
 }
 
+// Records a successful capture in the Stickdex and returns whether it's a
+// brand-new entry. The Aura Farmer is kept out of state.dex entirely (it's
+// not a numbered type, and dex-count-based achievements must stay
+// achievable even for a player who never catches it) — it gets its own
+// separate one-shot flag and thumbnail instead.
+function registerCapture(valueType, photoURL) {
+  if (valueType.id === AURA_FARMER_ID) {
+    const newCatch = !state.auraFarmerCaught;
+    state.auraFarmerCaught = true;
+    makeThumb(photoURL, thumb => { state.auraFarmerThumb = thumb; saveDirty = true; });
+    return newCatch;
+  }
+  let newType = false;
+  if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
+  state.dex[valueType.id].c++;
+  makeThumb(photoURL, thumb => {
+    const e = state.dex[valueType.id];
+    if (e && !e.t) e.t = thumb;
+    saveDirty = true;
+  });
+  return newType;
+}
+
 function takePhoto() {
   const cdLeft = shotCooldownLeft();
   if (cdLeft > 0) {
@@ -1559,15 +1811,7 @@ function takePhoto() {
   state.money += gained;
 
   let newType = false;
-  if (!isLuckyBlockFocus) {
-    if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
-    state.dex[valueType.id].c++;
-    makeThumb(photoURL, thumb => {
-      const e = state.dex[valueType.id];
-      if (e && !e.t) e.t = thumb;
-      saveDirty = true;
-    });
-  }
+  if (!isLuckyBlockFocus) newType = registerCapture(valueType, photoURL);
 
   updateMoneyDisplay(true);
   saveDirty = true;
@@ -1585,6 +1829,12 @@ function takePhoto() {
     showToast(
       `<span class="t-bounty">LUCKY BLOCK!</span><br>` +
       `It opens and a wild ${replacement.type.name} appears!`
+    );
+  } else if (valueType.id === AURA_FARMER_ID) {
+    showToast(
+      `<span class="t-money">+${formatMoney(gained)}</span><br>` +
+      `<span class="t-new">AURA FARMER CAPTURED!</span>` +
+      (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
     );
   } else {
     const others = captured.length - 1;
@@ -1687,7 +1937,7 @@ function buildDex() {
   els.dexCount.textContent = `${found.length}/???`;
   updateMoneyDisplay(false);
   els.dexGrid.innerHTML = "";
-  if (found.length === 0) {
+  if (found.length === 0 && !state.auraFarmerCaught) {
     const d = document.createElement("div");
     d.id = "dex-empty";
     d.textContent = "No stickmen photographed yet. Grab the camera and start hunting!";
@@ -1723,6 +1973,30 @@ function buildDex() {
     card.appendChild(info);
     frag.appendChild(card);
   }
+  // Special, unnumbered entry — always last, regardless of rarity sort.
+  if (state.auraFarmerCaught) {
+    const card = document.createElement("div");
+    card.className = "dex-card";
+    if (state.auraFarmerThumb) {
+      const img = document.createElement("img");
+      img.src = state.auraFarmerThumb;
+      img.loading = "lazy";
+      card.appendChild(img);
+    } else {
+      card.appendChild(drawAuraFarmerPortrait(160, 120));
+    }
+    const info = document.createElement("div");
+    info.className = "dex-info";
+    info.innerHTML =
+      `<div class="dex-num dex-num-special">Special</div>` +
+      `<div class="dex-name">Aura Farmer</div>` +
+      `<div class="dex-desc"></div>` +
+      `<div class="dex-photo-count">📷 1</div>`;
+    info.querySelector(".dex-desc").textContent =
+      "Appeared once, from the free gift. Grinding pure aura — there's only one shot at this.";
+    card.appendChild(info);
+    frag.appendChild(card);
+  }
   els.dexGrid.appendChild(frag);
 }
 
@@ -1743,13 +2017,12 @@ function closeAchievements() {
 }
 
 // ------------------------------------------------------------------
-// Free Gift — a one-time claimable reward from the gift icon in the HUD
+// Free Gift — a one-time claimable reward from the gift icon in the HUD.
+// Claiming queues the Aura Farmer (see spawnAuraFarmer) to appear in place
+// of the next natural spawn — not instantly. The claim itself is what's
+// one-time: once pressed, the player can't reclaim it even if the Aura
+// Farmer later walks off-screen unphotographed.
 // ------------------------------------------------------------------
-const FREE_GIFT_REWARD = { type: "combo", rewards: [
-  { type: "money", amount: 20000 },
-  { type: "item", item: "extraClover", amount: 1 }
-] };
-
 function openGift() {
   if (cameraMode) toggleCamera(false);
   closeDex(); closeShop(); closeAchievements();
@@ -1763,16 +2036,16 @@ function closeGift() {
   els.giftBackdrop.classList.remove("open");
 }
 function renderGift() {
-  els.giftClaimBtn.classList.toggle("hidden", state.freeGiftClaimed);
-  els.giftClaimedBadge.classList.toggle("hidden", !state.freeGiftClaimed);
+  els.giftClaimBtn.classList.toggle("hidden", state.auraGiftClaimed);
+  els.giftClaimedBadge.classList.toggle("hidden", !state.auraGiftClaimed);
 }
-function claimFreeGift() {
-  if (state.freeGiftClaimed) return;
-  grantReward(FREE_GIFT_REWARD);
-  state.freeGiftClaimed = true;
+function claimAuraGift() {
+  if (state.auraGiftClaimed) return;
+  state.auraGiftClaimed = true;
   saveDirty = true;
+  spawnQueue.push(AURA_FARMER_ID);
   renderGift();
-  showToast(`<span class="t-money">Reward claimed:</span> Free Gift`);
+  showToast(`<span class="t-new">Gift claimed!</span> Keep playing — something special is on its way.`);
 }
 
 function buildAchievements() {
@@ -2493,15 +2766,7 @@ function tripodCapture(tp, focus) {
 
   focus.shot = true;
   let newType = false;
-  if (!isLuckyBlockFocus) {
-    if (!state.dex[valueType.id]) { state.dex[valueType.id] = { c: 0 }; newType = true; }
-    state.dex[valueType.id].c++;
-    makeThumb(photoURL, thumb => {
-      const e = state.dex[valueType.id];
-      if (e && !e.t) e.t = thumb;
-      saveDirty = true;
-    });
-  }
+  if (!isLuckyBlockFocus) newType = registerCapture(valueType, photoURL);
 
   updateMoneyDisplay(true);
   saveDirty = true;
@@ -2520,6 +2785,12 @@ function tripodCapture(tp, focus) {
     showToast(
       `<span class="t-bounty">LUCKY BLOCK!</span> <small>(${label})</small><br>` +
       `It opens and a wild ${replacement.type.name} appears!`
+    );
+  } else if (valueType.id === AURA_FARMER_ID) {
+    showToast(
+      `<span class="t-money">+${formatMoney(gained)}</span> <small>(${label})</small><br>` +
+      `<span class="t-new">AURA FARMER CAPTURED!</span>` +
+      (newType ? `<br><span class="t-new">NEW Stickdex entry!</span>` : "")
     );
   } else {
     showToast(
@@ -2667,7 +2938,7 @@ els.achievementsBackdrop.addEventListener("click", closeAchievements);
 els.giftBtn.addEventListener("click", openGift);
 els.giftClose.addEventListener("click", closeGift);
 els.giftBackdrop.addEventListener("click", closeGift);
-els.giftClaimBtn.addEventListener("click", claimFreeGift);
+els.giftClaimBtn.addEventListener("click", claimAuraGift);
 function makePlaceToggle(kind) {
   return () => {
     if (placeMode && placeKind === kind) cancelPlaceMode();
@@ -2721,7 +2992,10 @@ if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
       energyOverloadUntil, extraExtraCloverUntil,
       rainbowUntil, goldenUntil, stampedeUntil, rainbowOvertimeUsed, goldenOvertimeUsed, stampedeOvertimeUsed,
       now: performance.now()
-    })
+    }),
+    peekAura: () => (auraEvent
+      ? { phase: auraEvent.phase, t: auraEvent.t, farmerX: auraEvent.farmer.x, hoopX: auraEvent.hoopX, hoopY: auraEvent.hoopY, scored: auraEvent.scored, hiddenCount: auraHiddenStickmen.length }
+      : null)
   };
 }
 
@@ -2788,10 +3062,12 @@ function frame(now) {
   ctx.fillRect(0, 0, W, H);
 
   drawPortals(t);
+  drawAuraHoop();
   drawParticles(dt, t);
 
   stickmen.sort((a, b) => a.y - b.y);
   for (const s of stickmen) drawStickman(ctx, s, t);
+  drawAuraBallShot();
 
   drawPlacedItems(t);
 

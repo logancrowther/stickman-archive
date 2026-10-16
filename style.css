@@ -627,6 +627,7 @@ body.camera-mode #wipe-btn { display: none; }
 }
 .dex-info { padding: 7px 8px 9px; }
 .dex-num { font-size: 11px; color: #666; font-weight: 600; }
+.dex-num-special { color: #7c3aed; font-weight: 800; }
 .dex-name { font-size: 14px; font-weight: 800; }
 .dex-rarity {
   font-size: 11px; font-weight: 700; color: #17a832;
