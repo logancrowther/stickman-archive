@@ -324,7 +324,7 @@ const AURA_EDGE_MARGIN_PX = 70;      // just enough of a walk-on to be visible b
 const AURA_BLACKOUT_SNAP_S = 0.35;  // fade to black
 const AURA_BLACKOUT_HOLD_S = 0.7;   // held fully black — the crowd vanishes, the court is set
 const AURA_BLACKOUT_FADE_S = 0.7;   // lights come back up on the empty court + the Aura Farmer
-const AURA_SHOT_WINDUP_S = 0.3;     // stands still, winds up
+const AURA_SHOT_WINDUP_S = 0.9;     // stands still, a clear pause before it shoots
 const AURA_SHOT_ARC_S = 1.6;        // ball's flight time — it's a full-court shot, give it some air
 const AURA_SHOT_HANG_S = 0.3;       // confetti beat before it resumes walking
 
@@ -718,10 +718,13 @@ function endAuraEvent() {
 
 function drawAuraHoop() {
   if (!auraEvent) return;
-  const { hoopX, hoopY } = auraEvent;
-  // Just a plain black ring — no backboard, no pole, no net.
+  const { hoopX, hoopY, dir } = auraEvent;
+  // A plain black ring with a plain outline backboard behind it — no pole, no net.
   ctx.save();
-  ctx.strokeStyle = "#000"; ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "#000"; ctx.lineWidth = 2.5; ctx.lineJoin = "round";
+  const boardW = 30, boardH = 26;
+  const boardCx = hoopX + dir * 20;
+  ctx.strokeRect(boardCx - boardW / 2, hoopY - boardH - 2, boardW, boardH);
   ctx.beginPath();
   ctx.ellipse(hoopX, hoopY, 15, 4.5, 0, 0, Math.PI * 2);
   ctx.stroke();
